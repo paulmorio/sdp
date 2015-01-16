@@ -1,10 +1,15 @@
 # Compiled Source #
 ###################
 *.class
+*.nxj
+*.nxd
 
 # Project metafiles #
 #####################
 .metadata/
+.recommenders/
+*.iml
+.idea/
 
 # Temporary files #
 ###################
