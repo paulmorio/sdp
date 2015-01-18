@@ -8,7 +8,7 @@
 */
 
 void setup() {
-  // initialize digital pin 13 as an output.
+  digitalWrite(8, HIGH);  // for RF
   Serial.begin(9600);
   Serial.println("<Arduino is ready>");
 }
