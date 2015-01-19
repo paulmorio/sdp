@@ -1,21 +1,43 @@
+#include <SerialCommand.h>
+
 /*
-  Simple arduino code to accompany initial java communicator.
-  
-  This sketch parses an integer from serial then returns its successor,
-  merely a ping test.
+  Arduino code for SDP Group 7 2014
   
   Author: Chris Seaton
 */
 
+// Communications
+SerialCommand comm;
+
 void setup() {
-  digitalWrite(8, HIGH);  // for RF
-  Serial.begin(9600);
+  // Set RF pin and select radio
+  pinMode(8, OUTPUT);
+  digitalWrite(8, HIGH);
+  // Set LED pin
+  pinMode(13, OUTPUT);
+  
+  // Init serial at default SRF baudrate
+  Serial.begin(115200);
+  
+  comm.addCommand("A_KICK", kick);
+  comm.addCommand("A_PUNCH", punch);
+  comm.setDefaultHandler(invalid_command);
+  
   Serial.println("<Arduino is ready>");
 }
 
 void loop() {
-  while (Serial.available() > 0) {
-    int in = Serial.parseInt();
-    Serial.println(in + 1);
-  }
+  comm.readSerial();
 }
+
+void kick() {
+  digitalWrite(13, HIGH);
+  Serial.println("Kicked!");
+}
+
+void punch() {
+  digitalWrite(13, LOW);
+  Serial.println("Punched!");
+}
+
+void invalid_command(const char* command) {}

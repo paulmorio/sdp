@@ -3,6 +3,7 @@
 *.class
 *.nxj
 *.nxd
+*.pyc
 
 # Project metafiles #
 #####################
@@ -14,3 +15,7 @@
 # Temporary files #
 ###################
 *.swp
+
+# Virtual environment #
+#######################
+venv/
