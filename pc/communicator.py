@@ -16,7 +16,7 @@ class Communicator:
         machines.
 
         :param rate: Baud rate
-        :param timeout: write timeout i
+        :param timeout: write timeout in seconds
         :return:
         """
 
