@@ -8,7 +8,7 @@
 */
 
 void setup() {
-  digitalWrite(8, HIGH);  // for RF
+  digitalWrite(8, HIGH);  // enable RF
   Serial.begin(115200);  // default baudrate for SRF
   Serial.println("<Arduino is ready>");
 }
@@ -16,6 +16,6 @@ void setup() {
 void loop() {
   while (Serial.available() > 0) {
     int in = Serial.parseInt();
-    Serial.write(in);
+    Serial.write(in);  // write input back to serial - for testing
   }
 }
