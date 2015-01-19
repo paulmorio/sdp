@@ -2,15 +2,22 @@
 
 *Murray Crichton, Roy Hotrabhvanon, Teun Kokke, Yiheng Liang, Donal O'Shea, Paul Scherer, Chris Seaton*
 
+## General Rules to Development
+- ***IMPORTANT:*** Please make sure to perform a `git pull` each time before and after you code in order to avoid integration conflicts later on.
+
+- Commit one unit of work each time.
+
+- Each time you pull from the repository, run the tests (when we have them), and run the tests again before you commit.
+
 ## Cloning the Repository
 
-Since this is a private repository you will not be able to 'git clone' the repository via https, and thus you will need to use an ssh key that is paired with your account so that you may pull/push the code into the repository. This little guide just explains the commands and what to do so that this can be achieved. (tl;dr copy and paste the code into your terminal)
+Since this is a private repository you will not be able to 'git clone' the repository via https, and thus you will need to use an ssh key that is paired with your account so that you may pull/push the code into the repository. This little guide just explains the commands and what to do so that this can be achieved. (tl;dr copy and paste the commands into your terminal)
 
 ### Generating SSH Keys
 
 Simply put SSH keys are a way to identify trusted computers, without involving passwords (except when you authorise an application or process to unlock your key for veification).
 
-If you want the official github explanation (which this is based off of) click [here](https:/help.github.com/articles/generating-ssh-keys/) otherwise just kep on reading.
+If you want the official github explanation (which this is based off of) click [here](https:/help.github.com/articles/generating-ssh-keys/) otherwise just keep on reading.
 
 #### Step 1: Check for already present SSH keys.
 
@@ -27,7 +34,7 @@ If you do they should typically listed as follows.
 - id_ed25519.pub
 - id_rsa.pub
 
-If not that is no problem just keep on going.
+If not, that is no problem just keep on going.
 
 #### Step 2: Generating a new SSH Key
 To generate a new SSH key, you call '''ssh-keygen''' to create an rsa key for you, that is linked to your email address as follows. **Its recommended that you use the email that is linked to your github acccount for the email field, though this is not a requirement.**
