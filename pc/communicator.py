@@ -6,7 +6,7 @@ class Communicator:
     Initialise serial connection to robot. Handles communication back and forth.
     """
 
-    def __init__(self, port="/dev/ttyUSB0", rate=115200, timeout=1):
+    def __init__(self, port="/dev/ttyACM0", rate=115200, timeout=1):
         """
         Create a communicator which acts as an interface for serial
         communication.
