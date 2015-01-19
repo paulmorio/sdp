@@ -9,13 +9,13 @@
 
 void setup() {
   digitalWrite(8, HIGH);  // for RF
-  Serial.begin(9600);
+  Serial.begin(115200);  // default baudrate for SRF
   Serial.println("<Arduino is ready>");
 }
 
 void loop() {
   while (Serial.available() > 0) {
     int in = Serial.parseInt();
-    Serial.println(in + 1);
+    Serial.write(in);
   }
 }
