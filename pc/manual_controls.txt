@@ -1,0 +1,7 @@
+[ArrowKeyLeft] ->  Turn left
+[ArrowKeyUp] ->  Move forward
+[ArrowKeyRight] ->  Turn right
+[ArrowKeyDown] ->  Move backward
+
+[Space] ->  Kick
+[g] ->  Grab
