@@ -2,9 +2,7 @@ from serial import Serial
 
 
 class Communicator(Serial):
-    """
-    Initialise serial connection to robot. Handles communication back and forth.
-    """
+    """Initialises a serial connection and implements parsing methods."""
 
     def __init__(self, port="/dev/ttyACM0", rate=115200, timeout=1):
         """
