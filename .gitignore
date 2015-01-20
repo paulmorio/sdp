@@ -19,3 +19,10 @@
 # Virtual environment #
 #######################
 venv/
+
+# TexMaker Files #
+##################
+*.aux
+*.log
+*.synctex.gz
+*.toc
