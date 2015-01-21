@@ -32,15 +32,15 @@ class ManualControl():
         text.pack()
 
         # Set up key bindings
-        root.bind('q', self.bot.left_strafe_toggle)
-        root.bind('e', self.bot.right_strafe_toggle)
-        root.bind('w', self.bot.forward_toggle)
-        root.bind('s', self.bot.back_toggle)
-        root.bind('a', self.bot.turn_left_90)
-        root.bind('d', self.bot.turn_right_90)
-        root.bind('g', self.bot.grab_toggle)
-        root.bind('<space>', self.bot.kick)
-        root.bind('t', self.bot.run_motors)
+        root.bind('q', self.left_strafe_toggle)
+        root.bind('e', self.right_strafe_toggle)
+        root.bind('w', self.forward_toggle)
+        root.bind('s', self.back_toggle)
+        root.bind('a', self.turn_left_90)
+        root.bind('d', self.turn_right_90)
+        root.bind('g', self.grab_toggle)
+        root.bind('<space>', self.kick)
+        root.bind('t', self.run_motors)
 
         # Set window attributes and start
         # TODO force proper focus on new window. root.focus_force insufficient
@@ -48,3 +48,41 @@ class ManualControl():
         root.wm_title("Manual Control")
         root.wm_attributes("-topmost", 1)
         root.mainloop()
+
+    # Manual control actions. These methods exist to strip the event argument
+    # passed by Tkinter binds.
+    def kick(self, event):
+        """ Send kick signal to bot """
+        self.bot.kick()
+
+    def grab_toggle(self, event):
+        """ Send grabber toggle signal to bot """
+        self.bot.grab_toggle()
+
+    def left_strafe_toggle(self, event):
+        """ Send left strafe toggle signal to bot"""
+        self.bot.left_strafe_toggle()
+
+    def right_strafe_toggle(self, event):
+        """ Send right strafe toggle signal to bot"""
+        self.bot.right_strafe_toggle()
+
+    def forward_toggle(self, event):
+        """Send forward toggle signal to bot"""
+        self.bot.forward_toggle()
+
+    def back_toggle(self, event):
+        """Send back toggle signal to bot"""
+        self.bot.back_toggle()
+
+    def turn_left_90(self, event):
+        """ Send signal to turn left 90deg"""
+        self.bot.turn_left_90()
+
+    def turn_right_90(self, event):
+        """Send signal to turn right 90deg"""
+        self.bot.turn_right_90()
+
+    def run_motors(self, event):
+        """Run motors to indicate that e.g. comms is working"""
+        self.bot.run_motors()
