@@ -59,6 +59,15 @@ Should definitely show the files
 
 Created as a result of running the above commands. The id_rsa.pub file will be important in the next section as it contains the your public key (the key that you share with other people/applications to open up secure connection)
 
+Add the key to the ssh-agent.
+
+```ShellSession
+# If not already started, start the ssh-agent
+eval "$(ssh-agent -s)"
+# PID number of the agent will be listed, now add the key to the agent
+ssh-add ~/.ssh/id_rsa
+```
+
 #### Step 3: Adding the SSH key to your github account.
 
 Open up ~/.ssh/id_rsa.pub with a text editor. Select and copy all of it into your clipboard.
