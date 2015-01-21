@@ -1,5 +1,5 @@
-import Tkinter as tk
 from serial import Serial
+
 
 class Robot(Serial):
     """Serial connection setup, IO, and robot actions."""
@@ -26,3 +26,36 @@ class Robot(Serial):
         :return: Byte representation of data on serial.
         """
         return self.read(self.inWaiting())
+
+    # Robot actions
+    def kick(self):
+        """ Send kick signal to bot """
+        self.write("A_KICK")
+
+    def grab_toggle(self):
+        """ Send grabber toggle signal to bot """
+        self.write("A_GRAB")
+
+    def left_strafe_toggle(self):
+        """ Send left strafe toggle signal to bot"""
+        self.write("A_LEFT_STRAFE")
+
+    def right_strafe_toggle(self):
+        """ Send right strafe toggle signal to bot"""
+        self.write("A_RIGHT_STRAFE")
+
+    def forward_toggle(self):
+        """Send forward toggle signal to bot"""
+        self.write("A_FORWARD")
+
+    def back_toggle(self):
+        """Send back toggle signal to bot"""
+        self.write("A_BACK")
+
+    def turn_left_90(self):
+        """ Send signal to turn left 90deg"""
+        self.write("TURN_LEFT_90")
+
+    def turn_right_90(self):
+        """Send signal to turn right 90deg"""
+        self.write("TURN_RIGHT_90")
