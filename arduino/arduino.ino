@@ -1,9 +1,19 @@
+#include <SDPArduino.h>
 #include <SerialCommand.h>
+#include <Wire.h>
 
 /*
   Arduino code for SDP Group 7 2014
   
   Author: Chris Seaton
+  
+  Motor numbers are to be finalized:
+    FL: 0
+    FR: 1
+    RL: 2
+    RR: 3
+    Grabber: 4
+    Kicker: 5
 */
 
 // Communications
@@ -11,14 +21,8 @@ SerialCommand comm;
 int GRABBER_OPEN = 0;
 
 void setup() {
-  // Set RF pin and select radio
-  pinMode(8, OUTPUT);
-  digitalWrite(8, HIGH);
-  // Set LED pin
-  pinMode(13, OUTPUT);
   
-  // Init serial at default SRF baudrate
-  Serial.begin(115200);
+  SDPsetup()  // Using included setup for now  
   
   comm.addCommand("A_KICK", kick);
   comm.addCommand("A_GRAB", grab);
@@ -77,6 +81,14 @@ void turn_right_90() {
 
 void run_motors() {
   Serial.println("Briefly running the motors");
+  motorForward(0, 50);
+  motorForward(1, 50);
+  motorForward(2, 50);
+  motorForward(3, 50);
+  motorForward(4, 50);
+  motorForward(5, 50);
+  delay(2500);
+  motorAllStop();
 }
 
 void invalid_command(const char* command) {}
