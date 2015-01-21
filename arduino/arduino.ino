@@ -22,7 +22,7 @@ int GRABBER_OPEN = 0;
 
 void setup() {
   
-  SDPsetup()  // Using included setup for now  
+  SDPsetup();  // Using included setup for now  
   
   comm.addCommand("A_KICK", kick);
   comm.addCommand("A_GRAB", grab);
