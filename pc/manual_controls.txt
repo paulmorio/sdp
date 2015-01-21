@@ -1,7 +1,11 @@
-[ArrowKeyLeft] ->  Turn left
-[ArrowKeyUp] ->  Move forward
-[ArrowKeyRight] ->  Turn right
-[ArrowKeyDown] ->  Move backward
+[w] -> Move forward
+[a] -> Turn left
+[s] -> Move back
+[d] -> Turn right
+
+[q] -> Strafe left
+[e] -> Strafe right
 
 [Space] ->  Kick
 [g] ->  Grab
+[t] -> Run motors (test)

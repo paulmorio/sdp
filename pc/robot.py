@@ -1,23 +1,23 @@
+import Tkinter as tk
 from serial import Serial
 
-
-class Communicator(Serial):
-    """Initialises a serial connection and implements parsing methods."""
+class Robot(Serial):
+    """Serial connection setup, IO, and robot actions."""
 
     def __init__(self, port="/dev/ttyACM0", rate=115200, timeout=1):
         """
-        Create a communicator which acts as an interface for serial
-        communication.
+        Create a robot object which provides action methods and opens a serial
+        connection.
 
         :param port: Default is "/dev/ttyACM0". This changes based on
         platform, etc. The default should correspond to what shows on the DICE
         machines.
 
         :param rate: Baud rate
-        :param timeout: write timeout in seconds
+        :param timeout: Write timeout in seconds
         :return:
         """
-        super(Communicator, self).__init__(port, rate, timeout=timeout)
+        super(Robot, self).__init__(port, rate, timeout=timeout)
 
     def read_all(self):
         """
