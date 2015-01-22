@@ -26,3 +26,7 @@ venv/
 *.log
 *.synctex.gz
 *.toc
+
+# Editor Swap Files#
+####################
+~*
