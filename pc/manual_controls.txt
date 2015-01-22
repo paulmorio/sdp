@@ -1,11 +1,16 @@
 [w] -> Move forward
-[a] -> Turn left
-[s] -> Move back
-[d] -> Turn right
+[x] -> Move backward
+[a] -> Strafe left
+[d] -> Strafe right
+[q] -> Strafe forward-left
+[e] -> Strafe forward-right
+[z] -> Strafe backward-left
+[c] -> Strafe backward-right
+[s] -> Stop
 
-[q] -> Strafe left
-[e] -> Strafe right
+[LeftArrow] -> Turn left
+[RightArrow] -> Turn right
 
 [Space] ->  Kick
 [g] ->  Grab
-[t] -> Run motors (test)
+[t] -> Run motors

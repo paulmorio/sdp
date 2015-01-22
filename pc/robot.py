@@ -30,36 +30,56 @@ class Robot(Serial):
     # Robot actions
     def kick(self):
         """ Send kick signal to bot """
-        self.write("A_KICK\n")
+        self.write("KICK\n")
 
-    def grab_toggle(self):
+    def grab(self):
         """ Send grabber toggle signal to bot """
-        self.write("A_GRAB\n")
+        self.write("GRAB\n")
 
-    def left_strafe_toggle(self):
-        """ Send left strafe toggle signal to bot"""
-        self.write("A_L_ST\n")
+    def strafe_left(self):
+        """ Send left strafe signal to bot"""
+        self.write("ST_L\n")
 
-    def right_strafe_toggle(self):
-        """ Send right strafe toggle signal to bot"""
-        self.write("A_R_ST\n")
+    def strafe_right(self):
+        """ Send right strafe signal to bot"""
+        self.write("ST_R\n")
 
-    def forward_toggle(self):
-        """Send forward toggle signal to bot"""
-        self.write("A_FWD\n")
+    def strafe_fl(self):
+        """Send strafe forward-left signal to bot"""
+        self.write("ST_FL\n")
 
-    def back_toggle(self):
-        """Send back toggle signal to bot"""
-        self.write("A_BK\n")
+    def strafe_fr(self):
+        """Send strafe forward-right signal to bot"""
+        self.write("ST_FR\n")
 
-    def turn_left_90(self):
-        """ Send signal to turn left 90deg"""
-        self.write("A_TL_90\n")
+    def strafe_bl(self):
+        """Send strafe backward-left signal to bot"""
+        self.write("ST_BL\n")
 
-    def turn_right_90(self):
-        """Send signal to turn right 90deg"""
-        self.write("A_TR_90\n")
+    def strafe_br(self):
+        """Send strafe backward-right signal to bot"""
+        self.write("ST_BR\n")
+
+    def forward(self):
+        """Send forward signal to bot"""
+        self.write("FWD\n")
+
+    def backward(self):
+        """Send backward signal to bot"""
+        self.write("BACK\n")
+
+    def turn_left(self):
+        """ Send turn left signal to bot"""
+        self.write("TURN_LEFT\n")
+
+    def turn_right(self):
+        """Send turn right signal to bot"""
+        self.write("TURN_RIGHT\n")
+
+    def stop_motors(self):
+        """Send stop signal to bot"""
+        self.write("STOP\n")
 
     def run_motors(self):
-        """Run motors to indicate that e.g. comms is working"""
-        self.write("A_MTR\n")
+        """Send run motors signal to bot - sanity test"""
+        self.write("MOTORS\n")
