@@ -15,7 +15,8 @@ There is a 5 second inactivity timeout once in config mode.
 From now on, hit enter after each command.  
 
 * ATRE    -   Reset to factory defaults - NB THIS CHANGES THE GUARD CHAR TO +  
-* ATMY G7    -   Set node ID for secure remote programming  
+* ATMY 7G    -   Set node ID for secure remote programming  
+* ATRI G7   -   Set node ID of device to be programmed (match arduino ATMY)  
 * ATRP1  -   Allow wireless reprogramming of the Arduino  
 * ATID0007   -   Set the pan ID to 0x0007.  
 * ATEA LuckyNumberSeven  -   Set encryption key  
@@ -33,7 +34,7 @@ From now on, hit enter after each command
 * ATRE   -   Reset to factory defaults  
 * ATBD1C200  -   Set baudrate to 115200  
 * ATID0007   -   Set the pan ID - match SRF  
-* ATMY G7     -   Set node ID  
+* ATMY G7     -   Set node ID  (match SRF ATMY)  
 * ATEA LuckyNumberSeven  -   Set encryption key  
 * ATEE 1     -   Enable encryption  
 * ATWR       -   Write changes to flash  
