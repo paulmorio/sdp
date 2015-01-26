@@ -2,15 +2,10 @@
 [x] -> Move backward
 [a] -> Strafe left
 [d] -> Strafe right
-[q] -> Strafe forward-left
-[e] -> Strafe forward-right
-[z] -> Strafe backward-left
-[c] -> Strafe backward-right
 [s] -> Stop
 
 [LeftArrow] -> Turn left
 [RightArrow] -> Turn right
 
 [Space] ->  Kick
-[g] ->  Grab
 [t] -> Run motors

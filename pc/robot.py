@@ -32,10 +32,6 @@ class Robot(Serial):
         """ Send kick signal to bot """
         self.write("KICK\n")
 
-    def grab(self):
-        """ Send grabber toggle signal to bot """
-        self.write("GRAB\n")
-
     def strafe_left(self):
         """ Send left strafe signal to bot"""
         self.write("ST_L\n")
@@ -43,22 +39,6 @@ class Robot(Serial):
     def strafe_right(self):
         """ Send right strafe signal to bot"""
         self.write("ST_R\n")
-
-    def strafe_fl(self):
-        """Send strafe forward-left signal to bot"""
-        self.write("ST_FL\n")
-
-    def strafe_fr(self):
-        """Send strafe forward-right signal to bot"""
-        self.write("ST_FR\n")
-
-    def strafe_bl(self):
-        """Send strafe backward-left signal to bot"""
-        self.write("ST_BL\n")
-
-    def strafe_br(self):
-        """Send strafe backward-right signal to bot"""
-        self.write("ST_BR\n")
 
     def forward(self):
         """Send forward signal to bot"""
