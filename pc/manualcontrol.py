@@ -54,3 +54,14 @@ class ManualControl():
         root.wm_title("Manual Control")
         root.wm_attributes("-topmost", 1)
         root.mainloop()
+
+
+# TODO: add no-comms option for testing
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("port", help="DICE /dev/ttyACM0")
+
+    args = parser.parse_args()
+    controller = ManualControl(port=args.port)
+    controller.start()
