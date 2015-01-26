@@ -43,6 +43,10 @@ class ManualControl():
         root.bind('<Left>', lambda event: self.bot.turn_left())
         root.bind('<Right>', lambda event: self.bot.turn_right())
         root.bind('t', lambda event: self.bot.run_motors())
+        root.bind('q', lambda event: self.bot.strafe_fl())
+        root.bind('e', lambda event: self.bot.strafe_fr())
+        root.bind('z', lambda event: self.bot.strafe_bl())
+        root.bind('c', lambda event: self.bot.strafe_br())
 
         # Set window attributes and start
         root.geometry('300x400')

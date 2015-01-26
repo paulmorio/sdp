@@ -40,6 +40,18 @@ class Robot(Serial):
         """ Send right strafe signal to bot"""
         self.write("ST_R\n")
 
+    def strafe_fl(self):
+        self.write("ST_FL\n")
+
+    def strafe_fr(self):
+        self.write("ST_FR\n")
+
+    def strafe_bl(self):
+        self.write("ST_BL\n")
+
+    def strafe_br(self):
+        self.write("ST_BR\n")
+
     def forward(self):
         """Send forward signal to bot"""
         self.write("FWD\n")
