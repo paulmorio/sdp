@@ -70,11 +70,11 @@ class Robot(Serial):
 
     def turn_left(self):
         """ Send turn left signal to bot"""
-        self.write("TURN_LEFT\n")
+        self.write("TURN_L\n")
 
     def turn_right(self):
         """Send turn right signal to bot"""
-        self.write("TURN_RIGHT\n")
+        self.write("TURN_R\n")
 
     def stop_motors(self):
         """Send stop signal to bot"""
