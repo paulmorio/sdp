@@ -1,4 +1,7 @@
-# Arduino-related code and config
+# Arduino-related code and config  
+
+The main sketch is for planner or parameterized control.
+The manualcontrol sketch is for use with the python manualcontrol class.
 
 ## How I learned to stop worrying and love RF  
 * RF most likely won't work if the xino is powered via some USB wall charger from i.e. your phone. For likely similar reasons it will not work if the board is powered by USB via a machine on standby.  
