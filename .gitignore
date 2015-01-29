@@ -30,3 +30,7 @@ venv/
 # Editor Swap Files#
 ####################
 *~
+
+# Sandbox, for personal experimentation #
+#########################################
+sandbox/
