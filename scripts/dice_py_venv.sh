@@ -10,3 +10,9 @@
  source ../venv/bin/activate
  pip install -r requirements.txt
  deactivate
+
+ # This should "install" OpenCV, give that it can't be pip'd
+ # The "clean" way to do this:
+ # http://stackoverflow.com/questions/11184847/running-opencv-from-a-python-virtualenv/24112175#24112175
+ # This appears to require building OpenCV, though, which takes a very long time.
+ cp ../OpenCV/* ../venv/lib/python2.7/site-packages/
