@@ -13,18 +13,9 @@
 #define MOTOR_FR 0
 #define MOTOR_B 1
 #define MOTOR_FL 2
-#define MOTOR_K 4
-#define MOTOR_G 5
 
 #define RUN_MOTORS_POWER 100
 #define RUN_MOTORS_TIME 1000 // per direction
-
-// Kick timing
-#define KICK_LENGTH 200
-#define KICK_POWER 100
-#define KICK_STOP_DELAY 300
-#define KICK_RESET_DELAY 200
-#define KICK_RESET_POWER 50
 
 #define MOVE_PWR 100
 #define TURN_PWR 100
@@ -33,9 +24,12 @@ SerialCommand comm;
 
 void setup() {
   SDPsetup();
-  comm.addCommand("KICK", kick);
   comm.addCommand("FWD", forward);
   comm.addCommand("BACK", backward);
+  comm.addCommand("ST_BL", strafe_bl);
+  comm.addCommand("ST_BR", strafe_br);
+  comm.addCommand("ST_FL", strafe_fl);
+  comm.addCommand("ST_FR", strafe_fr);
   comm.addCommand("TURN_L", turn_left);
   comm.addCommand("TURN_R", turn_right);
   comm.addCommand("MOTORS", run_drive_motors);
@@ -65,6 +59,33 @@ void backward() {
   Serial.println("Moving backward");
 }
 
+void strafe_bl() {
+  stop_drive_motors();
+  motorBackward(MOTOR_FL, MOVE_PWR);
+  motorForward(MOTOR_B, MOVE_PWR);
+  Serial.println("Strafing left-back");
+}
+
+void strafe_br() {
+  stop_drive_motors();
+  motorForward(MOTOR_FR, MOVE_PWR);
+  motorBackward(MOTOR_B, MOVE_PWR);
+  Serial.println("Strafing right-back");
+}
+
+void strafe_fl() {
+  stop_drive_motors();
+  motorBackward(MOTOR_FR, MOVE_PWR);
+  motorForward(MOTOR_B, MOVE_PWR);
+}
+
+void strafe_fr() {
+  stop_drive_motors();
+  motorForward(MOTOR_FL, MOVE_PWR);
+  motorBackward(MOTOR_B, MOVE_PWR);
+  Serial.println("Strafing right-foward");
+}
+
 void turn_left() {
   stop_drive_motors();
   motorBackward(MOTOR_FR, TURN_PWR);
@@ -81,29 +102,15 @@ void turn_right() {
   Serial.println("Turning right");
 }
 
-void kick() {
-  // Kick
-  motorBackward(MOTOR_K, KICK_POWER);
-  delay(KICK_LENGTH);  // length of kick
-  Serial.println("Kicked");
-  motorStop(MOTOR_K);
-  delay(KICK_STOP_DELAY); // motor cool-off
-  // Reset kicker
-  motorForward(MOTOR_K, KICK_RESET_POWER);
-  delay(KICK_RESET_DELAY);  // reset time
-  motorStop(MOTOR_K);  // Shouldn't need a cool off unless kicking immediately after
-  Serial.println("Kicker reset");
-}
-
 void run_drive_motors() {
-  Serial.println("Running the drive motors forward");
+  Serial.println("Running the drive motors forward (clockwise)");
   motorForward(MOTOR_FL, RUN_MOTORS_POWER);
   motorForward(MOTOR_B, RUN_MOTORS_POWER);
   motorForward(MOTOR_FR, RUN_MOTORS_POWER);
   delay(RUN_MOTORS_TIME);
   stop_drive_motors();
   
-  Serial.println("Running the drive motors backward");
+  Serial.println("Running the drive motors backward (anti-clockwise)");
   motorBackward(MOTOR_FL, RUN_MOTORS_POWER);
   motorBackward(MOTOR_B, RUN_MOTORS_POWER);
   motorBackward(MOTOR_FR, RUN_MOTORS_POWER);
@@ -115,7 +122,6 @@ void stop_drive_motors() {
   motorStop(MOTOR_FL);
   motorStop(MOTOR_B);
   motorStop(MOTOR_FR);
-  delay(100);
 }
 
 void invalid_command(const char* command) {}

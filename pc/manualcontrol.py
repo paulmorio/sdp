@@ -37,37 +37,22 @@ class ManualControl():
         # Set up key bindings
         root.bind('w', lambda event: self.forward())
         root.bind('x', lambda event: self.backward())
-        root.bind('a', lambda event: self.strafe_left())
-        root.bind('d', lambda event: self.strafe_right())
-        root.bind('s', lambda event: self.stop_motors())
-        root.bind('<space>', lambda event: self.kick())
-        root.bind('<Left>', lambda event: self.turn_left())
-        root.bind('<Right>', lambda event: self.turn_right())
+        root.bind('a', lambda event: self.turn_left())
+        root.bind('d', lambda event: self.turn_right())
         root.bind('t', lambda event: self.run_motors())
         root.bind('q', lambda event: self.strafe_fl())
         root.bind('e', lambda event: self.strafe_fr())
         root.bind('z', lambda event: self.strafe_bl())
         root.bind('c', lambda event: self.strafe_br())
+        root.bind('s', lambda event: self.stop_motors())
 
         # Set window attributes and start
-        root.geometry('300x400')
+        root.geometry('400x400')
         root.wm_title("Manual Control")
         root.wm_attributes("-topmost", 1)
         root.mainloop()
 
     # Robot manual control actions - requires the manualcontrol sketch.
-    def kick(self, event=None):
-        """ Send kick signal to bot """
-        self.bot.write("KICK\n")
-
-    def strafe_left(self, event=None):
-        """ Send left strafe signal to bot"""
-        self.bot.write("ST_L\n")
-
-    def strafe_right(self, event=None):
-        """ Send right strafe signal to bot"""
-        self.bot.write("ST_R\n")
-
     def strafe_fl(self, event=None):
         self.bot.write("ST_FL\n")
 
@@ -103,6 +88,7 @@ class ManualControl():
     def run_motors(self, event=None):
         """Send run motors signal to bot - sanity test"""
         self.bot.write("MOTORS\n")
+
 
 # TODO: add no-comms option for testing
 if __name__ == '__main__':
