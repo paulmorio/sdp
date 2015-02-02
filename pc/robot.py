@@ -1,8 +1,23 @@
 from serial import Serial
 
 
-class Robot(Serial):
+class Robot(object):
     """Serial connection setup, IO, and robot actions."""
+
+    # Command constants
+    MOVE_FORWARD = "FWD"
+    MOVE_BACK = "BACK"
+    TURN_LEFT = "TURN_L"
+    TURN_RIGHT = "TURN_R"
+    STRAFE_FWD_LEFT = "ST_FL"
+    STRAFE_FWD_RIGHT = "ST_FR"
+    STRAFE_BACK_LEFT = "ST_BL"
+    STRAFE_BACK_RIGHT = "ST_BR"
+    GRAB = "GRAB"
+    KICK = "KICK"
+    MOTOR_TEST = "MOTORS"
+    STOP_MOTORS = "STOP"
+    COMMAND_TERMINAL = '\n'
 
     def __init__(self, port="/dev/ttyACM0", rate=115200, timeout=1):
         """
@@ -17,61 +32,85 @@ class Robot(Serial):
         :param timeout: Write timeout in seconds
         :return:
         """
-        super(Robot, self).__init__(port, rate, timeout=timeout)
+        self.serial = Serial(port, rate, timeout=timeout)
 
+    # Serial communication methods
     def read_all(self):
         """
-        Read all data on serial.
+        Read all data from serial.
 
         :return: Byte representation of data on serial.
         """
-        return self.read(self.inWaiting())
+        return self.serial.read(self.serial.inWaiting())
 
-        # Robot manual control actions - requires the manualcontrol sketch.
-    def kick(self, event=None):
-        """ Send kick signal to bot """
-        self.bot.write("KICK\n")
+    def command(self, command):
+        """Append command terminal to string before writing to serial"""
+        self.serial.write(command + Robot.COMMAND_TERMINAL)
 
-    def strafe_left(self, event=None):
-        """ Send left strafe signal to bot"""
-        self.bot.write("ST_L\n")
 
-    def strafe_right(self, event=None):
-        """ Send right strafe signal to bot"""
-        self.bot.write("ST_R\n")
+class ManualController(object):
+    """
+    A graphical window which provides manual control of the robot. This
+    allows for easy partial testing of the robot's actions.
 
-    def strafe_fl(self, event=None):
-        self.bot.write("ST_FL\n")
+    See manual_controls.txt for controls.
+    """
 
-    def strafe_fr(self, event=None):
-        self.bot.write("ST_FR\n")
+    robot = None
 
-    def strafe_bl(self, event=None):
-        self.bot.write("ST_BL\n")
+    def __init__(self, port="/dev/ttyACM0", rate=115200, timeout=1):
+        """
 
-    def strafe_br(self, event=None):
-        self.bot.write("ST_BR\n")
+        :param port: Serial port to be used. Default is fine for DICE
+        :param rate: Baudrate. Default is 115200
+        :param timeout: Write timeout in seconds. Default is 1.
+        :return: None
+        """
+        self.robot = Robot(port=port, rate=rate, timeout=timeout)
 
-    def forward(self, event=None):
-        """Send forward signal to bot"""
-        self.bot.write("FWD\n")
+    def start(self):
+        import Tkinter as tk
+        import os
+        # Grab control text from file
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        controls_file = open(os.path.join(script_dir, "manual_controls.txt"))
+        controls = controls_file.read()
+        warning = "Please ensure that the manualcontrol.ino sketch is loaded.\n"
+        controls_file.close()
 
-    def backward(self, event=None):
-        """Send backward signal to bot"""
-        self.bot.write("BACK\n")
+        # Compose window elements
+        root = tk.Tk()
+        text = tk.Label(root, background='white', text=(warning + controls))
+        text.pack()
 
-    def turn_left(self, event=None):
-        """ Send turn left signal to bot"""
-        self.bot.write("TURN_L\n")
+        # Set up key bindings
+        root.bind('w', lambda event: self.robot.command(Robot.MOVE_FORWARD))
+        root.bind('x', lambda event: self.robot.command(Robot.MOVE_BACK))
+        root.bind('a', lambda event: self.robot.command(Robot.TURN_LEFT))
+        root.bind('d', lambda event: self.robot.command(Robot.TURN_RIGHT))
+        root.bind('q', lambda event: self.robot.command(Robot.STRAFE_FWD_LEFT))
+        root.bind('e', lambda event: self.robot.command(Robot.STRAFE_FWD_RIGHT))
+        root.bind('z', lambda event: self.robot.command(Robot.STRAFE_BACK_LEFT))
+        root.bind('c', lambda event: self.robot.command(Robot.STRAFE_BACK_RIGHT))
+        root.bind('g', lambda event: self.robot.command(Robot.GRAB))
+        root.bind('<space>', lambda event: self.robot.command(Robot.KICK))
+        root.bind('t', lambda event: self.robot.command(Robot.MOTOR_TEST))
+        root.bind('s', lambda event: self.robot.command(Robot.STOP_MOTORS))
 
-    def turn_right(self, event=None):
-        """Send turn right signal to bot"""
-        self.bot.write("TURN_R\n")
+        # Set window attributes and start
+        root.geometry('400x400')
+        root.wm_title("Manual Control")
+        root.wm_attributes("-topmost", 1)
+        root.mainloop()
 
-    def stop_motors(self, event=None):
-        """Send stop signal to bot"""
-        self.bot.write("STOP\n")
 
-    def run_motors(self, event=None):
-        """Send run motors signal to bot - sanity test"""
-        self.bot.write("MOTORS\n")
+# Create a manualcontroller if robot.py is run from main
+# TODO: add no-comms option for testing
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("port", help="DICE /dev/ttyACM0")
+
+    args = parser.parse_args()
+    controller = ManualController(port=args.port)
+    controller.start()

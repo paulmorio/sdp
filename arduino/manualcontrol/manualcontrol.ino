@@ -26,16 +26,18 @@ void setup() {
   SDPsetup();
   comm.addCommand("FWD", forward);
   comm.addCommand("BACK", backward);
-  comm.addCommand("ST_BL", strafe_bl);
-  comm.addCommand("ST_BR", strafe_br);
   comm.addCommand("ST_FL", strafe_fl);
   comm.addCommand("ST_FR", strafe_fr);
+  comm.addCommand("ST_BL", strafe_bl);
+  comm.addCommand("ST_BR", strafe_br);
   comm.addCommand("TURN_L", turn_left);
   comm.addCommand("TURN_R", turn_right);
+  comm.addCommand("GRAB", grab);
+  comm.addCommand("KICK", kick);
   comm.addCommand("MOTORS", run_drive_motors);
   comm.addCommand("STOP", stop_drive_motors);
   comm.setDefaultHandler(invalid_command);
-  
+
   Serial.println("<Ready>");
 }
 
@@ -59,31 +61,32 @@ void backward() {
   Serial.println("Moving backward");
 }
 
-void strafe_bl() {
-  stop_drive_motors();
-  motorBackward(MOTOR_FL, MOVE_PWR);
-  motorForward(MOTOR_B, MOVE_PWR);
-  Serial.println("Strafing left-back");
-}
-
-void strafe_br() {
-  stop_drive_motors();
-  motorForward(MOTOR_FR, MOVE_PWR);
-  motorBackward(MOTOR_B, MOVE_PWR);
-  Serial.println("Strafing right-back");
-}
-
 void strafe_fl() {
   stop_drive_motors();
   motorBackward(MOTOR_FR, MOVE_PWR);
   motorForward(MOTOR_B, MOVE_PWR);
+  Serial.println("Strafing forward-left");
 }
 
 void strafe_fr() {
   stop_drive_motors();
   motorForward(MOTOR_FL, MOVE_PWR);
   motorBackward(MOTOR_B, MOVE_PWR);
-  Serial.println("Strafing right-foward");
+  Serial.println("Strafing forward-right");
+}
+
+void strafe_bl() {
+  stop_drive_motors();
+  motorBackward(MOTOR_FL, MOVE_PWR);
+  motorForward(MOTOR_B, MOVE_PWR);
+  Serial.println("Strafing back-left");
+}
+
+void strafe_br() {
+  stop_drive_motors();
+  motorForward(MOTOR_FR, MOVE_PWR);
+  motorBackward(MOTOR_B, MOVE_PWR);
+  Serial.println("Strafing back-right");
 }
 
 void turn_left() {
@@ -100,6 +103,14 @@ void turn_right() {
   motorForward(MOTOR_B, TURN_PWR);
   motorForward(MOTOR_FL, TURN_PWR);
   Serial.println("Turning right");
+}
+
+void grab() {
+    Serial.println("Grabbed");
+}
+
+void kick() {
+    Serial.println("Kicked");
 }
 
 void run_drive_motors() {
