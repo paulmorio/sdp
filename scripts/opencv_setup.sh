@@ -1,5 +1,6 @@
 # Install OpenCV 2.4.10 on DICE vision PCs
-cd /disk/scratch/sdp
+mkdir /disk/scratch/sdp/group7
+cd /disk/scratch/sdp/group7
 rm -rf opencv-2.4.10*
 wget sourceforge.net/projects/opencvlibrary/files/opencv-unix/2.4.10/opencv-2.4.10.zip
 unzip opencv-2.4.10.zip
@@ -10,6 +11,8 @@ cmake -D WITH_OPENCL=OFF -D WITH_CUDA=OFF -D BUILD_opencv_gpu=OFF -D BUILD_openc
 sed -i '50d' ../cmake/cl2cpp.cmake
 make
 make install
+# This kills the .brc -- TODO add to path only if necessary
 echo 'export PYTHONPATH=$PYTHONPATH:~/.local/lib/python2.6/site-packages' >> ~/.brc
-cd /disk/scratch/sdp
-rm -rf opencv-2.4.10*
+cd /disk/scratch/sdp/group7
+rm -rf opencv-2.4.10.zip
+cd
