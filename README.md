@@ -1,6 +1,6 @@
 # Lucky Number Seven
 
-*Murray Crichton, Roy Hotrabhvanon, Teun Kokke, Yiheng Liang, Donal O'Shea, Paul Scherer, Chris Seaton*
+*Murray Crichton, Roy Hotrabhvanon, Teun Kokke, Yiheng Liang, Paul Scherer, Chris Seaton*
 
 ## General Rules to Development
 - ***IMPORTANT:*** Please make sure to perform a `git pull` each time before and after you code in order to avoid integration conflicts later on.
