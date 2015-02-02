@@ -8,6 +8,12 @@ from threading import Thread
 # Tools.py
 # may be nice to put these in a separate location
 
+# CLASS OVERVIEW:
+# Main function = main function that will run, just like in java :) ie: public static void main(String args[]){}
+# Vision = the actual software that will be responsible for handling all vision-related classes
+# Camera = camera object, responsible for receiving frames from "the camera" (hardware-wise)
+# GUI = graphical interface, useful for visualising what the robot will see and tries to act upon
+
 
 
 ### MAIN FUNCTION ###
@@ -20,6 +26,7 @@ class Main:
 
         # Startup vision class (responsible for all vision-related code AND draws GUI for feedback)
         vision = Vision(tableNumber, video_port, name)
+        vision.loop()
 
 
 
@@ -35,18 +42,25 @@ class Vision:
 
         # Set up camera for capturing frames
         self.camera = Camera(tableNumber, video_port)
-        self.camera.start()
 
         # Set up GUI for displaying what's going on
         self.gui = GUI(name, self.camera)
-        self.gui.start()
+
+
+    def loop(self):
+        while (cv2.waitKey(1) != 27):
+            self.camera.update()
+            self.gui.update()
+        self.gui.end()
+        self.camera.end()
+
 
 
 
 
 
 # CAMERA CLASS (single object), RESPONSIBLE FOR CAPTURING FRAMES
-class Camera(Thread):
+class Camera:
     
     capture = None      # capture socket to receive frames from the camera
     frame = None        # most recent frame from camera
@@ -58,8 +72,6 @@ class Camera(Thread):
     dist = None         # radial distortion
 
     def __init__(self, tableNumber, video_port):
-        super(Camera,self).__init__()
-
         self.capture = cv2.VideoCapture(0)
 
         # Parameters used to crop frame to only contain the table in view
@@ -72,24 +84,13 @@ class Camera(Thread):
         self.c_matrix = radial_data['camera_matrix']
         self.dist = radial_data['dist']
 
-    def start(self):
-        super(Camera,self).run()
-
-        while(cv2.waitKey(1) != 27): #while NOT pressing esc (27) key
-            # Capture frame-by-frame
-            self.set_frame()
-
-            print "[Camera Thread] seting new frame . . . "
-
-            # Display the resulting frame
-            #cv2.imshow(name, frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-        self.end()
+    def update(self):
+        # Capture frame
+        self.set_frame()
+        print "[Camera] seting new frame . . . "
 
     def end(self):
-        capture.release()
-        self.exit()
+        self.capture.release()
 
     def set_frame(self):
         (status, frame) = self.capture.read()
@@ -108,28 +109,22 @@ class Camera(Thread):
             frame, self.c_matrix, self.dist, None, self.nc_matrix)
 
 
-class GUI(Thread):
+class GUI:
     name = None     # name of GUI window
     camera = None   # camera from which the frames are received
 
     def __init__(self, name, camera):
-        super(Camera,self).__init__()
         self.name = name
         self.camera = camera
 
-    def start(self):
-        super(GUI,self).run()
-        while(cv2.waitKey(1) != 27): #while NOT pressing esc (27) key
-            # Capture frame-by-frame
-            frame = self.camera.get_frame()
+    def update(self):
+        # Capture frame-by-frame
+        frame = self.camera.get_frame()
 
-            print "[GUI Thread] drawing new frame . . . "
+        print "[GUI] drawing new frame . . . "
 
-            # Display the resulting frame
-            cv2.imshow(self.name, frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-        self.stop()
+        # Display the resulting frame
+        cv2.imshow(self.name, frame)
 
     def stop(self):
         cv2.destroyAllWindows()
