@@ -1,5 +1,6 @@
 import cv2
 import tools
+import numpy as np
 
 
 class Camera(object):
@@ -33,6 +34,9 @@ class Camera(object):
 
         # Background subtraction parameters
         self.background_sub = None
+
+        # Cache previous frame in case of feed disruption
+        self.current_frame = None
 
     def get_options(self):
         return self.options
@@ -69,7 +73,12 @@ class Camera(object):
             if self.options['background_sub']:
                 result['bg_sub'] = self.get_bg_sub(frame)
             result['frame'] = frame
+            self.current_frame = result  # Caching the most recent frame
             return result
+        else:  # Return previous frame if the video feed dies
+            print "Feed disrupted - no longer receiving new frames!"
+            if self.current_frame is not None:
+                return self.current_frame
 
     def fix_radial_distortion(self, frame):
         return cv2.undistort(

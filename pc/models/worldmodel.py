@@ -129,7 +129,6 @@ class WorldUpdater:
         # Find object positions - model_positions have their y coordinate inverted
         model_positions, regular_positions = self.vision.locate(frame['frame'])
         model_positions = self.postprocessing.analyze(model_positions)
-
         self.world.update_positions(model_positions)
 
         return frame, model_positions, regular_positions  # For drawing on GUI
