@@ -15,7 +15,7 @@ PROCESSING_DEBUG = False
 Center = namedtuple('Center', 'x y')
 
 
-class Vision:
+class Vision(object):
     """
     Locate objects on the pitch.
     """
@@ -80,7 +80,7 @@ class Vision:
             ]
 
         self.ball_tracker = BallTracker(
-            (0, width, 0, height), 0, pitch, calibration)
+            (0, width, 0, height), 0, calibration, pitch)
 
     def _get_zones(self, width, height):
         return [(val[0], val[1], 0, height) for val in tools.get_zones(width, height, pitch=self.pitch)]

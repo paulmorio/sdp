@@ -108,7 +108,7 @@ class WorldUpdater:
 
         # Set up camera for frames
         self.camera = Camera(pitch=self.pitch, options=pre_options)
-        frame = self.camera.get_frame()
+        frame = self.camera.get_frame()['frame']
         center_point = self.camera.get_adjusted_center()
 
         # Set up vision
@@ -127,9 +127,9 @@ class WorldUpdater:
         """
         frame = self.camera.get_frame()
         # Find object positions - model_positions have their y coordinate inverted
-        model_positions, regular_positions = self.vision.locate(frame)
+        model_positions, regular_positions = self.vision.locate(frame['frame'])
         model_positions = self.postprocessing.analyze(model_positions)
 
         self.world.update_positions(model_positions)
 
-        return model_positions, regular_positions  # For drawing on GUI
+        return frame, model_positions, regular_positions  # For drawing on GUI
