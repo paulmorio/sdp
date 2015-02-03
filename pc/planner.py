@@ -1,10 +1,40 @@
+"""
+This script updates the worldstate of the pitch by calling the vision module to
+update the worldstate instance's variables, and then creates appropiate plans 
+for the robot.
+"""
+import robot
+import worldmodel
+
+# Choose between one of the two.
+import camera
+import vision
+
 class Planner():
+	
+	def __init__(self, worldState, inputFrame):
+		self.worldState = worldState
+		self.frame = inputFrame
 
-    bot = None
+	def updateWorldState():
+		"""
+		Updates the worldstate from video frame information.
 
-    def _init_(self, bot):
-        self.bot = bot
+		:return: None
+		"""
+		pass
 
-    def run(self):
-        while (True):
-            break
+	def goToBall():
+		"""
+		Simple function to have robot go to ball (regardless of competition
+		constraints)
+
+		:return: None
+		"""
+
+
+
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser()
+    
