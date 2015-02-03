@@ -1,3 +1,5 @@
-## Buro
+# Reports 
 
-* Should be renamed, couldn't think of any names to describe a folder containing our reports and miscellaneous files *
+Houses Group 7s Final Group Report, as well as presentation, and any templates we have created for ourselves.
+
+
