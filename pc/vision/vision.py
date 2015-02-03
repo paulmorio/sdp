@@ -33,11 +33,6 @@ class Main:
 # SOFTWARE BEHIND WHAT THE CAMERA RECEIVES
 class Vision:
 
-    # Vision variables
-    camera = None       # Camera object instance
-    frame = None        # Frame received by camera
-    center_point = None # Center-point of frame
-
     def __init__(self, tableNumber, video_port, name):
 
         # Set up camera for capturing frames
@@ -48,9 +43,11 @@ class Vision:
 
 
     def loop(self):
+        # TODO: exit on pressing escape
         while (cv2.waitKey(1) != 27):
             self.camera.update()
             self.gui.update()
+
         self.gui.end()
         self.camera.end()
 
@@ -61,38 +58,25 @@ class Vision:
 
 # CAMERA CLASS (single object), RESPONSIBLE FOR CAPTURING FRAMES
 class Camera:
-    
-    capture = None      # capture socket to receive frames from the camera
-    frame = None        # most recent frame from camera
 
-    # Frame configurations
-    crop_values = None  # Specified to crop down to the tableNumber outline
-    nc_matrix = None    # NEW-CAMERA radial data, stored as matrix
-    c_matrix = None     # (old) camera radial data, stored as matrix
-    dist = None         # radial distortion
+    frame = None # Most recent frame from camera
 
     def __init__(self, tableNumber, video_port):
-        self.capture = cv2.VideoCapture(0)
+
+        self.capture = cv2.VideoCapture(video_port) # capture-socket to receive frames from the camera
 
         # Parameters used to crop frame to only contain the table in view
         calibration = tools.get_croppings(pitch=tableNumber)
-        self.crop_values = tools.find_extremes(calibration['outline'])
+        self.crop_values = tools.find_extremes(calibration['outline']) # crops down to the specified table's outline
 
         # Parameters used to fix radial distortion
         radial_data = tools.get_radial_data()
-        self.nc_matrix = radial_data['new_camera_matrix']
-        self.c_matrix = radial_data['camera_matrix']
-        self.dist = radial_data['dist']
+        self.nc_matrix = radial_data['new_camera_matrix'] # new camera radial data, stored as matrix
+        self.c_matrix = radial_data['camera_matrix'] # old camera radial data, stored as matrix
+        self.dist = radial_data['dist'] # radial distortion
 
+    # Updates the frame seen by the hardware-camera
     def update(self):
-        # Capture frame
-        self.set_frame()
-        print "[Camera] seting new frame . . . "
-
-    def end(self):
-        self.capture.release()
-
-    def set_frame(self):
         (status, frame) = self.capture.read()
         frame = self.fix_radial_distortion(frame)
         if status:
@@ -100,34 +84,46 @@ class Camera:
                 self.crop_values[2]:self.crop_values[3],
                 self.crop_values[0]:self.crop_values[1]
             ]
+        print "[Camera] seting new frame . . . "
 
+    def end(self):
+        self.capture.release()
+
+    # Just a getter - can be refactored later
     def get_frame(self):
         return self.frame
 
+    # Fixes fish-eye effect caused by the camera
     def fix_radial_distortion(self, frame):
         return cv2.undistort(
             frame, self.c_matrix, self.dist, None, self.nc_matrix)
 
 
 class GUI:
-    name = None     # name of GUI window
-    camera = None   # camera from which the frames are received
 
     def __init__(self, name, camera):
-        self.name = name
-        self.camera = camera
+        self.name   = name      # name of GUI window
+        self.camera = camera    # camera from which the frames are received
 
     def update(self):
+        print "[GUI] drawing new frame . . . "
         # Capture frame-by-frame
         frame = self.camera.get_frame()
-
-        print "[GUI] drawing new frame . . . "
-
         # Display the resulting frame
         cv2.imshow(self.name, frame)
 
     def stop(self):
         cv2.destroyAllWindows()
+
+if __name__ == '__main__':
+
+    tableNumber = 0
+    video_port = 0
+    name = "Team 14" # name of the main GUI frame
+
+    # Startup the vision. Currently it's responsible for updating the GUI (i.e showing a livestream of the table)
+    vision = Vision(tableNumber, video_port, name)
+    vision.loop()
 
 
 # class GUI:
