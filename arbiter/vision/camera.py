@@ -57,15 +57,15 @@ class Camera(object):
         result = {}
         status, frame = self.capture.read()
         if status:  # If a frame is received, process and return it
+            if self.options['fix_radial_distortion']:  # Fix radial distortion
+                frame = self.fix_radial_distortion(frame)
+            if self.options['normalize']:
+                frame = self.normalize(frame)
             if self.options['crop']:  # Crop the frame
                 frame = frame[
                     self.crop_values[2]:self.crop_values[3],
                     self.crop_values[0]:self.crop_values[1]
                 ]
-            if self.options['fix_radial_distortion']:  # Fix radial distortion
-                frame = self.fix_radial_distortion(frame)
-            if self.options['normalize']:
-                frame = self.normalize(frame)
             if self.options['background_sub']:
                 result['bg_sub'] = self.get_bg_sub(frame)
             result['frame'] = frame
@@ -101,8 +101,6 @@ class CameraGUI(object):
 
     def __init__(self, pitch=0):
         self.camera = Camera(pitch=pitch)
-
-    def run(self):
         # Set up GUI
         cv2.namedWindow(self.WINDOW)
 
@@ -119,6 +117,7 @@ class CameraGUI(object):
                            init_pos['normalize'], 1,
                            lambda x: self.camera.reset_bg_sub())
 
+    def run(self):
         # Read and refresh
         while True:
             current_frame = self.camera.get_frame()

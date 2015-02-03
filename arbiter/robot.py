@@ -1,6 +1,5 @@
 from serial import Serial
 
-
 class Robot(object):
     """Serial connection setup, IO, and robot actions."""
 
