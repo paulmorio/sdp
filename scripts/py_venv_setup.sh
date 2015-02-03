@@ -15,4 +15,4 @@
  # The "clean" way to do this:
  # http://stackoverflow.com/questions/11184847/running-opencv-from-a-python-virtualenv/24112175#24112175
  # This appears to require building OpenCV, though, which takes a very long time.
- cp ../OpenCV/* ../venv/lib/python2.7/site-packages/
+ # cp ../OpenCV/* ../venv/lib/python2.7/site-packages/
