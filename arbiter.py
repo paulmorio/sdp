@@ -1,9 +1,10 @@
 from pc.robot import Robot
 from pc.models.worldmodel import WorldUpdater, World
 from pc.gui import GUI
-from pc.vision import tools
+from pc.vision import tools, findHSV
 import time
 import cv2
+
 
 class Arbiter(object):
     """
@@ -31,14 +32,14 @@ class Arbiter(object):
 
         self.world = World(self.side, self.pitch)
         self.world_updater = WorldUpdater(self.pitch, self.colour,
-                                          self.side, self.world)  # TODO preproc options
+                                          self.side, self.world)
         self.calibration = tools.get_colors(pitch)
 
-        # TODO Set up main planner
+        # TODO Set up planner
 
         # Set up GUI
         self.gui = GUI(self.calibration, self.pitch)
-        print self.calibration
+        self.calibration_gui = findHSV.CalibrationGUI(self.calibration)
 
     def run(self):
         """
@@ -51,26 +52,26 @@ class Arbiter(object):
         try:
             while key != 27:  # escape to quit
 
-                # Find object positions
+                # Find object positions, update world model
                 frame, model_positions, regular_positions = \
                     self.world_updater.update_world()
                 fps = float(counter) / (time.clock() - timer)
 
-                # Draw vision content and actions
+                # Draw GUIs with vision augmentations
                 self.gui.draw(
                     frame['frame'], model_positions, regular_positions, fps,
                     our_color=self.colour, our_side=self.side, key=key)
+                self.calibration_gui.show(frame['frame'], key=key)
+
                 counter += 1
                 key = cv2.waitKey(1) & 0xFF  # Capture keypress
         except:
-            # TODO Close serial connections, etc (via planner)
+            # TODO Close serial connection, etc (via planner)
             raise
         finally:
             # Save calibrations
             tools.save_colors(self.pitch, self.calibration)
-            # Close serial connections
-
-
+            # Close serial connection
 
 
 if __name__ == '__main__':

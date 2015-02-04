@@ -103,6 +103,10 @@ class Camera(object):
 
 
 class CameraGUI(object):
+    """
+        This class currently exists mostly for playing with preprocessing,
+        etc. It is not used in 'competition'.
+    """
     WINDOW = "Lucky Number Seven - Camera Feed"
     RADIAL = "Fix RD"
     BG_SUB = "BG Subtract"
@@ -114,17 +118,18 @@ class CameraGUI(object):
         cv2.namedWindow(self.WINDOW)
 
         # Set up option trackbars - reset bg sub on change
-        init_pos = {key: 1 if val else 0 for (key, val) in
-                    self.camera.options.iteritems()}
-        cv2.createTrackbar(self.RADIAL, self.WINDOW,
-                           init_pos['fix_radial_distortion'], 1,
-                           lambda x: self.camera.reset_bg_sub())
-        cv2.createTrackbar(self.BG_SUB, self.WINDOW,
-                           init_pos['background_sub'], 1,
-                           lambda x: self.camera.reset_bg_sub())
-        cv2.createTrackbar(self.NORMALIZE, self.WINDOW,
-                           init_pos['normalize'], 1,
-                           lambda x: self.camera.reset_bg_sub())
+        cv2.createTrackbar(
+            self.RADIAL, self.WINDOW,
+            cast_bin(self.camera.options['fix_radial_distortion']),
+            1, lambda x: self.camera.reset_bg_sub())
+        cv2.createTrackbar(
+            self.BG_SUB, self.WINDOW,
+            cast_bin(self.camera.options['background_sub']),
+            1, lambda x: self.camera.reset_bg_sub())
+        cv2.createTrackbar(
+            self.NORMALIZE, self.WINDOW,
+            cast_bin(self.camera.options['normalize']),
+            1, lambda x: self.camera.reset_bg_sub())
 
     def run(self):
         # Read and refresh
@@ -151,6 +156,9 @@ class CameraGUI(object):
         self.camera.options['normalize'] = \
             cv2.getTrackbarPos(self.NORMALIZE, self.WINDOW) == 1
 
+
+def cast_bin(bool):
+    return 1 if bool else 0
 
 if __name__ == '__main__':
     import argparse

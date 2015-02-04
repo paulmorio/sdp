@@ -86,6 +86,7 @@ class World(object):
 
 class WorldUpdater:
     """
+    Ties vision to the world model.
     Process camera feed and update the world model.
     """
 
@@ -93,7 +94,7 @@ class WorldUpdater:
         """
         Params:
             [int] pitch       0 - main pitch, 1 - secondary pitch
-            [string] colour   our team  colour - 'red' or 'yellow'
+            [string] colour   our team  colour - 'blue' or 'yellow'
             [string] our_side the side we're on - 'left' or 'right'
         """
         assert pitch in [0, 1]

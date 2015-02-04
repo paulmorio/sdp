@@ -8,7 +8,7 @@ import numpy as np
 from findHSV import CalibrationGUI
 
 
-TEAM_COLOURS = {'yellow', 'blue'}
+TEAM_COLOURS = set(['yellow', 'blue'])
 SIDES = ['left', 'right']
 PITCHES = [0, 1]
 PROCESSING_DEBUG = False
@@ -86,7 +86,7 @@ class Vision(object):
         return [(val[0], val[1], 0, height) for val in tools.get_zones(width, height, pitch=self.pitch)]
 
     def _get_opponent_colour(self, our_colour):
-        return (TEAM_COLOURS - {our_colour}).pop()
+        return (TEAM_COLOURS - set([our_colour])).pop()
 
     def locate(self, frame):
         """
@@ -293,7 +293,7 @@ class GUI(object):
         # Draw dividers for the zones
         self.draw_zones(frame, frame_width, frame_height)
 
-        their_colour = list(TEAM_COLOURS - {our_color})[0]
+        their_colour = list(TEAM_COLOURS - set([our_color]))[0]
 
         key_colour_pairs = zip(
             ['our_defender', 'their_defender', 'our_attacker', 'their_attacker'],

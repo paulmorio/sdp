@@ -1,10 +1,10 @@
 import cv2
 from vision.colours import BGR_COMMON
 import numpy as np
-from vision.findHSV import CalibrationGUI
 import vision.tools as tools
 
-TEAM_COLORS = {'yellow', 'blue'}
+TEAM_COLORS = set(['yellow', 'blue'])
+
 
 class GUI(object):
 
@@ -17,7 +17,6 @@ class GUI(object):
 
     def __init__(self, calibration, pitch):
         self.zones = None
-        self.calibration_gui = CalibrationGUI(calibration)
         self.pitch = pitch
         cv2.namedWindow(self.VISION)
 
@@ -59,13 +58,10 @@ class GUI(object):
         # Get general information about the frame
         frame_height, frame_width, channels = frame.shape
 
-        # Draw the calibration gui
-        self.calibration_gui.show(frame, key=key)
-
         # Draw dividers for the zones
         self.draw_zones(frame, frame_width, frame_height)
 
-        their_color = list(TEAM_COLORS - {our_color})[0]
+        their_color = list(TEAM_COLORS - set([our_color]))[0]
 
         key_color_pairs = zip(
             ['our_defender', 'their_defender', 'our_attacker', 'their_attacker'],
@@ -185,7 +181,7 @@ class GUI(object):
             if velocity is not None:
                 self.draw_text(frame, 'velocity: %.2f' % velocity, draw_x, y_offset + 40)
 
-    def draw_text(self, frame, text, x, y, color=BGR_COMMON['green'], thickness=1, size=1):
+    def draw_text(self, frame, text, x, y, color=BGR_COMMON['green'], thickness=1.3, size=0.3):
         if x is not None and y is not None:
             cv2.putText(
                 frame, text, (int(x), int(y)), cv2.FONT_HERSHEY_SIMPLEX, size, color, thickness)
@@ -212,5 +208,5 @@ class GUI(object):
             r = vel*scale
             y = frame_height - y
             start_point = (x, y)
-            end_point = (int(x + r * np.cos(angle)), int(y - r * np.sin(angle)))
+            end_point = (x + r * np.cos(angle), y - r * np.sin(angle))
             self.draw_line(frame, (start_point, end_point))
