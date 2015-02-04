@@ -1,5 +1,5 @@
 #!/bin/sh
- # This script will create a Python 2.7 virtual environment
+ # This script will create a Python 2.6 virtual environment
  # with dependencies (see requirements.txt) in the project 
  # root directory.
  # Note that this is for use on UoE DICE machines only - I 

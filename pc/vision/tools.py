@@ -58,7 +58,7 @@ def get_radial_data(pitch=0, filename=PATH+'/calibrations/undistort.txt'):
 
 def get_colors(pitch=0, filename=PATH+'/calibrations/calibrations.json'):
     """
-    Get colros from the JSON calibration file.
+    Get colours from the JSON calibration file.
     Converts all
     """
     json_content = get_json(filename)
