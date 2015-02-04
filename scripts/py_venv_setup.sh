@@ -1,3 +1,4 @@
+#!/bin/sh
  # This script will create a Python 2.7 virtual environment
  # with dependencies (see requirements.txt) in the project 
  # root directory.
