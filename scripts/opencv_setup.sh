@@ -1,3 +1,4 @@
+#!/bin/sh
 # Install OpenCV 2.4.10 on DICE vision PCs
 
 # If Group 7 has already had their sticky paws all over this PC, skip all this
