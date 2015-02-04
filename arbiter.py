@@ -79,14 +79,27 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("pitch", help="[0] Main pitch, [1] Secondary pitch")
     parser.add_argument(
-        "side", help="The side of our defender ['left', 'right'] allowed.")
+        "side", help="The side of our defender ['left', 'right'] allowed."
+    )
     parser.add_argument(
-        "colour", help="The colour of our team - ['yellow', 'blue'] allowed.")
+        "colour", help="The colour of our team - ['yellow', 'blue'] allowed."
+    )
     parser.add_argument(
-        "-n", "--nocomms",
-        help="Disables sending commands to the robot.", action="store_true")
+        "-t", "--tablesetup",
+        help="Brings up the table setup window",
+        action="store_true"
+    )
 
     args = parser.parse_args()
+
+    assert(int(args.pitch) in [0,1])
+    assert(args.colour in ["blue", "yellow"])
+    assert(args.side in ["left", "right"])
+
+    if args.tablesetup:
+        from pc.vision.table_setup import TableSetup
+        tablesetup = TableSetup(int(args.pitch))
+        tablesetup.run()
 
     arb = Arbiter(int(args.pitch), args.colour, args.side)
     arb.run()

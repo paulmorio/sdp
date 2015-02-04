@@ -70,7 +70,7 @@ class TableSetup(object):
         cv2.imshow(FRAME_NAME, self.image)
 
     def get_zone(self, key, message):
-        print '%s. %s' % (message, "Continue by pressing q")
+        print '%s. %s' % (message, "Press q to continue...")
         self.drawing, k = key, True
 
         while k != ord('q'):
@@ -80,7 +80,7 @@ class TableSetup(object):
 
     def get_pitch_outline(self):
         self.get_zone('outline', 'Draw the outline of the pitch. '
-                                 'Proceed by pressing \'q\'')
+                                 'Press q to continue...')
         # Setup black mask to remove overflows
         self.image = tools.mask_pitch(self.image, self.data[self.drawing])
         # Get crop size based on points
