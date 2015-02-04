@@ -57,11 +57,11 @@ class Arbiter(object):
                     self.world_updater.update_world()
                 fps = float(counter) / (time.clock() - timer)
 
-                # Draw GUIs with vision augmentations
+                # Draw GUIs
+                self.calibration_gui.show(frame['frame'], key=key)
                 self.gui.draw(
                     frame['frame'], model_positions, regular_positions, fps,
                     our_color=self.colour, our_side=self.side, key=key)
-                self.calibration_gui.show(frame['frame'], key=key)
 
                 counter += 1
                 key = cv2.waitKey(1) & 0xFF  # Capture keypress
