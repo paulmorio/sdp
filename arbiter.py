@@ -2,6 +2,7 @@ from pc.robot import Robot
 from pc.models.worldmodel import WorldUpdater, World
 from pc.gui import GUI
 from pc.vision import tools, findHSV
+from pc.planner import Planner
 import time
 import cv2
 
@@ -36,6 +37,8 @@ class Arbiter(object):
         self.calibration = tools.get_colors(pitch)
 
         # TODO Set up planner
+        mode = 'chase'  # ['chase', 'defender', 'attacker'] # Pull this from args or something
+        self.planner = Planner(self.world, mode)
 
         # Set up GUI
         self.gui = GUI(self.calibration, self.pitch)
@@ -55,13 +58,16 @@ class Arbiter(object):
                 # Find object positions, update world model
                 frame, model_positions, regular_positions = \
                     self.world_updater.update_world()
+                # Act on the updated world model
+                self.planner.tick()
+
                 fps = float(counter) / (time.clock() - timer)
 
                 # Draw GUIs with vision augmentations
+                self.calibration_gui.show(frame['frame'], key=key)
                 self.gui.draw(
                     frame['frame'], model_positions, regular_positions, fps,
                     our_color=self.colour, our_side=self.side, key=key)
-                self.calibration_gui.show(frame['frame'], key=key)
 
                 counter += 1
                 key = cv2.waitKey(1) & 0xFF  # Capture keypress
