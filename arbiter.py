@@ -1,9 +1,8 @@
 from pc.robot import Robot
 from pc.models.worldmodel import WorldUpdater, World
-from pc.gui import GUI
-from pc.vision import tools, findHSV
-import time
+from pc.vision import tools, calibrationgui, visiongui
 import cv2
+import time
 
 
 class Arbiter(object):
@@ -11,7 +10,8 @@ class Arbiter(object):
     Ties vision/state to planning/communication.
     """
 
-    def __init__(self, pitch, colour, our_side, comm_port='/dev/ttyACM0', comms=0):
+    def __init__(self, pitch, colour, our_side,
+                 comm_port='/dev/ttyACM0', comms=0):
         """
         Entry point for the SDP system.
         Params:
@@ -38,8 +38,8 @@ class Arbiter(object):
         # TODO Set up planner
 
         # Set up GUI
-        self.gui = GUI(self.calibration, self.pitch)
-        self.calibration_gui = findHSV.CalibrationGUI(self.calibration)
+        self.gui = visiongui.VisionGUI(self.pitch)
+        self.calibration_gui = calibrationgui.CalibrationGUI(self.calibration)
 
     def run(self):
         """
@@ -78,10 +78,13 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("pitch", help="[0] Main pitch, [1] Secondary pitch")
-    parser.add_argument("side", help="The side of our defender ['left', 'right'] allowed.")
-    parser.add_argument("colour", help="The colour of our team - ['yellow', 'blue'] allowed.")
     parser.add_argument(
-        "-n", "--nocomms", help="Disables sending commands to the robot.", action="store_true")
+        "side", help="The side of our defender ['left', 'right'] allowed.")
+    parser.add_argument(
+        "colour", help="The colour of our team - ['yellow', 'blue'] allowed.")
+    parser.add_argument(
+        "-n", "--nocomms",
+        help="Disables sending commands to the robot.", action="store_true")
 
     args = parser.parse_args()
 

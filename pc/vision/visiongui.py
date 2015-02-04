@@ -1,27 +1,23 @@
 import cv2
-from vision.colours import BGR_COMMON
+from colours import BGR_COMMON
 import numpy as np
-import vision.tools as tools
+import tools
 
 TEAM_COLORS = set(['yellow', 'blue'])
 
 
-class GUI(object):
+class VisionGUI(object):
 
     VISION = 'Lucky Number Seven'
     BG_SUB = 'BG Subtract'
     NORMALIZE = 'Normalize'
 
-    def nothing(self, x):
-        pass
-
-    def __init__(self, calibration, pitch):
-        self.zones = None
+    def __init__(self, pitch):
         self.pitch = pitch
         cv2.namedWindow(self.VISION)
 
-        cv2.createTrackbar(self.BG_SUB, self.VISION, 0, 1, self.nothing)
-        cv2.createTrackbar(self.NORMALIZE, self.VISION, 0, 1, self.nothing)
+        cv2.createTrackbar(self.BG_SUB, self.VISION, 0, 1, nothing)
+        cv2.createTrackbar(self.NORMALIZE, self.VISION, 0, 1, nothing)
 
     def to_info(self, args):
         """
@@ -210,3 +206,8 @@ class GUI(object):
             start_point = (x, y)
             end_point = (x + r * np.cos(angle), y - r * np.sin(angle))
             self.draw_line(frame, (start_point, end_point))
+
+
+# Dummy function for opencv trackbar response
+def nothing(x):
+    pass
