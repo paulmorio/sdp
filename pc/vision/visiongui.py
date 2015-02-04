@@ -14,6 +14,7 @@ class VisionGUI(object):
 
     def __init__(self, pitch):
         self.pitch = pitch
+        self.zones = None
         cv2.namedWindow(self.VISION)
 
         cv2.createTrackbar(self.BG_SUB, self.VISION, 0, 1, nothing)
