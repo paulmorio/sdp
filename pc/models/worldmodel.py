@@ -1,6 +1,3 @@
-from ..vision.vision import Vision
-from ..vision.camera import Camera
-from ..vision.tools import get_colors
 from postprocessing import Postprocessing
 from models import *
 import warnings
@@ -112,11 +109,18 @@ class WorldUpdater:
     def update_world(self, frame):
         """
         Read a frame and update the world model appropriately.
-        Returns the positions for drawing on the UI feed.
+        Returns the object positions for drawing on the UI feed.
         """
-        # Find object positions
+        # Find object positions, return for gui drawing
         model_positions, regular_positions = self.vision.locate(frame)
         model_positions = self.postprocessing.analyze(model_positions)
         self.world.update_positions(model_positions)
-
-        return model_positions, regular_positions  # For drawing on GUI
+        self.world.our_defender.catcher_area = \
+            {'width': 30, 'height': 30, 'front_offset': 12}
+        self.world.our_attacker.catcher_area = \
+            {'width': 30, 'height': 30, 'front_offset': 14}
+        grabbers = {
+            'our_defender': self.world.our_defender.catcher_area,
+            'our_attacker': self.world.our_attacker.catcher_area
+        }
+        return model_positions, regular_positions, grabbers

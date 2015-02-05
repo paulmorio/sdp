@@ -37,16 +37,19 @@ class CalibrationGUI(object):
 
     def set_window(self):
         cv2.namedWindow(self.maskWindowName)
+
+        # Make trackbars
         create_trackbar = lambda setting, value: cv2.createTrackbar(
             setting, self.maskWindowName, int(value), MAXBAR[setting], nothing)
-        create_trackbar('LH', self.calibration[self.color]['min'][0])
+
+        create_trackbar('LH', self.calibration[self.color]['min'][0])  # Hue
         create_trackbar('UH', self.calibration[self.color]['max'][0])
-        create_trackbar('LS', self.calibration[self.color]['min'][1])
+        create_trackbar('LS', self.calibration[self.color]['min'][1])  # Sat
         create_trackbar('US', self.calibration[self.color]['max'][1])
-        create_trackbar('LV', self.calibration[self.color]['min'][2])
+        create_trackbar('LV', self.calibration[self.color]['min'][2])  # Val
         create_trackbar('UV', self.calibration[self.color]['max'][2])
-        create_trackbar('CT', self.calibration[self.color]['contrast'])
-        create_trackbar('BL', self.calibration[self.color]['blur'])
+        create_trackbar('CT', self.calibration[self.color]['contrast'])  # Cont
+        create_trackbar('BL', self.calibration[self.color]['blur'])  # Blur
 
     def change_color(self, color):
         cv2.destroyWindow(self.maskWindowName)

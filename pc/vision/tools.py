@@ -24,9 +24,11 @@ YELLOW_HIGHER = np.array([11, 255, 255])
 PITCHES = ['Pitch_0', 'Pitch_1']
 
 
-def get_zones(width, height, filename=PATH+'/calibrations/croppings.json', pitch=0):
+def get_zones(width, height,
+              filename=PATH+'/calibrations/croppings.json', pitch=0):
     calibration = get_croppings(filename, pitch)
-    zones_poly = [calibration[key] for key in ['Zone_0', 'Zone_1', 'Zone_2', 'Zone_3']]
+    zones_poly = [calibration[key] for key in ['Zone_0', 'Zone_1',
+                                               'Zone_2', 'Zone_3']]
 
     maxes = [max(zone, key=lambda x: x[0])[0] for zone in zones_poly[:3]]
     mins = [min(zone, key=lambda x: x[0])[0] for zone in zones_poly[1:]]
