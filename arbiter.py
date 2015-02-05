@@ -43,7 +43,7 @@ class Arbiter(object):
 
     def run(self):
         """
-            Dragons are slain. Sort of.
+        Dragons are slain. Sort of.
         """
         counter = 1L
         timer = time.clock()
@@ -51,7 +51,6 @@ class Arbiter(object):
         key = True
         try:
             while key != 27:  # escape to quit
-
                 # Find object positions, update world model
                 frame, model_positions, regular_positions = \
                     self.world_updater.update_world()
@@ -61,7 +60,7 @@ class Arbiter(object):
                 self.calibration_gui.show(frame['frame'], key=key)
                 self.gui.draw(
                     frame['frame'], model_positions, regular_positions, fps,
-                    our_color=self.colour, our_side=self.side, key=key)
+                    our_color=self.colour, our_side=self.side)
 
                 counter += 1
                 key = cv2.waitKey(1) & 0xFF  # Capture keypress
@@ -91,9 +90,7 @@ if __name__ == '__main__':
         help="Brings up the table setup window",
         action="store_true"
     )
-
     args = parser.parse_args()
-
     assert(int(args.pitch) in [0, 1])
     assert(args.colour in ["blue", "yellow"])
     assert(args.side in ["left", "right"])

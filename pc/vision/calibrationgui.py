@@ -26,10 +26,6 @@ KEYS = {ord('y'): 'yellow',
         ord('p'): 'plate'}
 
 
-def nothing(x):  # Dummy cv trackbar call function
-    pass
-
-
 class CalibrationGUI(object):
 
     def __init__(self, calibration):
@@ -37,11 +33,9 @@ class CalibrationGUI(object):
         # self.pre_options = pre_options
         self.calibration = calibration
         self.maskWindowName = "Mask " + self.color
-
         self.set_window()
 
     def set_window(self):
-
         cv2.namedWindow(self.maskWindowName)
         create_trackbar = lambda setting, value: cv2.createTrackbar(
             setting, self.maskWindowName, int(value), MAXBAR[setting], nothing)
@@ -55,7 +49,6 @@ class CalibrationGUI(object):
         create_trackbar('BL', self.calibration[self.color]['blur'])
 
     def change_color(self, color):
-
         cv2.destroyWindow(self.maskWindowName)
         self.color = color
         self.maskWindowName = "Mask " + self.color
@@ -68,15 +61,18 @@ class CalibrationGUI(object):
             except:
                 pass
 
-        get_trackbar_pos = lambda setting: cv2.getTrackbarPos(setting, self.maskWindowName)
+        get_trackbar_pos = \
+            lambda val: cv2.getTrackbarPos(val, self.maskWindowName)
 
         values = {}
         for setting in CONTROLS:
             values[setting] = float(get_trackbar_pos(setting))
         values['BL'] = int(values['BL'])
 
-        self.calibration[self.color]['min'] = np.array([values['LH'], values['LS'], values['LV']])
-        self.calibration[self.color]['max'] = np.array([values['UH'], values['US'], values['UV']])
+        self.calibration[self.color]['min'] = \
+            np.array([values['LH'], values['LS'], values['LV']])
+        self.calibration[self.color]['max'] = \
+            np.array([values['UH'], values['US'], values['UV']])
         self.calibration[self.color]['contrast'] = values['CT']
         self.calibration[self.color]['blur'] = values['BL']
 
@@ -100,3 +96,8 @@ class CalibrationGUI(object):
         frame_mask = cv2.inRange(frame_hsv, min_color, max_color)
 
         return frame_mask
+
+
+# Dummy cv trackbar call function
+def nothing(x):
+    pass

@@ -4,18 +4,20 @@ import numpy as np
 import tools
 import warnings
 
-TEAM_COLORS = set(['yellow', 'blue'])
+
 warnings.filterwarnings("ignore", category=FutureWarning)
+
+
+TEAM_COLORS = set(['yellow', 'blue'])
+VISION = 'Lucky Number Seven'
 
 
 class VisionGUI(object):
 
-    VISION = 'Lucky Number Seven'
-
     def __init__(self, pitch):
         self.pitch = pitch
         self.zones = None
-        cv2.namedWindow(self.VISION)
+        cv2.namedWindow(VISION)
 
     def to_info(self, args):
         """
@@ -42,11 +44,8 @@ class VisionGUI(object):
 
         return {'x': x, 'y': y, 'angle': angle, 'velocity': velocity}
 
-    def cast_binary(self, x):
-        return x == 1
-
-    def draw(self, frame, model_positions, regular_positions, fps,
-             our_color, our_side, key=None, preprocess=None, grabbers=None):
+    def draw(self, frame, model_positions,
+             regular_positions, fps, our_color, our_side):
         """
         Draw information onto the GUI given positions from the vision and
         post processing.
@@ -61,7 +60,8 @@ class VisionGUI(object):
         their_color = list(TEAM_COLORS - set([our_color]))[0]
 
         key_color_pairs = zip(
-            ['our_defender', 'their_defender', 'our_attacker', 'their_attacker'],
+            ['our_defender', 'their_defender',
+             'our_attacker', 'their_attacker'],
             [our_color, their_color]*2)
 
         self.draw_ball(frame, regular_positions['ball'])
@@ -73,9 +73,6 @@ class VisionGUI(object):
         if fps is not None:
             self.draw_text(frame, 'FPS: %.1f' % fps,
                            0, 10, BGR_COMMON['green'], 1)
-
-        if grabbers:
-            self.draw_grabbers(frame, grabbers, frame_height)
 
         # Extend image downwards and draw states.
         blank = np.zeros_like(frame)[:200, :, :]
@@ -96,7 +93,7 @@ class VisionGUI(object):
                         model_positions[key].angle,
                         model_positions[key].velocity)
 
-        cv2.imshow(self.VISION, frame_with_blank)
+        cv2.imshow(VISION, frame_with_blank)
 
     def draw_zones(self, frame, width, height):
         # Re-initialize zones in case they have not been initialized
@@ -190,26 +187,6 @@ class VisionGUI(object):
         if x is not None and y is not None:
             cv2.putText(frame, text, (int(x), int(y)),
                         cv2.FONT_HERSHEY_SIMPLEX, size, color, thickness)
-
-    def draw_grabbers(self, frame, grabbers, height):
-        def_grabber = grabbers['our_defender'][0]
-        att_grabber = grabbers['our_attacker'][0]
-
-        def_grabber = [(x, height - y) for x, y in def_grabber]
-        att_grabber = [(x, height - y) for x, y in att_grabber]
-
-        def_grabber = [(int(x) if x > -1 else 0, int(y) if y > -1 else 0)
-                       for x, y in def_grabber]
-        att_grabber = [(int(x) if x > -1 else 0, int(y) if y > -1 else 0)
-                       for x, y in att_grabber]
-
-        def_grabber[2], def_grabber[3] = def_grabber[3], def_grabber[2]
-        att_grabber[2], att_grabber[3] = att_grabber[3], att_grabber[2]
-
-        cv2.polylines(frame, [np.array(def_grabber)],
-                      True, BGR_COMMON['red'], 1)
-        cv2.polylines(frame, [np.array(att_grabber)],
-                      True, BGR_COMMON['red'], 1)
 
     def draw_velocity(self, frame, frame_offset, x, y, angle, vel, scale=10):
         if not (None in [frame, x, y, angle, vel]) and vel is not 0:

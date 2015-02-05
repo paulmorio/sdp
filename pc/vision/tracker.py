@@ -48,7 +48,6 @@ class Tracker(object):
                 cv2.RETR_TREE,
                 cv2.CHAIN_APPROX_SIMPLE
             )
-            # print contours
             return contours
         except:
             return None
