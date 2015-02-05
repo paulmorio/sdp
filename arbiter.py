@@ -1,6 +1,5 @@
-from pc.robot import Robot
 from pc.models.worldmodel import WorldUpdater, World
-from pc.vision import tools, calibrationgui, visiongui
+from pc.vision import tools, calibrationgui, visiongui, camera, vision
 import cv2
 import time
 
@@ -28,12 +27,21 @@ class Arbiter(object):
         self.pitch = pitch
         self.colour = colour
         self.side = our_side
-        self.robot = Robot(port=comm_port) if comms == 1 else None
-
-        self.world = World(self.side, self.pitch)
-        self.world_updater = WorldUpdater(self.pitch, self.colour,
-                                          self.side, self.world)
         self.calibration = tools.get_colors(pitch)
+
+        # Set up capture device
+        self.camera = camera.Camera(pitch)
+
+        # Set up vision - note that this discards the colour-corrupt first frame
+        frame_shape = self.camera.get_frame().shape
+        frame_center = self.camera.get_adjusted_center()
+        self.vision = vision.Vision(pitch, colour, our_side, frame_shape,
+                                    frame_center, self.calibration)
+
+        # Set up world model
+        self.world = World(self.side, self.pitch)
+        self.world_updater = WorldUpdater(self.pitch, self.colour, self.side,
+                                          self.world, self.vision)
 
         # TODO Set up planner
 
@@ -43,7 +51,9 @@ class Arbiter(object):
 
     def run(self):
         """
-        Dragons are slain. Sort of.
+        Main loop of the system. Grabs frames and passes them to the GUIs and
+        the world state.
+        Also captures keys for exit (escape) and for the calibration gui.
         """
         counter = 1L
         timer = time.clock()
@@ -51,28 +61,29 @@ class Arbiter(object):
         key = True
         try:
             while key != 27:  # escape to quit
+                # Get frame
+                frame = self.camera.get_frame()
                 # Find object positions, update world model
-                frame, model_positions, regular_positions = \
-                    self.world_updater.update_world()
+                model_positions, regular_positions = \
+                    self.world_updater.update_world(frame)
                 fps = float(counter) / (time.clock() - timer)
 
                 # Draw GUIs
-                self.calibration_gui.show(frame['frame'], key=key)
+                self.calibration_gui.show(frame, key=key)
                 self.gui.draw(
-                    frame['frame'], model_positions, regular_positions, fps,
+                    frame, model_positions, regular_positions, fps,
                     our_color=self.colour, our_side=self.side)
 
                 counter += 1
                 key = cv2.waitKey(1) & 0xFF  # Capture keypress
         except:
-            # TODO release camera
-            # TODO Close serial connection, etc (via planner)
             raise
         finally:
-            # TODO release camera
+            # Release capture device
+            self.camera.release()
             # Save calibrations
             tools.save_colors(self.pitch, self.calibration)
-            # Close serial connection
+            # TODO Close serial connection
 
 
 if __name__ == '__main__':

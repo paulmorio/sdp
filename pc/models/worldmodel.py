@@ -90,46 +90,33 @@ class WorldUpdater:
     Process camera feed and update the world model.
     """
 
-    def __init__(self, pitch, colour, our_side, world, pre_options=None):
+    def __init__(self, pitch, colour, our_side, world, vision):
         """
         Params:
             [int] pitch       0 - main pitch, 1 - secondary pitch
             [string] colour   our team  colour - 'blue' or 'yellow'
             [string] our_side the side we're on - 'left' or 'right'
+
         """
         assert pitch in [0, 1]
         assert colour in ['yellow', 'blue']
         assert our_side in ['left', 'right']
 
         self.pitch = pitch
-        self.pre_options = pre_options
         self.colour = colour
         self.side = our_side
         self.world = world
-
-        # Set up camera for frames
-        self.camera = Camera(pitch=self.pitch, options=pre_options)
-        frame = self.camera.get_frame()['frame']
-        center_point = self.camera.get_adjusted_center()
-
-        # Set up vision
-        self.calibration = get_colors(pitch)
-        self.vision = Vision(
-            pitch=pitch, colour=colour, our_side=our_side,
-            frame_shape=frame.shape, frame_center=center_point,
-            calibration=self.calibration)
-
+        self.vision = vision
         self.postprocessing = Postprocessing()
 
-    def update_world(self):
+    def update_world(self, frame):
         """
         Read a frame and update the world model appropriately.
         Returns the positions for drawing on the UI feed.
         """
-        frame = self.camera.get_frame()
         # Find object positions
-        model_positions, regular_positions = self.vision.locate(frame['frame'])
+        model_positions, regular_positions = self.vision.locate(frame)
         model_positions = self.postprocessing.analyze(model_positions)
         self.world.update_positions(model_positions)
 
-        return frame, model_positions, regular_positions  # For drawing on GUI
+        return model_positions, regular_positions  # For drawing on GUI

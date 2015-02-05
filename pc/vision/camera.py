@@ -1,6 +1,5 @@
 import cv2
 import tools
-import numpy as np
 
 
 class Camera(object):
@@ -16,8 +15,6 @@ class Camera(object):
         self.options = {
             'crop': True,                   # Crop frame to isolate pitch
             'fix_radial_distortion': True,  # Fix radial lens distortion
-            'normalize': False,             # Saturation normalization
-            'background_sub': False         # Background subtraction feed
         }
 
         # Apply custom options from arguments
@@ -32,49 +29,25 @@ class Camera(object):
         self.c_matrix = radial_data['camera_matrix']
         self.dist = radial_data['dist']
 
-        # Background subtraction parameters
-        self.background_sub = None
-
         # Cache previous frame in case of feed disruption
         self.current_frame = None
-
-    def get_options(self):
-        return self.options
-
-    def set_options(self, options=None):
-        """
-        Set given options. If no options given then set all to defaults.
-        """
-        if not options:
-            self.options = {
-                'normalize': False,
-                'background_sub': False
-            }
-        else:
-            self.options = options
 
     def get_frame(self):
         """
         Retrieve a frame from the feed and pre-process according to options.
-        :return: 2-dictionary with frame and, if chosen, the bg_sub
+        :return: Cropped and undistorted frame.
         """
-        result = {}
         status, frame = self.capture.read()
         if status:  # If a frame is received, process and return it
             if self.options['fix_radial_distortion']:  # Fix radial distortion
                 frame = self.fix_radial_distortion(frame)
-            if self.options['normalize']:
-                frame = self.normalize(frame)
             if self.options['crop']:  # Crop the frame
-                frame = frame[
+                return frame[
                     self.crop_values[2]:self.crop_values[3],
                     self.crop_values[0]:self.crop_values[1]
                 ]
-            if self.options['background_sub']:
-                result['bg_sub'] = self.get_bg_sub(frame)
-            result['frame'] = frame
-            self.current_frame = result  # Caching the most recent frame
-            return result
+            self.current_frame = frame
+            return frame
         else:  # Return previous frame if the video feed dies
             print "Feed disrupted - no longer receiving new frames!"
             if self.current_frame is not None:
@@ -82,89 +55,10 @@ class Camera(object):
 
     def fix_radial_distortion(self, frame):
         return cv2.undistort(
-            frame, self.c_matrix, self.dist, None, self.nc_matrix
-        )
-
-    def normalize(self, frame):
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        frame[:, :, 1] = cv2.equalizeHist(frame[:, :, 1])
-        return cv2.cvtColor(frame, cv2.COLOR_HSV2BGR)
-
-    def get_bg_sub(self, frame):
-        if self.background_sub is None:  # Generate bg sub on first run
-            self.background_sub = cv2.BackgroundSubtractorMOG2(0, 30, False)
-        return self.background_sub.apply(frame)
-
-    def reset_bg_sub(self):
-        self.background_sub = None
+            frame, self.c_matrix, self.dist, None, self.nc_matrix)
 
     def get_adjusted_center(self):
         return 320 - self.crop_values[0], 240 - self.crop_values[2]
 
-
-class CameraGUI(object):
-    """
-        This class currently exists mostly for playing with preprocessing,
-        etc. It is not used in 'competition'.
-    """
-    WINDOW = "Lucky Number Seven - Camera Feed"
-    RADIAL = "Fix RD"
-    BG_SUB = "BG Subtract"
-    NORMALIZE = "Normalize"
-
-    def __init__(self, pitch=0):
-        self.camera = Camera(pitch=pitch)
-        # Set up GUI
-        cv2.namedWindow(self.WINDOW)
-
-        # Set up option trackbars - reset bg sub on change
-        cv2.createTrackbar(
-            self.RADIAL, self.WINDOW,
-            cast_bin(self.camera.options['fix_radial_distortion']),
-            1, lambda x: self.camera.reset_bg_sub())
-        cv2.createTrackbar(
-            self.BG_SUB, self.WINDOW,
-            cast_bin(self.camera.options['background_sub']),
-            1, lambda x: self.camera.reset_bg_sub())
-        cv2.createTrackbar(
-            self.NORMALIZE, self.WINDOW,
-            cast_bin(self.camera.options['normalize']),
-            1, lambda x: self.camera.reset_bg_sub())
-
-    def run(self):
-        # Read and refresh
-        while True:
-            current_frame = self.camera.get_frame()
-
-            # Show background subtraction window if option is selected
-            if 'bg_sub' in current_frame:
-                cv2.imshow(self.WINDOW, current_frame['bg_sub'])
-            else:
-                cv2.imshow(self.WINDOW, current_frame['frame'])
-
-            self.update_camera_options()
-
-            # Quit on 'q' keypress
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-
-    def update_camera_options(self):
-        self.camera.options['fix_radial_distortion'] = \
-            cv2.getTrackbarPos(self.RADIAL, self.WINDOW) == 1
-        self.camera.options['background_sub'] = \
-            cv2.getTrackbarPos(self.BG_SUB, self.WINDOW) == 1
-        self.camera.options['normalize'] = \
-            cv2.getTrackbarPos(self.NORMALIZE, self.WINDOW) == 1
-
-
-def cast_bin(bool):
-    return 1 if bool else 0
-
-if __name__ == '__main__':
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("pitch", help="Main pitch: 0, Second pitch: 1")
-    args = parser.parse_args()
-
-    gui = CameraGUI(pitch=int(args.pitch))
-    gui.run()
+    def release(self):
+        self.capture.release()
