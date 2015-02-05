@@ -98,8 +98,9 @@ class Vision(object):
         """
         # Run trackers as processes
         positions = self._run_trackers(frame)
-        # Correct for perspective
-        positions = self.get_adjusted_positions(positions)
+
+        # Correct for perspective TODO is this worthwhile??
+        #positions = self.get_adjusted_positions(positions)
 
         # Wrap list of positions into a dictionary
         keys = ['our_defender', 'our_attacker', 'their_defender',
