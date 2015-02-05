@@ -127,7 +127,7 @@ class WorldUpdater:
         Returns the positions for drawing on the UI feed.
         """
         frame = self.camera.get_frame()
-        # Find object positions - model_positions have their y coordinate inverted
+        # Find object positions
         model_positions, regular_positions = self.vision.locate(frame['frame'])
         model_positions = self.postprocessing.analyze(model_positions)
         self.world.update_positions(model_positions)

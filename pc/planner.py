@@ -7,7 +7,6 @@ import robot
 import worldmodel
 
 # Choose between one of the two.
-import camera
 import vision
 
 class Planner():

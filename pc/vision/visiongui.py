@@ -2,23 +2,20 @@ import cv2
 from colours import BGR_COMMON
 import numpy as np
 import tools
+import warnings
 
 TEAM_COLORS = set(['yellow', 'blue'])
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 class VisionGUI(object):
 
     VISION = 'Lucky Number Seven'
-    BG_SUB = 'BG Subtract'
-    NORMALIZE = 'Normalize'
 
     def __init__(self, pitch):
         self.pitch = pitch
         self.zones = None
         cv2.namedWindow(self.VISION)
-
-        cv2.createTrackbar(self.BG_SUB, self.VISION, 0, 1, nothing)
-        cv2.createTrackbar(self.NORMALIZE, self.VISION, 0, 1, nothing)
 
     def to_info(self, args):
         """
@@ -28,8 +25,10 @@ class VisionGUI(object):
         x, y, angle, velocity = None, None, None, None
         if args is not None:
             if 'location' in args:
-                x = args['location'][0] if args['location'] is not None else None
-                y = args['location'][1] if args['location'] is not None else None
+                x = args['location'][0] \
+                    if args['location'] is not None else None
+                y = args['location'][1] \
+                    if args['location'] is not None else None
 
             elif 'x' in args and 'y' in args:
                 x = args['x']
@@ -49,7 +48,8 @@ class VisionGUI(object):
     def draw(self, frame, model_positions, regular_positions, fps,
              our_color, our_side, key=None, preprocess=None, grabbers=None):
         """
-        Draw information onto the GUI given positions from the vision and post processing.
+        Draw information onto the GUI given positions from the vision and
+        post processing.
         NOTE: model_positions contains coordinates with y coordinate reversed!
         """
         # Get general information about the frame
@@ -71,13 +71,8 @@ class VisionGUI(object):
 
         # Draw fps on the canvas
         if fps is not None:
-            self.draw_text(frame, 'FPS: %.1f' % fps, 0, 10, BGR_COMMON['green'], 1)
-
-        if preprocess is not None:
-            preprocess['normalize'] = self.cast_binary(
-                cv2.getTrackbarPos(self.NORMALIZE, self.VISION))
-            preprocess['background_sub'] = self.cast_binary(
-                cv2.getTrackbarPos(self.BG_SUB, self.VISION))
+            self.draw_text(frame, 'FPS: %.1f' % fps,
+                           0, 10, BGR_COMMON['green'], 1)
 
         if grabbers:
             self.draw_grabbers(frame, grabbers, frame_height)
@@ -87,16 +82,19 @@ class VisionGUI(object):
         frame_with_blank = np.vstack((frame, blank))
 
         if model_positions and regular_positions:
-            for key in ['ball', 'our_defender', 'our_attacker', 'their_defender', 'their_attacker']:
+            for key in ['ball', 'our_defender', 'our_attacker',
+                        'their_defender', 'their_attacker']:
                 if model_positions[key] and regular_positions[key]:
                     self.data_text(
-                        frame_with_blank, (frame_width, frame_height), our_side, key,
-                        model_positions[key].x, model_positions[key].y,
-                        model_positions[key].angle, model_positions[key].velocity)
+                        frame_with_blank, (frame_width, frame_height), our_side,
+                        key, model_positions[key].x, model_positions[key].y,
+                        model_positions[key].angle,
+                        model_positions[key].velocity)
                     self.draw_velocity(
                         frame_with_blank, (frame_width, frame_height),
                         model_positions[key].x, model_positions[key].y,
-                        model_positions[key].angle, model_positions[key].velocity)
+                        model_positions[key].angle,
+                        model_positions[key].velocity)
 
         cv2.imshow(self.VISION, frame_with_blank)
 
@@ -106,15 +104,18 @@ class VisionGUI(object):
             self.zones = tools.get_zones(width, height, pitch=self.pitch)
 
         for zone in self.zones:
-            cv2.line(frame, (zone[1], 0), (zone[1], height), BGR_COMMON['orange'], 1)
+            cv2.line(frame, (zone[1], 0), (zone[1], height),
+                     BGR_COMMON['orange'], 1)
 
     def draw_ball(self, frame, position_dict):
         if position_dict and position_dict['x'] and position_dict['y']:
             frame_height, frame_width, _ = frame.shape
             self.draw_line(
-                frame, ((int(position_dict['x']), 0), (int(position_dict['x']), frame_height)), 1)
+                frame, ((int(position_dict['x']), 0),
+                        (int(position_dict['x']), frame_height)), 1)
             self.draw_line(
-                frame, ((0, int(position_dict['y'])), (frame_width, int(position_dict['y']))), 1)
+                frame, ((0, int(position_dict['y'])),
+                        (frame_width, int(position_dict['y']))), 1)
 
     def draw_dot(self, frame, location):
         if location is not None:
@@ -122,7 +123,8 @@ class VisionGUI(object):
 
     def draw_robot(self, frame, position_dict, color):
         if position_dict['box']:
-            cv2.polylines(frame, [np.array(position_dict['box'])], True, BGR_COMMON[color], 2)
+            cv2.polylines(frame, [np.array(position_dict['box'])],
+                          True, BGR_COMMON[color], 2)
 
         if position_dict['front']:
             p1 = (position_dict['front'][0][0], position_dict['front'][0][1])
@@ -133,19 +135,22 @@ class VisionGUI(object):
 
         if position_dict['dot']:
             cv2.circle(
-                frame, (int(position_dict['dot'][0]), int(position_dict['dot'][1])),
+                frame, (int(position_dict['dot'][0]),
+                        int(position_dict['dot'][1])),
                 4, BGR_COMMON['black'], -1)
 
         if position_dict['direction']:
             cv2.line(
-                frame, position_dict['direction'][0], position_dict['direction'][1],
+                frame, position_dict['direction'][0],
+                position_dict['direction'][1],
                 BGR_COMMON['orange'], 2)
 
     def draw_line(self, frame, points, thickness=2):
         if points is not None:
             cv2.line(frame, points[0], points[1], BGR_COMMON['red'], thickness)
 
-    def data_text(self, frame, frame_offset, our_side, text, x, y, angle, velocity):
+    def data_text(self, frame, frame_offset, our_side,
+                  text, x, y, angle, velocity):
         if x is not None and y is not None:
             frame_width, frame_height = frame_offset
             if text == "ball":
@@ -173,15 +178,18 @@ class VisionGUI(object):
             self.draw_text(frame, 'y: %.2f' % y, draw_x, y_offset + 20)
 
             if angle is not None:
-                self.draw_text(frame, 'angle: %.2f' % angle, draw_x, y_offset + 30)
+                self.draw_text(frame, 'angle: %.2f' % angle,
+                               draw_x, y_offset + 30)
 
             if velocity is not None:
-                self.draw_text(frame, 'velocity: %.2f' % velocity, draw_x, y_offset + 40)
+                self.draw_text(frame, 'velocity: %.2f' % velocity,
+                               draw_x, y_offset + 40)
 
-    def draw_text(self, frame, text, x, y, color=BGR_COMMON['green'], thickness=1.3, size=0.3):
+    def draw_text(self, frame, text, x, y,
+                  color=BGR_COMMON['green'], thickness=1.3, size=0.3):
         if x is not None and y is not None:
-            cv2.putText(
-                frame, text, (int(x), int(y)), cv2.FONT_HERSHEY_SIMPLEX, size, color, thickness)
+            cv2.putText(frame, text, (int(x), int(y)),
+                        cv2.FONT_HERSHEY_SIMPLEX, size, color, thickness)
 
     def draw_grabbers(self, frame, grabbers, height):
         def_grabber = grabbers['our_defender'][0]
@@ -190,14 +198,18 @@ class VisionGUI(object):
         def_grabber = [(x, height - y) for x, y in def_grabber]
         att_grabber = [(x, height - y) for x, y in att_grabber]
 
-        def_grabber = [(int(x) if x > -1 else 0, int(y) if y > -1 else 0) for x, y in def_grabber]
-        att_grabber = [(int(x) if x > -1 else 0, int(y) if y > -1 else 0) for x, y in att_grabber]
+        def_grabber = [(int(x) if x > -1 else 0, int(y) if y > -1 else 0)
+                       for x, y in def_grabber]
+        att_grabber = [(int(x) if x > -1 else 0, int(y) if y > -1 else 0)
+                       for x, y in att_grabber]
 
         def_grabber[2], def_grabber[3] = def_grabber[3], def_grabber[2]
         att_grabber[2], att_grabber[3] = att_grabber[3], att_grabber[2]
 
-        cv2.polylines(frame, [np.array(def_grabber)], True, BGR_COMMON['red'], 1)
-        cv2.polylines(frame, [np.array(att_grabber)], True, BGR_COMMON['red'], 1)
+        cv2.polylines(frame, [np.array(def_grabber)],
+                      True, BGR_COMMON['red'], 1)
+        cv2.polylines(frame, [np.array(att_grabber)],
+                      True, BGR_COMMON['red'], 1)
 
     def draw_velocity(self, frame, frame_offset, x, y, angle, vel, scale=10):
         if not (None in [frame, x, y, angle, vel]) and vel is not 0:

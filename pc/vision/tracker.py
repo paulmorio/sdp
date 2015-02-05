@@ -3,13 +3,12 @@ import numpy as np
 from collections import namedtuple
 import warnings
 
-# Turning on KMEANS fitting:
-KMEANS = False
-
 # Turn off warnings for PolynomialFit
 warnings.simplefilter('ignore', np.RankWarning)
 warnings.simplefilter('ignore', RuntimeWarning)
 
+# Turning on KMEANS fitting:
+KMEANS = False
 
 BoundingBox = namedtuple('BoundingBox', 'x y width height')
 Center = namedtuple('Center', 'x y')
@@ -26,16 +25,19 @@ class Tracker(object):
             if frame is None:
                 return None
             if adjustments['blur'] > 1:
-                frame = cv2.blur(frame, (adjustments['blur'], adjustments['blur']))
+                frame = cv2.blur(frame,
+                                 (adjustments['blur'], adjustments['blur']))
 
             if adjustments['contrast'] > 1.0:
-                frame = cv2.add(frame, np.array([float(adjustments['contrast'])]))
+                frame = cv2.add(frame,
+                                np.array([float(adjustments['contrast'])]))
 
             # Convert frame to HSV
             frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
             # Create a mask
-            frame_mask = cv2.inRange(frame_hsv, adjustments['min'], adjustments['max'])
+            frame_mask = cv2.inRange(frame_hsv, adjustments['min'],
+                                     adjustments['max'])
 
             # Apply threshold to the masked image, no idea what the values mean
             return_val, threshold = cv2.threshold(frame_mask, 127, 255, 0)
@@ -59,7 +61,8 @@ class Tracker(object):
         frame = frame[crop[2]:crop[3], crop[0]:crop[1]]
 
         # Apply simple kernel blur
-        # Take a matrix given by second argument and calculate average of those pixels
+        # Take a matrix given by second argument and
+        # calculate the average of those pixels
         if blur > 1:
             frame = cv2.blur(frame, (blur, blur))
 
@@ -96,13 +99,15 @@ class Tracker(object):
 
     def get_bounding_box(self, points):
         """
-        Find the bounding box given points by looking at the extremes of each coordinate.
+        Find the bounding box given points by looking at the
+        extremes of each coordinate.
         """
         leftmost = min(points, key=lambda x: x[0])[0]
         rightmost = max(points, key=lambda x: x[0])[0]
         topmost = min(points, key=lambda x: x[1])[1]
         bottommost = max(points, key=lambda x: x[1])[1]
-        return BoundingBox(leftmost, topmost, rightmost - leftmost, bottommost - topmost)
+        return BoundingBox(leftmost, topmost, rightmost - leftmost,
+                           bottommost - topmost)
 
     def get_contour_corners(self, contour):
         """
@@ -121,7 +126,8 @@ class Tracker(object):
         for i, cnt in enumerate(contours):
             if cv2.contourArea(cnt) > 100:
                 cnts.append(cnt)
-        return reduce(lambda x, y: np.concatenate((x, y)), cnts) if len(cnts) else None
+        return reduce(lambda x, y: np.concatenate((x, y)), cnts) \
+            if len(cnts) else None
 
     def get_largest_contour(self, contours):
         """
@@ -159,7 +165,8 @@ class RobotTracker(Tracker):
             [(left-min, right-max, top-min, bot-max)]
                                 crop  crop coordinates
             [int]       offset          how much to offset the coordinates
-            [int]       pitch           the pitch we're tracking - used to find the right colors
+            [int]       pitch           the pitch we're tracking - used to find
+                                        the right colors
             [string]    name            name for debug purposes
             [dict]      calibration     dictionary of calibration values
         """
@@ -190,15 +197,20 @@ class RobotTracker(Tracker):
         Find center point of the black dot on the plate.
 
         Method:
-            1. Assume that the dot is within some proximity of the center of the plate.
-            2. Fill a dummy frame with black and draw white cirlce around to create a mask.
-            3. Mask against the frame to eliminate any robot parts looking like dark dots.
+            1. Assume that the dot is within some proximity of
+                the center of the plate.
+            2. Fill a dummy frame with black and draw white cirlce
+                around to create a mask.
+            3. Mask against the frame to eliminate any robot parts
+                looking like dark dots.
             4. Use contours to detect the dot and return it's center.
 
         Params:
             frame       The frame to search
-            x_offset    The offset from the uncropped image - to be added to the final values
-            y_offset    The offset from the uncropped image - to be added to the final values
+            x_offset    The offset from the uncropped image - to be added
+                        to the final values
+            y_offset    The offset from the uncropped image - to be added
+                        to the final values
         """
         # Create dummy mask
         height, width, channel = frame.shape
@@ -207,7 +219,8 @@ class RobotTracker(Tracker):
 
             # Fill the dummy frame
             cv2.rectangle(mask_frame, (0, 0), (width, height), (0, 0, 0), -1)
-            cv2.circle(mask_frame, (width / 2, height / 2), 9, (255, 255, 255), -1)
+            cv2.circle(mask_frame, (width / 2, height / 2),
+                       9, (255, 255, 255), -1)
 
             # Mask the original image
             mask_frame = cv2.cvtColor(mask_frame, cv2.COLOR_BGR2GRAY)
@@ -262,33 +275,39 @@ class RobotTracker(Tracker):
             if plate_bound_box.width > 0 and plate_bound_box.height > 0:
                 # (2) Trim to create a smaller frame
                 plate_frame = frame.copy()[
-                    plate_bound_box.y:plate_bound_box.y + plate_bound_box.height,
-                    plate_bound_box.x:plate_bound_box.x + plate_bound_box.width
+                    plate_bound_box.y:plate_bound_box.y +
+                    plate_bound_box.height,
+                    plate_bound_box.x:plate_bound_box.x +
+                    plate_bound_box.width
                 ]
 
                 # (3) Search for the dot
-                dot = self.get_dot(plate_frame, plate_bound_box.x + self.offset, plate_bound_box.y)
+                dot = self.get_dot(plate_frame, plate_bound_box.x + self.offset,
+                                   plate_bound_box.y)
 
                 if dot is not None:
                     # Since get_dot adds offset, we need to remove it
                     dot_temp = Center(dot[0] - self.offset, dot[1])
 
-                    # Find two points from plate_corners that are the furthest from the dot
+                    # Find two points from plate_corners that are
+                    # the furthest from the dot
 
                     distances = [
                         (
-                            (dot_temp.x - p[0])**2 + (dot_temp.y - p[1])**2,  # distance
+                            (dot_temp.x - p[0])**2 + (dot_temp.y - p[1])**2,
                             p[0],                                   # x coord
                             p[1]                                    # y coord
                         ) for p in plate_corners]
 
                     distances.sort(key=lambda x: x[0], reverse=True)
 
-                    # Front of the kicker should be the first two points in distances
+                    # Front of the kicker should be the
+                    # first two points in distances
                     front = distances[:2]
                     rear = distances[2:]
 
-                    # Calculate which of the rear points belongs to the first of the front
+                    # Calculate which of the rear points belongs
+                    # to the first of the front
                     first = front[0]
                     front_rear_distances = [
                         (
@@ -298,16 +317,18 @@ class RobotTracker(Tracker):
                         ) for p in rear]
                     front_rear_distances.sort(key=lambda x: x[0])
 
-                    # Direction is a line between the front points and rear points
+                    # Direction is a line between the
+                    # front points and rear points
                     direction = (
                         Center(
                             (first[1] + front[1][1]) / 2 + self.offset,
                             (front[1][2] + first[2]) / 2),
                         Center(
-                            (front_rear_distances[1][1] + front_rear_distances[0][1]) / 2 + self.offset,
-                            (front_rear_distances[1][2] + front_rear_distances[0][2]) / 2)
+                            (front_rear_distances[1][1] +
+                             front_rear_distances[0][1]) / 2 + self.offset,
+                            (front_rear_distances[1][2] +
+                             front_rear_distances[0][2]) / 2)
                     )
-
                     angle = self.get_angle(direction[1], direction[0])
 
             # Offset the x coordinates
@@ -345,19 +366,13 @@ class RobotTracker(Tracker):
 
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
         k = 4
-        ret, label, colour_centers = cv2.kmeans(prep, k, criteria, 20, cv2.KMEANS_RANDOM_CENTERS)
+        ret, label, colour_centers = cv2.kmeans(prep, k, criteria, 20,
+                                                cv2.KMEANS_RANDOM_CENTERS)
         colour_centers = np.uint8(colour_centers)
 
         # Get the new image based on the clusters found
         res = colour_centers[label.flatten()]
         res2 = res.reshape(plate.shape)
-
-        # if self.name == 'Their Defender':
-        #     colour_centers = np.array([colour_centers])
-        #     print "********************", self.name
-        #     print colour_centers
-        #     print 'HSV######'
-        #     print cv2.cvtColor(colour_centers, cv2.COLOR_BGR2HSV)
 
         return res2
 
@@ -378,10 +393,6 @@ class BallTracker(Tracker):
             [int] offset        how much to offset the coordinates
         """
         self.crop = crop
-        # if pitch == 0:
-        #     self.color = PITCH0['red']
-        # else:
-        #     self.color = PITCH1['red']
         self.color = [calibration['red']]
         self.offset = offset
         self.name = name

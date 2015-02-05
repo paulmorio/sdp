@@ -1,9 +1,9 @@
 from Polygon.cPolygon import Polygon
 from math import cos, sin, hypot, pi, atan2
 from ..vision.tools import get_croppings
+
 # Width measures the front and back of an object
 # Length measures along the sides of an object
-
 ROBOT_WIDTH = 30
 ROBOT_LENGTH = 45
 ROBOT_HEIGHT = 10
@@ -73,7 +73,8 @@ class Vector(Coordinate):
     @angle.setter
     def angle(self, new_angle):
         if new_angle is None or new_angle < 0 or new_angle >= (2*pi):
-            raise ValueError('Angle can not be None, also must be between 0 and 2pi')
+            raise ValueError(
+                'Angle can not be None, also must be between 0 and 2pi')
         self._angle = new_angle
 
     @velocity.setter
@@ -83,7 +84,8 @@ class Vector(Coordinate):
         self._velocity = new_velocity
 
     def __eq__(self, other):
-        return isinstance(other, self.__class__) and (self.__dict__ == other.__dict__)
+        return isinstance(other, self.__class__) \
+               and (self.__dict__ == other.__dict__)
 
     def __repr__(self):
         return ('x: %s, y: %s, angle: %s, velocity: %s\n' %
@@ -98,7 +100,8 @@ class PitchObject(object):
     Length measures along the sides of an object
     """
 
-    def __init__(self, x, y, angle, velocity, width, length, height, angle_offset=0):
+    def __init__(self, x, y, angle, velocity, width,
+                 length, height, angle_offset=0):
         if width < 0 or length < 0 or height < 0:
             raise ValueError('Object dimensions must be positive')
         else:
@@ -148,7 +151,8 @@ class PitchObject(object):
     @vector.setter
     def vector(self, new_vector):
         if new_vector is None or not isinstance(new_vector, Vector):
-            raise ValueError('The new vector can not be None and must be an instance of a Vector')
+            raise ValueError('The new vector can not be None and '
+                             'must be an instance of a Vector')
         else:
             self._vector = Vector(new_vector.x, new_vector.y,
                                   new_vector.angle - self._angle_offset,
@@ -177,7 +181,8 @@ class PitchObject(object):
     def __repr__(self):
         return ('x: %s\ny: %s\nangle: %s\nvelocity: %s\ndimensions: %s\n' %
                 (self.x, self.y,
-                 self.angle, self.velocity, (self.width, self.length, self.height)))
+                 self.angle, self.velocity,
+                 (self.width, self.length, self.height)))
 
 
 class Robot(PitchObject):
@@ -195,14 +200,20 @@ class Robot(PitchObject):
 
     @property
     def catcher_area(self):
-        front_left = (self.x + self._catcher_area['front_offset'] + self._catcher_area['height'],
+        front_left = (self.x + self._catcher_area['front_offset'] +
+                      self._catcher_area['height'],
                       self.y + self._catcher_area['width']/2.0)
-        front_right = (self.x + self._catcher_area['front_offset'] + self._catcher_area['height'],
+
+        front_right = (self.x + self._catcher_area['front_offset'] +
+                       self._catcher_area['height'],
                        self.y - self._catcher_area['width']/2.0)
+
         back_left = (self.x + self._catcher_area['front_offset'],
                      self.y + self._catcher_area['width']/2.0)
+
         back_right = (self.x + self._catcher_area['front_offset'],
                       self.y - self._catcher_area['width']/2.0)
+
         area = Polygon((front_left, front_right, back_left, back_right))
         area.rotate(self.angle, self.x, self.y)
         return area
@@ -234,8 +245,9 @@ class Robot(PitchObject):
 
     def get_rotation_to_point(self, x, y):
         """
-        This method returns an angle by which the robot needs to rotate to achieve alignment.
-        It takes either an x, y coordinate of the object that we want to rotate to
+        This method returns an angle by which the robot needs to
+        rotate to achieve alignment. It takes either an x, y coordinate of the
+        object that we want to rotate to
         """
         delta_x = x - self.x
         delta_y = y - self.y
@@ -243,7 +255,8 @@ class Robot(PitchObject):
         if displacement == 0:
             theta = 0
         else:
-            theta = atan2(delta_y, delta_x) - atan2(sin(self.angle), cos(self.angle))
+            theta = atan2(delta_y, delta_x) - atan2(sin(self.angle),
+                                                    cos(self.angle))
             if theta > pi:
                 theta -= 2*pi
             elif theta < -pi:
@@ -253,7 +266,8 @@ class Robot(PitchObject):
 
     def get_displacement_to_point(self, x, y):
         """
-        This method returns the displacement between the robot and the (x, y) coordinate.
+        This method returns the displacement between the robot
+        and the (x, y) coordinate.
         """
         delta_x = x - self.x
         delta_y = y - self.y
@@ -264,7 +278,8 @@ class Robot(PitchObject):
         """
         This method returns the displacement and angle to coordinate x, y.
         """
-        return self.get_displacement_to_point(x, y), self.get_rotation_to_point(x, y)
+        return (self.get_displacement_to_point(x, y),
+                self.get_rotation_to_point(x, y))
 
     def get_pass_path(self, target):
         """
@@ -276,21 +291,24 @@ class Robot(PitchObject):
         return Polygon(robot_poly[0], robot_poly[1], target_poly[0], target_poly[1])
 
     def __repr__(self):
-        return ('zone: %s\nx: %s\ny: %s\nangle: %s\nvelocity: %s\ndimensions: %s\n' %
-                (self._zone, self.x, self.y,
-                 self.angle, self.velocity, (self.width, self.length, self.height)))
+        return ('zone: %s\nx: %s\ny: %s\nangle: %s'
+                '\nvelocity: %s\ndimensions: %s\n' %
+                (self._zone, self.x, self.y, self.angle, self.velocity,
+                 (self.width, self.length, self.height)))
 
 
 class Ball(PitchObject):
 
     def __init__(self, x, y, angle, velocity):
-        super(Ball, self).__init__(x, y, angle, velocity, BALL_WIDTH, BALL_LENGTH, BALL_HEIGHT)
+        super(Ball, self).__init__(x, y, angle, velocity,
+                                   BALL_WIDTH, BALL_LENGTH, BALL_HEIGHT)
 
 
 class Goal(PitchObject):
 
     def __init__(self, zone, x, y, angle):
-        super(Goal, self).__init__(x, y, angle, 0, GOAL_WIDTH, GOAL_LENGTH, GOAL_HEIGHT)
+        super(Goal, self).__init__(x, y, angle, 0, GOAL_WIDTH,
+                                   GOAL_LENGTH, GOAL_HEIGHT)
         self._zone = zone
 
     @property
@@ -298,7 +316,8 @@ class Goal(PitchObject):
         return self._zone
 
     def __repr__(self):
-        return ('zone: %s\nx: %s\ny: %s\nangle: %s\nvelocity: %s\ndimensions: %s\n' %
+        return ('zone: %s\nx: %s\ny: %s\nangle: %s'
+                '\nvelocity: %s\ndimensions: %s\n' %
                 (self._zone, self.x, self.y, self.angle, self.velocity,
                  (self.width, self.length, self.height)))
 
@@ -317,13 +336,20 @@ class Pitch(object):
         # Getting the zones:
         self._zones = []
         self._zones.append(
-            Polygon([(x, self._height - y) for (x, y) in config_json['Zone_0']]))
+            Polygon([(x, self._height - y)
+                     for (x, y) in config_json['Zone_0']]))
+
         self._zones.append(
-            Polygon([(x, self._height - y) for (x, y) in config_json['Zone_1']]))
+            Polygon([(x, self._height - y)
+                     for (x, y) in config_json['Zone_1']]))
+
         self._zones.append(
-            Polygon([(x, self._height - y) for (x, y) in config_json['Zone_2']]))
+            Polygon([(x, self._height - y)
+                     for (x, y) in config_json['Zone_2']]))
+
         self._zones.append(
-            Polygon([(x, self._height - y) for (x, y) in config_json['Zone_3']]))
+            Polygon([(x, self._height - y)
+                     for (x, y) in config_json['Zone_3']]))
 
     def is_within_bounds(self, robot, x, y):
         """

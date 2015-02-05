@@ -66,9 +66,11 @@ class Arbiter(object):
                 counter += 1
                 key = cv2.waitKey(1) & 0xFF  # Capture keypress
         except:
+            # TODO release camera
             # TODO Close serial connection, etc (via planner)
             raise
         finally:
+            # TODO release camera
             # Save calibrations
             tools.save_colors(self.pitch, self.calibration)
             # Close serial connection
@@ -92,7 +94,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    assert(int(args.pitch) in [0,1])
+    assert(int(args.pitch) in [0, 1])
     assert(args.colour in ["blue", "yellow"])
     assert(args.side in ["left", "right"])
 

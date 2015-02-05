@@ -1,5 +1,6 @@
 from serial import Serial
 
+
 class Robot(object):
     """Serial connection setup, IO, and robot actions."""
 
@@ -90,7 +91,8 @@ class ManualController(object):
         root.bind('q', lambda event: self.robot.command(Robot.STRAFE_FWD_LEFT))
         root.bind('e', lambda event: self.robot.command(Robot.STRAFE_FWD_RIGHT))
         root.bind('z', lambda event: self.robot.command(Robot.STRAFE_BACK_LEFT))
-        root.bind('c', lambda event: self.robot.command(Robot.STRAFE_BACK_RIGHT))
+        root.bind('c',
+                  lambda event: self.robot.command(Robot.STRAFE_BACK_RIGHT))
         root.bind('g', lambda event: self.robot.command(Robot.GRAB))
         root.bind('<space>', lambda event: self.robot.command(Robot.KICK))
         root.bind('t', lambda event: self.robot.command(Robot.MOTOR_TEST))

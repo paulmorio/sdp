@@ -1,15 +1,15 @@
 import cv2
+import numpy as np
 import tools
 import argparse
 
-
 FRAME_NAME = 'Table Setup'
 
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
 BLUE = (255, 0, 0)
 GREEN = (0, 255, 0)
 RED = (0, 0, 255)
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
 
 distort_data = tools.get_radial_data()
 NCMATRIX = distort_data['new_camera_matrix']
@@ -19,18 +19,17 @@ DIST = distort_data['dist']
 
 class TableSetup(object):
     """
-        GUI window to set up margin boundaries, table shape, and image crop
-        boundaries.
+        Set up crop outline and table margin outlines.
     """
-    def __init__(self, pitch, width=640, height=480):
-        self.width = width
-        self.height = height
+
+    def __init__(self, pitch):
         self.pitch = pitch
+        self.color = RED
         self.camera = cv2.VideoCapture(0)
-        self.new_polygon = True
-        self.polygon = self.polygons = []
-        self.points = []
         self.image = None
+
+        # Discard first image as this is usually corrupt
+        self.camera.read()
 
         keys = ['outline', 'Zone_0', 'Zone_1', 'Zone_2', 'Zone_3']
         self.data = self.drawing = {}
@@ -39,18 +38,16 @@ class TableSetup(object):
         for key in keys:
             self.data[key] = []
             self.drawing[key] = []
-            self.color = RED
 
     def run(self):
-        # Create a window with mouse event
         cv2.namedWindow(FRAME_NAME)
         cv2.setMouseCallback(FRAME_NAME, self.draw)
 
-        # Capture a sample image
         status, image = self.camera.read()
+
         self.image = cv2.undistort(image, CMATRIX, DIST, None, NCMATRIX)
 
-        # Get various data about the image from the user
+        # Get user clicks for image boundaries
         self.get_pitch_outline()
         self.get_zone('Zone_0', 'draw LEFT Defender')
         self.get_zone('Zone_1', 'draw LEFT Attacker')
@@ -62,40 +59,59 @@ class TableSetup(object):
         print 'Press any key to finish.'
         cv2.waitKey(0)
         cv2.destroyAllWindows()
+        self.camera.release()
+        # Write out the data
         tools.save_croppings(pitch=self.pitch, data=self.data)
 
+    def reshape(self):
+        return np.array(self.data[self.drawing], np.int32).reshape((-1, 1, 2))
 
     def draw_poly(self, points):
         cv2.polylines(self.image, [points], True, self.color)
         cv2.imshow(FRAME_NAME, self.image)
 
     def get_zone(self, key, message):
-        print '%s. %s' % (message, "Press q to continue...")
+        print '%s. %s' % (message, "Continue by pressing q")
         self.drawing, k = key, True
 
         while k != ord('q'):
             cv2.imshow(FRAME_NAME, self.image)
             k = cv2.waitKey(100) & 0xFF
-            self.draw_poly(self.reshape())
+
+        self.draw_poly(self.reshape())
 
     def get_pitch_outline(self):
+        """
+            Let user select points that correspond to the pitch outline.
+            End selection by pressing 'q'.
+            Result is masked and cropped.
+        """
         self.get_zone('outline', 'Draw the outline of the pitch. '
                                  'Press q to continue...')
-        # Setup black mask to remove overflows
+
+        # Set up black mask to remove overflows
         self.image = tools.mask_pitch(self.image, self.data[self.drawing])
+
         # Get crop size based on points
         size = tools.find_crop_coordinates(self.image, self.data[self.drawing])
-        # Crop
         self.image = self.image[size[2]:size[3], size[0]:size[1]]
+
         cv2.imshow(FRAME_NAME, self.image)
 
-    def draw(self, event, x, y):
+    def draw(self, event, x, y, flags, param):
+        """
+            Callback for mouse events.
+            Unused args flags, param are passed by the caller.
+        """
         if event == cv2.EVENT_LBUTTONDOWN:
             color = self.color
             cv2.circle(self.image, (x-1, y-1), 2, color, -1)
-            self.data[self.drawing].append((x,y))
+            self.data[self.drawing].append((x, y))
 
     def get_goal(self, zone):
+        """
+            Returns the top and bottom corner of the goal in zone.
+        """
         coords = self.data[zone]
         reverse = int(zone[-1]) % 2
         goal_coords = sorted(coords, reverse=reverse)[:2]
@@ -113,8 +129,6 @@ if __name__ == '__main__':
     parser.add_argument('pitch', help='Select pitch to be cropped [0, 1]')
     args = parser.parse_args()
     pitch_num = int(args.pitch)
-
     assert pitch_num in [0, 1]
-
     c = TableSetup(pitch=pitch_num)
     c.run()
