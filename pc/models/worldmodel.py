@@ -25,8 +25,8 @@ class World(object):
         self._robots.append(Robot(2, 0, 0, 0, 0))
         self._robots.append(Robot(3, 0, 0, 0, 0))
         self._goals = []
-        self._goals.append(Goal(0, 0, self._pitch.height/2.0, 0))
-        self._goals.append(Goal(3, self._pitch.width, self._pitch.height/2.0, pi))
+        self._goals.append(Goal(0, 0, self._pitch.height/2.0, 0))  # Leftmost goal, facing towards angle 0
+        self._goals.append(Goal(3, self._pitch.width, self._pitch.height/2.0, pi))  # Rightmost goal, facing towards andle pi
 
     @property
     def our_attacker(self):

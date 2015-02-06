@@ -1,6 +1,6 @@
-from pc.robot import Robot
 from pc.models.worldmodel import WorldUpdater, World
 from pc.vision import tools, calibrationgui, visiongui
+from pc.planner import Planner
 import cv2
 import time
 
@@ -28,7 +28,6 @@ class Arbiter(object):
         self.pitch = pitch
         self.colour = colour
         self.side = our_side
-        self.robot = Robot(port=comm_port) if comms == 1 else None
 
         self.world = World(self.side, self.pitch)
         self.world_updater = WorldUpdater(self.pitch, self.colour,
@@ -36,6 +35,8 @@ class Arbiter(object):
         self.calibration = tools.get_colors(pitch)
 
         # TODO Set up planner
+        mode = 'chase'  # ['chase', 'defender', 'attacker'] # Pull this from args or something
+        self.planner = Planner(self.world, mode)
 
         # Set up GUI
         self.gui = visiongui.VisionGUI(self.pitch)
@@ -55,6 +56,9 @@ class Arbiter(object):
                 # Find object positions, update world model
                 frame, model_positions, regular_positions = \
                     self.world_updater.update_world()
+                # Act on the updated world model
+                self.planner.tick()
+
                 fps = float(counter) / (time.clock() - timer)
 
                 # Draw GUIs
