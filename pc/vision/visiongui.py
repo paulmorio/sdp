@@ -19,6 +19,7 @@ class VisionGUI(object):
         self.zones = None
         cv2.namedWindow(VISION)
 
+
     def to_info(self, args):
         """
         Convert a tuple into a vector

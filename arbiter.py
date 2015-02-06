@@ -1,5 +1,6 @@
 from pc.models.worldmodel import WorldUpdater, World
 from pc.vision import tools, calibrationgui, visiongui, camera, vision
+from pc.planner import Planner
 import cv2
 import time
 
@@ -45,6 +46,8 @@ class Arbiter(object):
                                           self.world, self.vision)
 
         # TODO Set up planner
+        mode = 'chase'  # ['chase', 'defender', 'attacker'] # Pull this from args or something
+        self.planner = Planner(self.world, mode)
 
         # Set up GUI
         self.gui = visiongui.VisionGUI(self.pitch)
@@ -64,9 +67,14 @@ class Arbiter(object):
             while key != 27:  # escape to quit
                 # Get frame
                 frame = self.camera.get_frame()
+
                 # Find object positions, update world model
                 model_positions, regular_positions, grabber_positions = \
                     self.world_updater.update_world(frame)
+
+                # Act on the updated world model
+                self.planner.tick()
+
                 fps = float(counter) / (time.clock() - timer)
 
                 # Draw GUIs

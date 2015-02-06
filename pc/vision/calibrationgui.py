@@ -51,6 +51,8 @@ class CalibrationGUI(object):
         create_trackbar('CT', self.calibration[self.color]['contrast'])  # Cont
         create_trackbar('BL', self.calibration[self.color]['blur'])  # Blur
 
+        cv2.moveWindow(self.maskWindowName, 512, 0)
+
     def change_color(self, color):
         cv2.destroyWindow(self.maskWindowName)
         self.color = color
