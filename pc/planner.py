@@ -1,3 +1,5 @@
+from math import pi
+
 class Planner():
 
     def __init__(self, world, mode):
@@ -78,7 +80,6 @@ class Planner():
         First step similar to "Dog" idea - robot turns to face ball, moves close to it
         Robot then grabs the ball, rotates towards the leftmost goal, and shoots
         """
-        # Get angle to rotate to, and the ball
         ball = self.world.ball
 
         if not self.bot.can_catch_ball(ball):  # If the ball is not within catching range, move towards it
@@ -100,9 +101,45 @@ class Planner():
     def defender(self):
         """
         Have the robot stay on one axis until the ball is in its zone
-        Once the ball is within our zone, move to it, grab it, and
+        Once the ball is within our zone, move to it, grab it, and pass
         """
-        pass
+        ball = self.world.ball
+
+        # If the ball is not in our zone, stay mobile
+        if not self.world.pitch.zones[self.world.our_defender.zone].isInside(ball.x, ball.y):
+            # face ~3/2pi angle, ie towards the bottom of the pitch
+            angle = self.bot.angle
+            desired = (3.0 / 2.0) * pi
+
+            if angle < desired - 0.1:
+                self.bot.command(self.bot.ROTATE_LEFT)
+            elif angle > desired + 0.1:
+                self.bot.command(self.bot.ROTATE_RIGHT)
+
+            # if the balls ~y co-ord is bigger than ours, move forwards to intercept
+            # if the balls ~y co-rds is less than ours, move backwards to intercept
+            if ball.y > self.bot.y + 5:
+                self.bot.command(self.bot.MOVE_FORWARD)
+            elif ball.y < self.bot.y - 5:
+                self.bot.command(self.bot.MOVE_BACK)
+
+        # Otherwise, if the ball is in our zone, move to it, grab it, and pass
+        else:
+            if not self.bot.can_catch_ball(ball):  # If the ball is not within catching range, move towards it
+                # If we need to rotate to face the ball, do so, otherwise just move to it
+                dir_to_rotate = self.get_rotation_direction(ball)
+                self.bot_rotate_and_go(dir_to_rotate)
+
+            else:  # Otherwise (if the ball is within catching range) "grab" until we have possession of the ball
+                if not self.bot.has_ball(ball):
+                    self.bot.command(self.bot.GRAB)
+                else:  # Now that we have the ball, rotate towards the right attacking zone.  # IMPORTANT: 'side' has to be 'left'
+                    dir_to_rotate = self.get_rotation_direction(self.world.their_goal)
+                    if dir_to_rotate != 'none':  # If we need to rotate, do so
+                        self.bot_rotate(dir_to_rotate)
+                    else:  # Finished rotating to face goal, can now kick
+                        self.bot.command(self.bot.PASS)  # TODO: pass? Can just replace with a "KICK" depending.
+
 
     def chase(self):
         """
