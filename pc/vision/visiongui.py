@@ -17,8 +17,8 @@ class VisionGUI(object):
         self.zones = None
         cv2.namedWindow(self.VISION)
 
-        cv2.createTrackbar(self.BG_SUB, self.VISION, 0, 1, nothing)
-        cv2.createTrackbar(self.NORMALIZE, self.VISION, 0, 1, nothing)
+        # cv2.createTrackbar(self.BG_SUB, self.VISION, 0, 1, nothing)
+        # cv2.createTrackbar(self.NORMALIZE, self.VISION, 0, 1, nothing)
 
     def to_info(self, args):
         """
