@@ -36,7 +36,8 @@ class Arbiter(object):
         frame_shape = self.camera.get_frame().shape
         frame_center = self.camera.get_adjusted_center()
         self.vision = vision.Vision(pitch, colour, our_side, frame_shape,
-                                    frame_center, self.calibration)
+                                    frame_center, self.calibration,
+                                    perspective_correction=True)
 
         # Set up world model
         self.world = World(self.side, self.pitch)

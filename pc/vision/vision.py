@@ -16,7 +16,8 @@ class Vision(object):
     """
 
     def __init__(self, pitch, colour, our_side,
-                 frame_shape, frame_center, calibration):
+                 frame_shape, frame_center, calibration,
+                 perspective_correction=True):
         """
         Initialize the vision system.
 
@@ -29,6 +30,7 @@ class Vision(object):
         self.colour = colour
         self.our_side = our_side
         self.frame_center = frame_center
+        self.perspective_correction = perspective_correction
 
         height, width, channels = frame_shape
 
@@ -99,8 +101,9 @@ class Vision(object):
         # Run trackers as processes
         positions = self._run_trackers(frame)
 
-        # Correct for perspective TODO is this worthwhile??
-        #positions = self.get_adjusted_positions(positions)
+        # Correct for perspective
+        if self.perspective_correction:
+            positions = self.get_adjusted_positions(positions)
 
         # Wrap list of positions into a dictionary
         keys = ['our_defender', 'our_attacker', 'their_defender',
