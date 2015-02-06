@@ -1,3 +1,4 @@
+from pc.robot import Robot
 from pc.models.worldmodel import WorldUpdater, World
 from pc.vision import tools, calibrationgui, visiongui
 from pc.planner import Planner
@@ -28,6 +29,7 @@ class Arbiter(object):
         self.pitch = pitch
         self.colour = colour
         self.side = our_side
+        self.robot = Robot(port=comm_port) if comms == 1 else None
 
         self.world = World(self.side, self.pitch)
         self.world_updater = WorldUpdater(self.pitch, self.colour,
