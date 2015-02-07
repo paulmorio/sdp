@@ -226,8 +226,10 @@ class Planner():
         else:
             self.bot.command(self.bot.STOP)
 
-    def aiming_towards_object(self):
-        # returns true if bot direction is towards ball
+    def aiming_towards_object(self, instance):
+        # returns true if bot direction is towards instance
+        return (instance)
+
 
     # UPDATED "TICK" function 
     def updatePlan(self):
@@ -248,13 +250,27 @@ class Planner():
 
         # Find the different situations (states) the defender can be in
         elif self.mode == 'defender':
-            pass
 
-
+            if (self.state == 'noBall'):
+                if (not ball_is_owned()):
+                    if (not is_grabber_opened):
+                        open_grabbers()
+                    self.robotcontroller.move_vertical(pitch_get_height()/2)
+                else:
+                    if (not ball_is_idle()):
+                        self.robotcontroller.move_vertical(ball._y)
+                        if (not aiming_towards_object(ball)):
+                             self.robotcontroller.rotate_towards_point(ball._x,ball._y)
+                        distance_to_ball = self.bot.get_displacement_to_point(ball._x,ball._y)
+                        if (distance_to_ball == 0): # TODO update 0 into variable depending on future: ball velocity, attempt to close grabbers exaclty at the time the ball rolls into grabbers
+                            if (is_grabber_opened()):
+                                self.robotcontroller.close_grabbers()
+                            self.state = 'hasBall'
+                    else:
+                        self.mode = 'Dog' # FETCH!! (WARNING: doggie style does not care about our field in the pitch)
 
         # Dog mode
         elif self.mode == 'Dog':
-
             if (self.state == 'noBall'):
                 # implement chase
                 if (not aiming_towards_object(ball)):
@@ -265,23 +281,32 @@ class Planner():
                         danger_zone_radius = 0 # personal space of ball (ie. radius around ball)
                         self.robotcontroller.move_foward(distance_to_ball - danger_zone_radius,100) #100 = engine percentage: full throttle
                     else: # Our robot is inside dangerzone of the ball, careful now, engines on low and approach with caution
-                        self.robotController.open_grabbers()
+                        if (not is_grabber_opened):
+                            self.robotcontroller.open_grabbers()
                         distance_to_ball = distance_to_ball = self.bot.get_displacement_to_point(ball._x,ball._y)
                         if (not distance_to_ball == 0):
                             self.robotcontroller.move_foward(distance_to_ball - danger_zone_radius, 25)
                         else:
-                            self.robotController.close_grabbers()
+                            if (is_grabber_opened()):
+                                self.robotcontroller.close_grabbers()
                             self.state = 'hasBall'
 
-        #FUNCTIONS TO DEFINE INSIDE planner.py:
+        ### FUNCTIONS TO DEFINE ###
+        #TESTING FUNTIONS
         # aiming_towards_object(object) = TRUE if robot aims towards specified object (ie direction towards that point..)
         # robot_in_danger_zone() = TRUE if robot is inside ball's personal space
+        # is_grabber_opened() = TRUE if grabbers are open
+        # ball_is_owned() = TRUE if ANY robot (THAT IS NOT OURS) on the field has the ball in posession (grabbed)
+        # ball_is_idle() = TRUE if ball is 'idle': ball is just lying around passively with specific negligable speed (thus not threatening to reach our goal)
         #########
-        #FUNCTIONS TO DEFINE INSIDE robotController (ie. robot.py)
-        # rotate_towards_point(ball._x,ball._y) #rotates to aim towards given x,y coordinate.
+        #ACTION FUNCTIONS
+        # rotate_towards_point(ball._x,ball.face_y) #rotates to aim towards given x,y coordinate.
         # move_foward(distance, speed) #move robot forward for given distance, at a given speed
+        # move_vertical(y) = moves robot to given y-coordinate. (y = pixel coordinate)
         # open_grabbers() #duhh..
         # close_grabbers() #another duhh
+        #MISC FUNCTION
+        # pitch_get_height() = returns height of pitch (in pixels)
 
         else;
             print "Error, cannot find mode"
