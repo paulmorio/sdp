@@ -1,6 +1,7 @@
 from pc.models.worldmodel import WorldUpdater, World
 from pc.vision import tools, calibrationgui, visiongui, camera, vision
 from pc.planner import Planner
+from robot import Robot
 import cv2
 import time
 
@@ -45,9 +46,12 @@ class Arbiter(object):
         self.world_updater = WorldUpdater(self.pitch, self.colour, self.side,
                                           self.world, self.vision)
 
+        # Set up robotController TODO GIVE IT A BETTER NAME.
+        self.robotController = Robot()
+
         # TODO Set up planner
         mode = 'chase'  # ['chase', 'defender', 'attacker'] # Pull this from args or something
-        self.planner = Planner(self.world, mode)
+        self.planner = Planner(self.world, self.robotController, mode)
 
         # Set up GUI
         self.gui = visiongui.VisionGUI(self.pitch)
@@ -72,8 +76,8 @@ class Arbiter(object):
                 model_positions, regular_positions, grabber_positions = \
                     self.world_updater.update_world(frame)
 
-                # Act on the updated world model
-                self.planner.tick()
+                # Act on the updated world model # Replaces planner.tick from previously
+                self.planner.updatePlan()
 
                 fps = float(counter) / (time.clock() - timer)
 

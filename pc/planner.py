@@ -1,26 +1,41 @@
-from math import pi
-
+from math import pi, sqrt
+from worldmodel import *
 
 class Planner():
 
-    def __init__(self, world, mode):
+    # MILESTONE
+    def __init__(self, world, robotController, mode):
         self.world = world
         self.mode = mode
         self.state = None  # refactor planner into strategies at some point - not important for this milestone
 
+        # Our controllable robot (ie. NOT OBSERVED, but ACTUAL arduino one)
+        self.robotcontroller = robotController
+
+        # bot we are making plans for, OBSERVED robot via the vision.
+        if (self.mode == 'attacker'):
+            self.bot = self.world.our_attacker()
+        elif(self.mode == 'defender'):
+            self.bot = self.world.our_defender()
+        elif(self.mode == 'dog'):
+            self.bot = self.world.our_attacker()
+        else:
+            print "Not recognized mode!"
+
         self.get_default_state()
 
-    bot = None
-
+    # MILESTONE
     def get_default_state(self):
         if self.mode == 'attacker':
             self.state = 'catch'
         elif self.mode == 'defender':
             self.state = 'intercept'
 
+        # Toy Mode (experimental)
         elif self.mode == 'chase':
             self.state = 'chase'
 
+    # MILESTONE
     def tick(self):
         """
         Depending on the mode we're in, act out a plan
@@ -35,6 +50,7 @@ class Planner():
             else:
                 print "Error - unknown mode!"
 
+    # MILESTONE
     def get_rotation_direction(self, pitch_object):
         """
         Quick 'n' dirty - tells us if the robot needs to rotate to face an object (within ~6degrees of accuracy)
@@ -48,6 +64,7 @@ class Planner():
         else:
             return 'none'
 
+    # MILESTONE
     def bot_rotate(self, direction):
         """
         Quick 'n' dirty - rotates bot towards given direction
@@ -61,6 +78,7 @@ class Planner():
         else:
             print "ERROR in get_rotation_direction"
 
+    # MILESTONE
     def bot_rotate_and_go(self, direction):
         """
         Quick 'n' dirty - rotates bot towards given direction, or moves forward if the direction is none
@@ -74,6 +92,7 @@ class Planner():
         else:
             print "ERROR in get_rotation_direction"
 
+    # MILESTONE
     def bot_get_ball(self):
         """
         Quick 'n' dirty - has the ball move to the ball, and grab it
@@ -101,6 +120,7 @@ class Planner():
             self.bot.command(self.bot.KICK)
             #self.bot.command(PREMATURE_CELEBRATION)
 
+    # MILESTONE
     def bot_pass_forward(self):
         """
         Quick 'n' dirty - when the bot has possession of the ball, will cause it to rotate towards their goal and pass
@@ -112,6 +132,7 @@ class Planner():
         else:  # Finished rotating to face goal, can now kick
             self.bot.command(self.bot.PASS)  # TODO: pass? Can just replace with a "KICK" depending.
 
+    # MILESTONE
     def bot_intercept_shot(self):
         """
         Quick 'n' dirty - when the ball is not in our defending zone, rotate to move on the y-axis only, and attempt to block any shot
@@ -136,6 +157,7 @@ class Planner():
             elif ball.y < self.bot.y - 5:
                 self.bot.command(self.bot.MOVE_BACK)
 
+    # MILESTONE
     def attacker(self):
         """
         Have the robot move to and grab a stationary ball, then rotate to face a goal and kick it
@@ -150,6 +172,7 @@ class Planner():
         else:
             self.bot.own_goal()
 
+    # MILESTONE
     def defender(self):
         """
         Have the robot stay on one axis until the ball is in its zone
@@ -166,6 +189,7 @@ class Planner():
             self.bot_pass_forward()
 
 
+    # MILESTONE
     def chase(self):
         """
         Simple function to have robot go to ball (regardless of competition constraints)
@@ -184,6 +208,8 @@ class Planner():
             2. Move at that angle until robot co-ords ~= ball co-ords, or angle changes
             3. If angle changes, go back to 1
         """
+
+
         # Get displacement, and the ball
         ball = self.world.ball
         displacement = self.bot.get_displacement_to_point(self.world.ball.x, self.world.ball.y)
@@ -199,3 +225,64 @@ class Planner():
             """
         else:
             self.bot.command(self.bot.STOP)
+
+    def aiming_towards_object(self):
+        # returns true if bot direction is towards ball
+
+    # UPDATED "TICK" function 
+    def updatePlan(self):
+        """
+        Updates the current 'mode' the robot being controlled by the planner should
+        be in, based on the current situation of the world.
+        """
+
+        ball = self.world.ball
+
+        # find out situation of robot (mode)
+
+        # Find the different situations (states) the attacker can be in
+        if self.mode == 'attacker':
+            pass
+
+
+
+        # Find the different situations (states) the defender can be in
+        elif self.mode == 'defender':
+            pass
+
+
+
+        # Dog mode
+        elif self.mode == 'Dog':
+
+            if (self.state == 'noBall'):
+                # implement chase
+                if (not aiming_towards_object(ball)):
+                    self.robotcontroller.rotate_towards_point(ball._x,ball._y)
+                else: # Our robot is aiming towards the ball
+                    if (not robot_in_danger_zone()):
+                        distance_to_ball = self.bot.get_displacement_to_point(ball._x,ball._y)
+                        danger_zone_radius = 0 # personal space of ball (ie. radius around ball)
+                        self.robotcontroller.move_foward(distance_to_ball - danger_zone_radius,100) #100 = engine percentage: full throttle
+                    else: # Our robot is inside dangerzone of the ball, careful now, engines on low and approach with caution
+                        self.robotController.open_grabbers()
+                        distance_to_ball = distance_to_ball = self.bot.get_displacement_to_point(ball._x,ball._y)
+                        if (not distance_to_ball == 0):
+                            self.robotcontroller.move_foward(distance_to_ball - danger_zone_radius, 25)
+                        else:
+                            self.robotController.close_grabbers()
+                            self.state = 'hasBall'
+
+        #FUNCTIONS TO DEFINE INSIDE planner.py:
+        # aiming_towards_object(object) = TRUE if robot aims towards specified object (ie direction towards that point..)
+        # robot_in_danger_zone() = TRUE if robot is inside ball's personal space
+        #########
+        #FUNCTIONS TO DEFINE INSIDE robotController (ie. robot.py)
+        # rotate_towards_point(ball._x,ball._y) #rotates to aim towards given x,y coordinate.
+        # move_foward(distance, speed) #move robot forward for given distance, at a given speed
+        # open_grabbers() #duhh..
+        # close_grabbers() #another duhh
+
+        else;
+            print "Error, cannot find mode"
+        
