@@ -280,12 +280,12 @@ class Planner():
 
             # State when the ball is in possession by the robot, time to align with goal
             # and shoot.
-            if (self.state == 'hasBall'):
+            elif (self.state == 'hasBall'):
                 rotate_towards_goal_and_shoot()
 
             # State when the ball is in possession of the opponents defender
             # Time to shadow the opponent defender.
-            if (self.state == 'opponentDefenderHasBall'):
+            elif (self.state == 'opponentDefenderHasBall'):
                 defen_x = self.world.their_defender()._x
                 defen_y = self.world.their_defender()._y
 
@@ -294,11 +294,14 @@ class Planner():
 
             # State where the ball in possession of our defender
             # Time to shadow our defender so that ball comes to our possession.
-            if (self.state == 'ourDefenderHasBall'):
+            elif (self.state == 'ourDefenderHasBall'):
                 defen_x = self.world.our_defender()._x
                 defen_y = self.world.our_defender()._y
 
                 #idea is to keep aligned with them along one axis and shadow movement
+                bot_shadow_target()
+
+            elif:
                 bot_shadow_target()
 
         # Find the different situations (states) the defender can be in
