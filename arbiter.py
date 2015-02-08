@@ -50,7 +50,7 @@ class Arbiter(object):
         self.robotController = Robot()
 
         # TODO Set up planner
-        mode = 'chase'  # ['chase', 'defender', 'attacker'] # Pull this from args or something
+        mode = 'dog'  # ['dog', 'defender', 'attacker'] # Pull this from args or something
         self.planner = Planner(self.world, self.robotController, mode)
 
         # Set up GUI
