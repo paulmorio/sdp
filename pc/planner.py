@@ -22,8 +22,6 @@ class Planner():
         else:
             print "Not recognized mode!"
 
-        self.get_default_state()
-
     # MILESTONE
     def get_default_state(self):
         if self.mode == 'attacker':
@@ -34,21 +32,6 @@ class Planner():
         # Toy Mode (experimental)
         elif self.mode == 'chase':
             self.state = 'chase'
-
-    # MILESTONE
-    def tick(self):
-        """
-        Depending on the mode we're in, act out a plan
-        """
-        if self.bot is not None:
-            if self.mode == 'attacker':
-                self.attacker()
-            elif self.mode == 'defender':
-                self.defender()
-            elif self.mode == 'chase':
-                self.chase()
-            else:
-                print "Error - unknown mode!"
 
     # MILESTONE
     def get_rotation_direction(self, pitch_object):
@@ -95,7 +78,7 @@ class Planner():
     # MILESTONE
     def bot_get_ball(self):
         """
-        Quick 'n' dirty - has the ball move to the ball, and grab it
+        Quick 'n' dirty - has the bot move to the ball, and grab it
         """
         ball = self.world.ball
 
@@ -248,65 +231,81 @@ class Planner():
 
 
 
-        # Find the different situations (states) the defender can be in
-        elif self.mode == 'defender':
+        # # Find the different situations (states) the defender can be in
+        # elif self.mode == 'defender':
 
-            if (self.state == 'noBall'):
-                if (not ball_is_owned()):
-                    if (not is_grabber_opened):
-                        open_grabbers()
-                    self.robotcontroller.move_vertical(pitch_get_height()/2)
-                else:
-                    if (not ball_is_idle()):
-                        self.robotcontroller.move_vertical(ball._y)
-                        if (not aiming_towards_object(ball)):
-                             self.robotcontroller.rotate_towards_point(ball._x,ball._y)
-                        distance_to_ball = self.bot.get_displacement_to_point(ball._x,ball._y)
-                        if (distance_to_ball == 0): # TODO update 0 into variable depending on future: ball velocity, attempt to close grabbers exaclty at the time the ball rolls into grabbers
-                            if (is_grabber_opened()):
-                                self.robotcontroller.close_grabbers()
-                            self.state = 'hasBall'
-                    else:
-                        self.mode = 'Dog' # FETCH!! (WARNING: doggie style does not care about our field in the pitch)
+        #     if (self.state == 'noBall'):
+        #         if (not ball_is_owned()):
+        #             if (not is_grabber_opened):
+        #                 open_grabbers()
+        #             self.robotcontroller.move_vertical(pitch_get_height()/2)
+        #         else:
+        #             if (not ball_is_idle()):
+        #                 self.robotcontroller.move_vertical(ball._y)
+        #                 if (not aiming_towards_object(ball)):
+        #                      self.robotcontroller.rotate_towards_point(ball._x,ball._y)
+        #                 distance_to_ball = self.bot.get_displacement_to_point(ball._x,ball._y)
+        #                 if (distance_to_ball == 0): # TODO update 0 into variable depending on future: ball velocity, attempt to close grabbers exaclty at the time the ball rolls into grabbers
+        #                     if (is_grabber_opened()):
+        #                         self.robotcontroller.close_grabbers()
+        #                     self.state = 'hasBall'
+        #             else:
+        #                 self.mode = 'Dog' # FETCH!! (WARNING: doggie style does not care about our field in the pitch)
 
-        # Dog mode
-        elif self.mode == 'Dog':
-            if (self.state == 'noBall'):
-                # implement chase
-                if (not aiming_towards_object(ball)):
-                    self.robotcontroller.rotate_towards_point(ball._x,ball._y)
-                else: # Our robot is aiming towards the ball
-                    if (not robot_in_danger_zone()):
-                        distance_to_ball = self.bot.get_displacement_to_point(ball._x,ball._y)
-                        danger_zone_radius = 0 # personal space of ball (ie. radius around ball)
-                        self.robotcontroller.move_foward(distance_to_ball - danger_zone_radius,100) #100 = engine percentage: full throttle
-                    else: # Our robot is inside dangerzone of the ball, careful now, engines on low and approach with caution
-                        if (not is_grabber_opened):
-                            self.robotcontroller.open_grabbers()
-                        distance_to_ball = distance_to_ball = self.bot.get_displacement_to_point(ball._x,ball._y)
-                        if (not distance_to_ball == 0):
-                            self.robotcontroller.move_foward(distance_to_ball - danger_zone_radius, 25)
-                        else:
-                            if (is_grabber_opened()):
-                                self.robotcontroller.close_grabbers()
-                            self.state = 'hasBall'
+        # # Dog mode
+        # elif self.mode == 'Dog':
+        #     if (self.state == 'noBall'):
+        #         # implement chase
+        #         if (not aiming_towards_object(ball)):
+        #             self.robotcontroller.rotate_towards_point(ball._x,ball._y)
+        #         else: # Our robot is aiming towards the ball
+        #             if (not robot_in_danger_zone()):
+        #                 distance_to_ball = self.bot.get_displacement_to_point(ball._x,ball._y)
+        #                 danger_zone_radius = 0 # personal space of ball (ie. radius around ball)
+        #                 self.robotcontroller.move_foward(distance_to_ball - danger_zone_radius,100) #100 = engine percentage: full throttle
+        #             else: # Our robot is inside dangerzone of the ball, careful now, engines on low and approach with caution
+        #                 if (not is_grabber_opened):
+        #                     self.robotcontroller.open_grabbers()
+        #                 distance_to_ball = distance_to_ball = self.bot.get_displacement_to_point(ball._x,ball._y)
+        #                 if (not distance_to_ball == 0):
+        #                     self.robotcontroller.move_foward(distance_to_ball - danger_zone_radius, 25)
+        #                 else:
+        #                     if (is_grabber_opened()):
+        #                         self.robotcontroller.close_grabbers()
+        #                     self.state = 'hasBall'
 
-        ### FUNCTIONS TO DEFINE ###
-        #TESTING FUNTIONS
-        # aiming_towards_object(object) = TRUE if robot aims towards specified object (ie direction towards that point..)
-        # robot_in_danger_zone() = TRUE if robot is inside ball's personal space
-        # is_grabber_opened() = TRUE if grabbers are open
-        # ball_is_owned() = TRUE if ANY robot (THAT IS NOT OURS) on the field has the ball in posession (grabbed)
-        # ball_is_idle() = TRUE if ball is 'idle': ball is just lying around passively with specific negligable speed (thus not threatening to reach our goal)
-        #########
-        #ACTION FUNCTIONS
-        # rotate_towards_point(ball._x,ball.face_y) #rotates to aim towards given x,y coordinate.
-        # move_foward(distance, speed) #move robot forward for given distance, at a given speed
-        # move_vertical(y) = moves robot to given y-coordinate. (y = pixel coordinate)
-        # open_grabbers() #duhh..
-        # close_grabbers() #another duhh
-        #MISC FUNCTION
-        # pitch_get_height() = returns height of pitch (in pixels)
+        # ### FUNCTIONS TO DEFINE ###
+        # #TESTING FUNTIONS
+        # # aiming_towards_object(object) = TRUE if robot aims towards specified object (ie direction towards that point..)
+        # # robot_in_danger_zone() = TRUE if robot is inside ball's personal space
+        # # is_grabber_opened() = TRUE if grabbers are open
+        # # ball_is_owned() = TRUE if ANY robot (THAT IS NOT OURS) on the field has the ball in posession (grabbed)
+        # # ball_is_idle() = TRUE if ball is 'idle': ball is just lying around passively with specific negligable speed (thus not threatening to reach our goal)
+        # #########
+        # #ACTION FUNCTIONS
+        # # rotate_towards_point(ball._x,ball.face_y) #rotates to aim towards given x,y coordinate.
+        # # move_foward(distance, speed) #move robot forward for given distance, at a given speed
+        # # move_vertical(y) = moves robot to given y-coordinate. (y = pixel coordinate)
+        # # open_grabbers() #duhh..
+        # # close_grabbers() #another duhh
+        # #MISC FUNCTION
+        # # pitch_get_height() = returns height of pitch (in pixels)
+
+    # Dog Mode for robot
+    elif (self.mode == 'dog'):
+        
+        # If the robot does not have the ball, it should go to the ball.
+        if (self.state == 'noBall'):
+
+        # If the robot does have the ball, it should attempt to grab it and 
+        # kick it afterwards.
+        if (self.state == 'hasBall'):
+            pass
+
+
+
+
+
 
         else;
             print "Error, cannot find mode"
