@@ -54,6 +54,7 @@ class Planner():
         else:
             print "ERROR in get_direction_to_rotate"
 
+    # Issue11
     def bot_rotate_or_move(self, direction):
         """
         Rotates bot towards given direction, or moves forward if the direction is none
@@ -67,6 +68,7 @@ class Planner():
         else:
             print "ERROR in get_direction_to_rotate"
 
+    # Issue11
     def bot_get_ball(self):
         """
         Has the bot move to the ball, and grab it
@@ -87,6 +89,7 @@ class Planner():
         else:
             pass
 
+    # Issue11
     def rotate_towards_goal_and_shoot(self):
         """
         when the bot has possession of the ball, will cause it to rotate to their goal and shoot
