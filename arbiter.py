@@ -1,7 +1,7 @@
 from pc.models.worldmodel import WorldUpdater, World
 from pc.vision import tools, calibrationgui, visiongui, camera, vision
 from pc.planner import Planner
-from robot import Robot
+from pc.robot import Robot
 import cv2
 import time
 

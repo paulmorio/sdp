@@ -1,5 +1,6 @@
-from math import pi, sqrt
-from worldmodel import *
+from models.worldmodel import *
+from robot import Robot
+
 
 # Methods that 
 
@@ -20,7 +21,7 @@ class Planner():
         elif(self.mode == 'defender'):
             self.bot = self.world.our_defender()
         elif(self.mode == 'dog'):
-            self.bot = self.world.our_attacker()
+            self.bot = self.world.our_attacker
         else:
             print "Not recognized mode!"
 
@@ -33,6 +34,7 @@ class Planner():
         if angle > 0.1:  # If the angle is greater than bearing + ~6 degrees, rotate CLKW (towards origin)
             return 'right'
         elif angle < -0.1:  # If the angle is less than bearing - ~6 degrees, rotate ACLKW (away from origin)
+            print "dogs"
             return 'left'
         else:
             return 'none'
@@ -46,11 +48,11 @@ class Planner():
         or on some time factor, or some amount to turn.
         """
         if direction == 'right':
-            self.robotController.command(Robot.ROTATE_RIGHT)
+            self.robotController.command(Robot.TURN_RIGHT)
         elif direction == 'left':
-            self.robotController.command(Robot.ROTATE_LEFT)
+            self.robotController.command(Robot.TURN_LEFT)
         elif direction == 'none':
-            self.robotController.command(Robot.STOP)
+            self.robotController.command(Robot.STOP_MOTORS)
         else:
             print "ERROR in get_direction_to_rotate"
 
@@ -60,9 +62,9 @@ class Planner():
         Rotates bot towards given direction, or moves forward if the direction is none
         """
         if direction == 'right':
-            self.robotController.command(Robot.ROTATE_RIGHT)
+            self.robotController.command(Robot.TURN_RIGHT)
         elif direction == 'left':
-            self.robotController.command(Robot.ROTATE_LEFT)
+            self.robotController.command(Robot.TURN_LEFT)
         elif direction == 'none':
             self.robotController.command(Robot.MOVE_FORWARD)
         else:
@@ -80,7 +82,7 @@ class Planner():
                     # If the robot cannot catch the ball yet
             if not self.bot.can_catch_ball(ball):
                 dir_to_rotate = self.get_direction_to_rotate(ball)
-                self.bot_rotate_and_go(dir_to_rotate)
+                #self.bot_rotate_and_go(dir_to_rotate)
 
             # Otherwise (if the ball is within catching range) "grab" until we have possession of the ball
             else:
@@ -97,7 +99,7 @@ class Planner():
         # Now that we have the ball, rotate towards the own goal.
         dir_to_rotate = self.get_direction_to_rotate(self.world.their_goal)
         if dir_to_rotate != 'none':
-            self.bot_rotate(dir_to_rotate)
+            pass    #self.bot_rotate(dir_to_rotate)
         else:  # Finished rotating to face goal, can now kick
             self.robotController.command(Robot.KICK)
 
@@ -109,7 +111,7 @@ class Planner():
         # Now that we have the ball, rotate towards the right attacking zone.  # IMPORTANT: 'side' has to be 'left'
         dir_to_rotate = self.get_direction_to_rotate(self.world.their_goal)
         if dir_to_rotate != 'none':  # If we need to rotate, do so
-            self.bot_rotate(dir_to_rotate)
+            pass    #self.bot_rotate(dir_to_rotate)
         else:  # Finished rotating to face goal, can now kick
             self.bot.command(self.bot.PASS)  # TODO: pass? Can just replace with a "KICK" depending.
 
@@ -128,9 +130,9 @@ class Planner():
             desired = (3.0 / 2.0) * pi
 
             if angle < desired - 0.1:
-                self.robotController.command(Robot.ROTATE_LEFT)
+                self.robotController.command(Robot.TURN_LEFT)
             elif angle > desired + 0.1:
-                self.robotController.command(Robot.ROTATE_RIGHT)
+                self.robotController.command(Robot.TURN_RIGHT)
 
             # if the balls ~y co-ord is bigger than ours, move forwards to intercept
             # if the balls ~y co-rds is less than ours, move backwards to intercept
@@ -164,7 +166,7 @@ class Planner():
 
         # If the ball is not in our zone, stay mobile
         if not self.world.pitch.zones[self.world.our_defender.zone].isInside(ball.x, ball.y):
-            self.bot_intercept_shot()
+            pass    #self.bot_intercept_shot()
         # Otherwise, if the ball is in our zone, move to it, grab it, and pass
         else:
             self.bot_get_ball()
@@ -190,7 +192,6 @@ class Planner():
             2. Move at that angle until robot co-ords ~= ball co-ords, or angle changes
             3. If angle changes, go back to 1
         """
-
 
     #     # Get displacement, and the ball
     #     ball = self.world.ball
@@ -258,7 +259,7 @@ class Planner():
         """
 
         # find out situation of robot (mode)
-        self.state = determine_state(self.mode)
+        self.state = self.determine_state(self.mode)
 
         # Find the different situations (states) the attacker can be in
         if self.mode == 'attacker':
@@ -299,10 +300,10 @@ class Planner():
                 defen_y = self.world.our_defender()._y
 
                 #idea is to keep aligned with them along one axis and shadow movement
-                bot_shadow_target()
-
-            elif:
-                bot_shadow_target()
+                #bot_shadow_target()
+            else:
+                pass
+                #bot_shadow_target()
 
         # Find the different situations (states) the defender can be in
         elif self.mode == 'defender':
@@ -371,21 +372,21 @@ class Planner():
             # If the robot does not have the ball, it should go to the ball.
             if (self.state == 'noBall'):
                 # Get the ball position so that we may find the angle to align with it, as well as the displacement
-                ball_x = self.world._ball.x()
-                ball_y = self.world._ball.y()
+                ball_x = self.world._ball.x
+                ball_y = self.world._ball.y
 
                 angle_to_turn_to = self.bot.get_rotation_to_point(ball_x,ball_y)
                 distance_to_move = self.bot.get_displacement_to_point(ball_x, ball_y)
 
-                dir_to_turn = get_direction_to_rotate(self.world._ball)
+                dir_to_turn = self.get_direction_to_rotate(self.world._ball)
 
                 # We command the robot turn to the ball, and move forward if it is facing it.
                 # This is implementation is deeply simplified (but works)
-                bot_rotate_or_move(dir_to_turn)
+                self.bot_rotate_or_move(dir_to_turn)
 
                 # Better would be being able to turn or move forward using information gained in the frame
                 # bot_rotate_or_move(dir_to_turn, angle_to_turn_to, distance_to_move)
 
-            else;
+            else:
                 print "Error, cannot find mode"
             
