@@ -116,7 +116,8 @@ class Planner():
     # ISSUE11
     def bot_shadow_target(self):
         """
-        Quick 'n' dirty - when the ball is not in our defending zone, rotate to move on the y-axis only, and attempt to block any shot
+        Simple defensive solution when the ball is not in our defending zone, rotate to move on the y-axis only, 
+        and attempt to shadow the ball along the y axis
         """
         ball = self.world.ball
 
@@ -289,8 +290,7 @@ class Planner():
                 defen_y = self.world.their_defender()._y
 
                 #idea is to keep aligned with them along one axis and shadow movement
-                pass
-
+                bot_shadow_target()
 
             # State where the ball in possession of our defender
             # Time to shadow our defender so that ball comes to our possession.
@@ -298,10 +298,8 @@ class Planner():
                 defen_x = self.world.our_defender()._x
                 defen_y = self.world.our_defender()._y
 
-
-
-                pass
-
+                #idea is to keep aligned with them along one axis and shadow movement
+                bot_shadow_target()
 
         # Find the different situations (states) the defender can be in
         elif self.mode == 'defender':
