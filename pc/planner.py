@@ -113,8 +113,8 @@ class Planner():
         else:  # Finished rotating to face goal, can now kick
             self.bot.command(self.bot.PASS)  # TODO: pass? Can just replace with a "KICK" depending.
 
-    # MILESTONE
-    def bot_intercept_shot(self):
+    # ISSUE11
+    def bot_shadow_target(self):
         """
         Quick 'n' dirty - when the ball is not in our defending zone, rotate to move on the y-axis only, and attempt to block any shot
         """
@@ -127,16 +127,16 @@ class Planner():
             desired = (3.0 / 2.0) * pi
 
             if angle < desired - 0.1:
-                self.bot.command(self.bot.ROTATE_LEFT)
+                self.robotController.command(Robot.ROTATE_LEFT)
             elif angle > desired + 0.1:
-                self.bot.command(self.bot.ROTATE_RIGHT)
+                self.robotController.command(Robot.ROTATE_RIGHT)
 
             # if the balls ~y co-ord is bigger than ours, move forwards to intercept
             # if the balls ~y co-rds is less than ours, move backwards to intercept
             if ball.y > self.bot.y + 5:
-                self.bot.command(self.bot.MOVE_FORWARD)
+                self.robotController.command(Robot.MOVE_FORWARD)
             elif ball.y < self.bot.y - 5:
-                self.bot.command(self.bot.MOVE_BACK)
+                self.robotController.command(Robot.MOVE_BACK)
 
     # DEPRECATED?
     def attacker(self):
@@ -211,17 +211,53 @@ class Planner():
     #     # returns true if bot direction is towards instance
     #     return (instance)
 
+    def determine_state(self, mode):
+        """
+        This method determines the state of the robot given the robots mode, 
+        and the situation on the pitch
+
+        :param mode: anything from ['dog', 'attacker', 'defender']
+        """
+
+        # for our dear toy example, he never has the ball
+        if self.mode == 'dog':
+            return 'noBall'
+
+        if self.mode == 'attacker':
+
+            ball_x = self.world._ball.x()
+            ball_y = self.world._ball.y()
+
+            if (self.world._pitch.is_within_bounds(self.bot, ball_x, ball_y)):
+                return 'inZoneNoBall'
+
+            if (self.bot.has_ball(self.world._ball)):
+                return 'hasBall'
+
+            if (self.world.their_defender().has_ball(self.world._ball)):
+                return 'opponentDefenderHasBall'
+
+            if (self.world.our_defender().has_ball(self.world._ball)):
+                return 'ourDefenderHasBall'
+
+        #TODO FOR WHOEVER DOES DEFENDER
+        if self.mode == 'defender':
+
+            ball_x = self.world._ball.x()
+            ball_y = self.world._ball.y()
+            pass
+
+
 
     # UPDATED "TICK" function 
     def updatePlan(self):
         """
-        Updates the current 'mode' the robot being controlled by the planner should
-        be in, based on the current situation of the world.
+        Makes plans based on the mode of the planner, and the state determined
+        by the current situation (which can be found through determine_state)
         """
 
-        ball = self.world.ball
-
         # find out situation of robot (mode)
+        self.state = determine_state(self.mode)
 
         # Find the different situations (states) the attacker can be in
         if self.mode == 'attacker':
@@ -229,21 +265,41 @@ class Planner():
             # State when the ball is in the robots own zone but doesnt have the ball
             # Go to ball and move to a better location.
             if (self.state == 'inZoneNoBall'):
-                pass
+                ball_x = self.world._ball.x()
+                ball_y = self.world._ball.y()
+
+                angle_to_turn_to = self.bot.get_rotation_to_point(ball_x,ball_y)
+                distance_to_move = self.bot.get_displacement_to_point(ball_x, ball_y)
+
+                dir_to_turn = get_direction_to_rotate(self.world._ball)
+
+                # We command the robot turn to the ball, and move forward if it is facing it.
+                # This is implementation is deeply simplified (but works)
+                bot_rotate_or_move(dir_to_turn)
 
             # State when the ball is in possession by the robot, time to align with goal
             # and shoot.
             if (self.state == 'hasBall'):
-                pass
+                rotate_towards_goal_and_shoot()
 
             # State when the ball is in possession of the opponents defender
             # Time to shadow the opponent defender.
             if (self.state == 'opponentDefenderHasBall'):
+                defen_x = self.world.their_defender()._x
+                defen_y = self.world.their_defender()._y
+
+                #idea is to keep aligned with them along one axis and shadow movement
                 pass
+
 
             # State where the ball in possession of our defender
             # Time to shadow our defender so that ball comes to our possession.
             if (self.state == 'ourDefenderHasBall'):
+                defen_x = self.world.our_defender()._x
+                defen_y = self.world.our_defender()._y
+
+
+
                 pass
 
 
@@ -307,28 +363,28 @@ class Planner():
         # #MISC FUNCTION
         # # pitch_get_height() = returns height of pitch (in pixels)
 
-    # No Danger Zone here.
-    # Dog Mode for robot. NB: This is hacked together it would be better to move this into seperate functions
-    elif (self.mode == 'dog'):
-        
-        # If the robot does not have the ball, it should go to the ball.
-        if (self.state == 'noBall'):
-            # Get the ball position so that we may find the angle to align with it, as well as the displacement
-            ball_x = self.world._ball.x()
-            ball_y = self.world._ball.y()
+        # No Danger Zone here.
+        # Dog Mode for robot. NB: This is hacked together it would be better to move this into seperate functions
+        elif (self.mode == 'dog'):
 
-            angle_to_turn_to = self.bot.get_rotation_to_point(ball_x,ball_y)
-            distance_to_move = self.bot.get_displacement_to_point(ball_x, ball_y)
+            # If the robot does not have the ball, it should go to the ball.
+            if (self.state == 'noBall'):
+                # Get the ball position so that we may find the angle to align with it, as well as the displacement
+                ball_x = self.world._ball.x()
+                ball_y = self.world._ball.y()
 
-            dir_to_turn = get_direction_to_rotate(self.world._ball)
+                angle_to_turn_to = self.bot.get_rotation_to_point(ball_x,ball_y)
+                distance_to_move = self.bot.get_displacement_to_point(ball_x, ball_y)
 
-            # We command the robot turn to the ball, and move forward if it is facing it.
-            # This is implementation is deeply simplified (but works)
-            bot_rotate_or_move(dir_to_turn)
+                dir_to_turn = get_direction_to_rotate(self.world._ball)
 
-            # Better would be being able to turn or move forward using information gained in the frame
-            # bot_rotate_or_move(dir_to_turn, angle_to_turn_to, distance_to_move)
+                # We command the robot turn to the ball, and move forward if it is facing it.
+                # This is implementation is deeply simplified (but works)
+                bot_rotate_or_move(dir_to_turn)
 
-        else;
-            print "Error, cannot find mode"
-        
+                # Better would be being able to turn or move forward using information gained in the frame
+                # bot_rotate_or_move(dir_to_turn, angle_to_turn_to, distance_to_move)
+
+            else;
+                print "Error, cannot find mode"
+            
