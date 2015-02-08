@@ -12,6 +12,21 @@ class Planner():
         self.mode = mode
         self.state = None  # refactor planner into strategies at some point - not important for this milestone
 
+        # action the robot is currently executing:
+        self.action = "idle" 
+        # idle
+        # turn-left
+        # turn-right
+        # move-forward
+        # crawl-forward <- TODO: add crawl-forward command in robot.py for arduino: move forward at LOW ACCURATE speed
+        ## move-backward
+        ## strafe-left
+        ## strafe-right
+        ## grabbing
+        ## releasing
+        ## kicking
+        
+
         # Our controllable robot (ie. NOT OBSERVED, but ACTUAL arduino one)
         self.robotController = robotController
 
@@ -31,10 +46,10 @@ class Planner():
         """
         angle = self.bot.get_rotation_to_point(pitch_object.x, pitch_object.y)
 
-        if angle > 0.1:  # If the angle is greater than bearing + ~6 degrees, rotate CLKW (towards origin)
+        if angle < 0.1:  # If the angle is greater than bearing + ~6 degrees, rotate CLKW (towards origin)
             return 'right'
-        elif angle < -0.1:  # If the angle is less than bearing - ~6 degrees, rotate ACLKW (away from origin)
-            print "dogs"
+
+        elif angle > -0.1:  # If the angle is less than bearing - ~6 degrees, rotate ACLKW (away from origin)
             return 'left'
         else:
             return 'none'
@@ -374,6 +389,8 @@ class Planner():
                 # Get the ball position so that we may find the angle to align with it, as well as the displacement
                 ball_x = self.world._ball.x
                 ball_y = self.world._ball.y
+                rotate_margin = 0.5
+                ball_dangerzone = 70
 
                 angle_to_turn_to = self.bot.get_rotation_to_point(ball_x,ball_y)
                 distance_to_move = self.bot.get_displacement_to_point(ball_x, ball_y)
@@ -382,8 +399,49 @@ class Planner():
 
                 # We command the robot turn to the ball, and move forward if it is facing it.
                 # This is implementation is deeply simplified (but works)
-                self.bot_rotate_or_move(dir_to_turn)
+                if (abs(angle_to_turn_to) > rotate_margin):
+                    if (not self.action=="turn-"+dir_to_turn):
+                        #if not already turning -> turn
+                        self.bot_rotate_or_move(dir_to_turn)
+                        self.action = "turn-"+dir_to_turn
+                        #print "action intiating: "+self.action
+                        if (dir_to_turn == "left"):
+                            print "ROTATION: <<<"
+                        elif (dir_to_turn == "right"):
+                            print "ROTATION: >>>"
 
+                    else:
+                        pass
+                        #if already turning, we're good.
+                        #print self.action+" is still executing, angle to ball: "+str(angle_to_turn_to)
+
+                else:
+                    print "Distance to ball: "+str(distance_to_move)
+                    #if no need to turn
+                    if (self.action=="turn-right" or self.action=="turn-left"):
+                        #if turning, stop turning
+                        self.action="idle"
+                        print "ROTATION: _ _ _"
+
+                        #print "angle to turn just fell below 0.5: "+str(angle_to_turn_to)
+                        self.robotController.command(Robot.STOP_MOTORS)
+
+                    else:
+                        if (distance_to_move >= ball_dangerzone):
+                            # if ball is outside of robot reach: move forward
+                            if (not self.action=="move-forward"):
+                                self.robotController.command(Robot.MOVE_FORWARD)
+                                self.action="move-forward"
+                                print "MOVEMENT: ^^^"
+                            
+                        else:
+                            if (self.action == "move-forward"):
+                                self.robotController.command(Robot.STOP_MOTORS)
+                                self.action = "idle"
+                                print "Distance to ball: "+str(distance_to_move)
+
+                        
+                print self.action
                 # Better would be being able to turn or move forward using information gained in the frame
                 # bot_rotate_or_move(dir_to_turn, angle_to_turn_to, distance_to_move)
 
