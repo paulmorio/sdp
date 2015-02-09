@@ -7,8 +7,9 @@
 [z] -> Strafe BL
 [c] -> Strafe BR
 
-[g] -> Grab
-[k] -> Kick
+[g] -> Toggle grabber
+[space] -> Shoot
+[v] -> Pass
 
 [s] -> Stop
 [t] -> Run motors (TEST)

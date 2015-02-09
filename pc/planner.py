@@ -1,5 +1,5 @@
 from models.worldmodel import *
-from robot import Robot
+from robot import *
 
 
 # Methods that 
@@ -70,11 +70,11 @@ class Planner():
         or on some time factor, or some amount to turn.
         """
         if direction == 'turn-right':
-            self.robotController.command(Robot.TURN_RIGHT)
+            self.robotController.command(TURN_RIGHT)
         elif direction == 'turn-left':
-            self.robotController.command(Robot.TURN_LEFT)
+            self.robotController.command(TURN_LEFT)
         elif direction == 'none':
-            self.robotController.command(Robot.STOP_MOTORS)
+            self.robotController.command(STOP_DRIVE_MOTORS)
         else:
             print "ERROR in get_direction_to_rotate"
 
@@ -84,9 +84,9 @@ class Planner():
         Rotates bot towards given direction, or moves forward if the direction is none
         """
         if direction == 'turn-right':
-            self.robotController.command(Robot.TURN_RIGHT)
+            self.robotController.command(TURN_RIGHT)
         elif direction == 'turn-left':
-            self.robotController.command(Robot.TURN_LEFT)
+            self.robotController.command(TURN_LEFT)
         else:
             print "ERROR in get_direction_to_rotate"
 
@@ -106,7 +106,7 @@ class Planner():
 
             # Otherwise (if the ball is within catching range) "grab" until we have possession of the ball
             else:
-                self.robotController.command(Robot.GRAB)
+                self.robotController.command(GRABBER_OPEN)
 
         else:
             pass
@@ -121,7 +121,7 @@ class Planner():
         if dir_to_rotate != 'none':
             pass    #self.bot_rotate(dir_to_rotate)
         else:  # Finished rotating to face goal, can now kick
-            self.robotController.command(Robot.KICK)
+            self.robotController.command(SHOOT)
 
     # MILESTONE
     def bot_pass_forward(self):
@@ -133,7 +133,7 @@ class Planner():
         if dir_to_rotate != 'none':  # If we need to rotate, do so
             pass    #self.bot_rotate(dir_to_rotate)
         else:  # Finished rotating to face goal, can now kick
-            self.bot.command(self.bot.PASS)  # TODO: pass? Can just replace with a "KICK" depending.
+            self.bot.command(PASS)  # TODO: pass? Can just replace with a "KICK" depending.
 
     # ISSUE11
     def bot_shadow_target(self):
@@ -150,16 +150,16 @@ class Planner():
             desired = (3.0 / 2.0) * pi
 
             if angle < desired - 0.1:
-                self.robotController.command(Robot.TURN_LEFT)
+                self.robotController.command(TURN_LEFT)
             elif angle > desired + 0.1:
-                self.robotController.command(Robot.TURN_RIGHT)
+                self.robotController.command(TURN_RIGHT)
 
             # if the balls ~y co-ord is bigger than ours, move forwards to intercept
             # if the balls ~y co-rds is less than ours, move backwards to intercept
             if ball.y > self.bot.y + 5:
-                self.robotController.command(Robot.MOVE_FORWARD)
+                self.robotController.command(MOVE_FORWARD)
             elif ball.y < self.bot.y - 5:
-                self.robotController.command(Robot.MOVE_BACK)
+                self.robotController.command(MOVE_BACK)
 
     def aiming_towards_object(self, instance):
         # returns true if bot direction is towards instance
@@ -379,14 +379,14 @@ class Planner():
                     # [ACTIVE] IF STILL TURNING
                     if (self.action == "turn-right" or self.action == "turn-left"):
                         self.action = "idle"
-                        self.robotController.command(Robot.STOP_MOTORS)
+                        self.robotController.command(STOP_DRIVE_MOTORS)
 
                         print "ROTATE: _ _ _"
 
                     # [ACTIVE] IF IDLE && OUTSIDE OF GRAB-RANGE
                     if (self.action == "idle" and not inside_grabber):
                         self.action = "move-forward"
-                        self.robotController.command(Robot.MOVE_FORWARD)
+                        self.robotController.command(MOVE_FORWARD)
 
                         print "MOVE: ^^^"
 
@@ -398,7 +398,7 @@ class Planner():
 
                     # [ACTIVE] IF MOVING FORWARD BUT INSIDE GRAB RANGE
                     elif (self.action == "move-forward" and inside_grabber):
-                        self.robotController.command(Robot.STOP_MOTORS)
+                        self.robotController.command(STOP_DRIVE_MOTORS)
                         self.action = "idle"
                         print "MOVE: _ _ _"
 
