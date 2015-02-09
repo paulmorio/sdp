@@ -14,6 +14,8 @@ class Robot(object):
     STRAFE_BACK_LEFT = "ST_BL"
     STRAFE_BACK_RIGHT = "ST_BR"
     GRAB = "GRAB"
+    OPEN_GRABBERS = "O_GRAB"
+    CLOSE_GRABBERS = "C_GRAB"
     KICK = "KICK"
     MOTOR_TEST = "MOTORS"
     STOP_MOTORS = "STOP"
