@@ -44,6 +44,10 @@ class Planner():
     ########## SUBPLANS ############
     ################################
 
+    def inside_grabber(self):
+        ball = self.world._ball
+        return self.bot.can_catch_ball(ball)
+
     def get_direction_to_rotate(self, pitch_object):
         """
         Returns a string indicating which direction to turn clockwise/a-clockwise depending on angle
@@ -353,7 +357,7 @@ class Planner():
                 ball_x = self.world._ball.x
                 ball_y = self.world._ball.y
                 rotate_margin = 0.5
-                ball_dangerzone = 70
+                inside_grabber = self.inside_grabber()
 
                 angle_to_turn_to = self.bot.get_rotation_to_point(ball_x,ball_y)
                 distance_to_move = self.bot.get_displacement_to_point(ball_x, ball_y)
@@ -392,7 +396,7 @@ class Planner():
                         print "Stop turning"
 
                     # [ACTIVE] IF IDLE && OUTSIDE OF GRAB-RANGE
-                    if (self.action == "idle" and (distance_to_move > ball_dangerzone)):
+                    if (self.action == "idle" and not inside_grabber):
                         self.action = "move-forward"
                         self.robotController.command(Robot.MOVE_FORWARD)
 
@@ -400,19 +404,19 @@ class Planner():
                         print "Moving Forward, watch me goooo."
 
                     # [PASSIVE] IF ALREADY MOVING FORWARD && OUTSIDE OF GRAB-RANGE
-                    elif (self.action == "move-forward" and (distance_to_move > ball_dangerzone)):
+                    elif (self.action == "move-forward" and not inside_grabber):
                         pass
                         #print "Still moving forward"
                         #print "Distance to ball: "+str(distance_to_move)
 
                     # [ACTIVE] IF MOVING FORWARD BUT INSIDE GRAB RANGE
-                    elif (self.action == "move-forward" and (distance_to_move <= ball_dangerzone)):
+                    elif (self.action == "move-forward" and inside_grabber):
                         self.robotController.command(Robot.STOP_MOTORS)
                         self.action = "idle"
                         print "I am close enough, ball is secured. Back to Idle until something happens"
 
-                    # [PASSIVE]
-                    elif (self.action == "idle" and (distance_to_move <= ball_dangerzone)):
+                    # [PASSIVE] IF IDLE && INSIDE GRAB-RANGE
+                    elif (self.action == "idle" and inside_grabber):
                         pass
                         #print "Suntanning :)"
 
