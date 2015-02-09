@@ -46,7 +46,10 @@ class Robot(object):
 
         :return: Byte representation of data on serial.
         """
-        return self.serial.read(self.serial.inWaiting())
+        if self.serial:
+            return self.serial.read(self.serial.inWaiting())
+        else:
+            print "No comms!"
 
     def command(self, command):
         """Append command terminal to string before writing to serial"""
@@ -74,7 +77,6 @@ class ManualController(object):
 
     def __init__(self, port="/dev/ttyACM0", rate=115200, timeout=1):
         """
-
         :param port: Serial port to be used. Default is fine for DICE
         :param rate: Baudrate. Default is 115200
         :param timeout: Write timeout in seconds. Default is 1.

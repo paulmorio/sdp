@@ -19,13 +19,13 @@ DIST = distort_data['dist']
 
 class TableSetup(object):
     """
-        Set up crop outline and table margin outlines.
+    Set up crop outline and table margin outlines.
     """
 
-    def __init__(self, pitch):
+    def __init__(self, pitch, vid_src=0):
         self.pitch = pitch
         self.color = RED
-        self.camera = cv2.VideoCapture(0)
+        self.camera = cv2.VideoCapture(vid_src)
         self.image = None
 
         # Discard first image as this is usually corrupt
@@ -82,9 +82,7 @@ class TableSetup(object):
 
     def get_pitch_outline(self):
         """
-            Let user select points that correspond to the pitch outline.
-            End selection by pressing 'q'.
-            Result is masked and cropped.
+        Have the user define pitch areas.
         """
         self.get_zone('outline', 'Draw the outline of the pitch. '
                                  'Press q to continue...')

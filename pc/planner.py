@@ -392,7 +392,6 @@ class Planner():
                         self.bot_rotate_or_move(dir_to_turn)
 
                     if (self.action == "none" and distance_to_move):
-
                         print "Moving Forward, watch me goooo."
 
 
