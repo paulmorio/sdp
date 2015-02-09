@@ -54,9 +54,9 @@ class Planner():
         """
         angle = self.bot.get_rotation_to_point(pitch_object.x, pitch_object.y)
 
-        if angle < 0.1:  # If the angle is greater than bearing + ~6 degrees, rotate CLKW (towards origin)
+        if angle <= 0:  # If the angle is greater than bearing + ~6 degrees, rotate CLKW (towards origin)
             return 'turn-right'
-        elif angle > -0.1:  # If the angle is less than bearing - ~6 degrees, rotate ACLKW (away from origin)
+        elif angle > 0:  # If the angle is less than bearing - ~6 degrees, rotate ACLKW (away from origin)
             return 'turn-left'
         else:
             return 'none'
@@ -356,7 +356,7 @@ class Planner():
                 # Get the ball position so that we may find the angle to align with it, as well as the displacement
                 ball_x = self.world._ball.x
                 ball_y = self.world._ball.y
-                rotate_margin = 0.5
+                rotate_margin = 0.75
                 inside_grabber = self.inside_grabber()
 
                 angle_to_turn_to = self.bot.get_rotation_to_point(ball_x,ball_y)
@@ -372,11 +372,10 @@ class Planner():
                         self.bot_rotate_to_direction(dir_to_turn)
                         self.action = dir_to_turn
 
-                        print "action initiating: "+self.action
                         if (dir_to_turn == "turn-left"):
-                            print "Rotating left"
+                            print "ROTATE: <<<"
                         elif (dir_to_turn == "turn-right"):
-                            print "Rotating turn-right"
+                            print "ROTATE: >>>"
                         else:
                             print "Facing Ball - ball slightly on : "+dir_to_turn+" side"
 
@@ -393,15 +392,14 @@ class Planner():
                         self.action = "idle"
                         self.robotController.command(Robot.STOP_MOTORS)
 
-                        print "Stop turning"
+                        print "ROTATE: _ _ _"
 
                     # [ACTIVE] IF IDLE && OUTSIDE OF GRAB-RANGE
                     if (self.action == "idle" and not inside_grabber):
                         self.action = "move-forward"
                         self.robotController.command(Robot.MOVE_FORWARD)
 
-                        print "action initiating: "+self.action
-                        print "Moving Forward, watch me goooo."
+                        print "MOVE: ^^^"
 
                     # [PASSIVE] IF ALREADY MOVING FORWARD && OUTSIDE OF GRAB-RANGE
                     elif (self.action == "move-forward" and not inside_grabber):
@@ -413,7 +411,7 @@ class Planner():
                     elif (self.action == "move-forward" and inside_grabber):
                         self.robotController.command(Robot.STOP_MOTORS)
                         self.action = "idle"
-                        print "I am close enough, ball is secured. Back to Idle until something happens"
+                        print "MOVE: _ _ _"
 
                     # [PASSIVE] IF IDLE && INSIDE GRAB-RANGE
                     elif (self.action == "idle" and inside_grabber):

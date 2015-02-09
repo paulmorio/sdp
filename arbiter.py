@@ -102,6 +102,7 @@ class Arbiter(object):
         except:
             raise
         finally:
+            self.robotController.command(Robot.STOP_MOTORS)
             self.camera.release()
             tools.save_colors(self.pitch, self.calibration)
             self.robotController.close()
