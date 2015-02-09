@@ -391,7 +391,7 @@ class Planner():
                         self.action = "none"
                         self.bot_rotate_or_move(dir_to_turn)
 
-                    if (self.action == "none" &&  distance_to_move):
+                    if (self.action == "none" and distance_to_move):
                         print "Moving Forward, watch me goooo."
 
 

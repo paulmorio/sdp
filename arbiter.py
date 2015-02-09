@@ -14,14 +14,19 @@ class Arbiter(object):
     def __init__(self, pitch, colour, our_side, role=None,
                  video_src=0, comm_port='/dev/ttyACM0', comms=False):
         """
-        Entry point for the SDP system.
-        Params:
-            [int] pitch         Pitch number: 0 (main) 1 (secondary)
-            [string] color      Team colour: 'blue' or 'yellow'
-            [string] our_side   Team side: 'left' or 'right' as on feed
-            [string] comm_port  Robot serial comm port
-            [int] comms         Enable (1) or disable (0) comms
+        Entry point for the SDP system. Initialises all components
+        and runs the polling loop.
+
+        :param pitch: Pitch number: 0 (main) 1 (secondary)
+        :param colour: Our team's plate colour (blue, yellow)
+        :param our_side: Our defender's side as on video feed
+        :param role: Planning role - 'attacker', 'defender', 'dog'
+        :param video_src: Source of feed - 0 default for DICE cameras
+        :param comm_port: Robot serial port
+        :param comms: Enable serial communication
+        :return:
         """
+
         assert pitch in [0, 1]
         assert colour in ['yellow', 'blue']
         assert our_side in ['left', 'right']
@@ -97,13 +102,12 @@ class Arbiter(object):
         except:
             raise
         finally:
-            # Release capture device
             self.camera.release()
-            # Save calibrations
             tools.save_colors(self.pitch, self.calibration)
-            # TODO Close serial connection
+            self.robotController.close()
 
 
+# TODO add comm_port and video source arguments - defaults are fine though.
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
