@@ -391,7 +391,8 @@ class Planner():
                         self.action = "none"
                         self.bot_rotate_or_move(dir_to_turn)
 
-                    if (self.action == "none" &&  distance_to_move):
+                    if (self.action == "none" and distance_to_move):
+
                         print "Moving Forward, watch me goooo."
 
 
@@ -431,13 +432,13 @@ class Planner():
                 #                 self.robotController.command(Robot.MOVE_FORWARD)
                 #                 self.action="move-forward"
                 #                 print "MOVEMENT: ^^^"
-                            
-                #         else:
-                #             if (self.action == "move-forward"):
-                #                 self.robotController.command(Robot.STOP_MOTORS)
-                #                 self.action = "none"
-                #                 print "Distance to ball: "+str(distance_to_move)
 
+                        else:
+                            if (self.action == "move-forward"):
+                                self.robotController.command(Robot.STOP_MOTORS)
+                                self.robotController.command(Robot.OPEN_GRABBERS)
+                                self.action = "none"
+                                print "Distance to ball: "+str(distance_to_move)
                         
                 print self.action
 
