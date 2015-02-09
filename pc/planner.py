@@ -206,14 +206,15 @@ class Planner():
             ball_x = self.world.ball.x
             ball_y = self.world.ball.y
 
-
-
+            # The ball is in our defender's zone
             if self.world.pitch.is_within_bounds(self.bot, ball_x, ball_y):
                 return 'inZone'
 
+            # The ball is in our attacker's zone
             if self.world.pitch.is_within_bounds(self.world.our_attacker, ball_x, ball_y):
                 return 'inOurAttackerZone'
 
+            # etc..
             if self.world.pitch.is_within_bounds(self.world.their_defender, ball_x, ball_y):
                 return 'inTheirDefenderZone'
 
@@ -221,13 +222,15 @@ class Planner():
                 return 'inTheirAttackerZone'
 
 
-
+            # Our defender has possession
             if self.bot.has_ball(self.world.ball):
                 return 'hasBall'
 
+            # Our attacker has the ball
             if self.world.our_attacker().has_ball(self.world.ball):
                 return 'ourAttackerHasBall'
 
+            # etc..
             if self.world.their_defender().has_ball(self.world.ball):
                 return 'opponentDefenderHasBall'
 
@@ -291,6 +294,7 @@ class Planner():
         # Find the different situations (states) the defender can be in
         elif self.mode == 'defender':
             # Basic idea: Intercept ball>collect ball>pass forward
+            state = self.state
 
             if (self.state == 'noBall'):
                 if (not ball_is_owned()):
@@ -309,6 +313,29 @@ class Planner():
                             self.state = 'hasBall'
                     else:
                         self.mode = 'dog' # FETCH!! (WARNING: doggie style does not care about our field in the pitch)
+            """
+            # Awaiting future refactorings
+            if state == 'inZone':
+                if state == 'hasBall':
+                    pass_forward()
+                else:
+                    fetch_ball()
+            if state == 'inOurAttackerZone':
+                defender_idle()
+            if state == 'inTheirDefenderZone':
+                defender_idle()
+            if state == 'inTheirAttackerZone':
+                defender_mark_attacker()
+
+
+
+            if state == 'ourAttackerHasBall':
+                defender_idle()
+            if state == 'opponentDefenderHasBall':
+                defender_idle()
+            if state == 'opponentAttackerHasBall':
+                defender_block()
+            """
 
         # Dog Mode for robot. NB: This is hacked together it would be better to move this into seperate functions
         elif (self.mode == 'dog'):
