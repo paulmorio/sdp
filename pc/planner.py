@@ -45,7 +45,7 @@ class Planner():
     ################################
 
     def inside_grabber(self):
-        ball = self.world._ball
+        ball = self.world.ball
         return self.bot.can_catch_ball(ball)
 
     def get_direction_to_rotate(self, pitch_object):
@@ -97,7 +97,7 @@ class Planner():
         """
         ball = self.world._ball
 
-        # We have to make sure we dont have the ball already
+        # We have to make sure we don't have the ball already
         if not self.bot.has_ball:
                     # If the robot cannot catch the ball yet
             if not self.bot.can_catch_ball(ball):
@@ -161,77 +161,12 @@ class Planner():
             elif ball.y < self.bot.y - 5:
                 self.robotController.command(Robot.MOVE_BACK)
 
-    # DEPRECATED?
-    def attacker(self):
-        """
-        Have the robot move to and grab a stationary ball, then rotate to face a goal and kick it
-
-        First step similar to "Dog" idea - robot turns to face ball, moves close to it
-        Robot then grabs the ball, rotates towards the leftmost goal, and shoots
-        """
-        ball = self.world.ball
-
-        if not self.bot.has_ball(ball):
-            self.bot_get_ball()
-        else:
-            self.bot.own_goal()
-
-    # DEPRECATED?
-    def defender(self):
-        """
-        Have the robot stay on one axis until the ball is in its zone
-        Once the ball is within our zone, move to it, grab it, and pass
-        """
-        ball = self.world.ball
-
-        # If the ball is not in our zone, stay mobile
-        if not self.world.pitch.zones[self.world.our_defender.zone].isInside(ball.x, ball.y):
-            pass    #self.bot_intercept_shot()
-        # Otherwise, if the ball is in our zone, move to it, grab it, and pass
-        else:
-            self.bot_get_ball()
-            self.bot_pass_forward()
-
-
-    # DEPRECATED?
-    def chase(self):
-        """
-        Simple function to have robot go to ball (regardless of competition constraints)
-
-        Basic "Dog" planning:
-        Get co-ordinates of ball
-        Get co-ordinates of robot
-        Rotate-first method:
-            1. Get angle between [ball.x, ball.y] and [robot.x, robot.y] as a bearing, using (robot.x, robot.y) as relative origin, x-axis(+) being 0 rad
-            2. Rotate robot clockwise/anticlockwise (clockwise if robot angle > bearing, a-clockwise otherwise) until robot angle ~= bearing
-            3. Move forwards until robot co-ords ~= ball co-ords, or angle changes
-            4. If angle changes, go back to 1
-
-        Holonomic method:
-            1. Get angle between [ball.x, ball.y] and [robot.x, robot.y] as a bearing, using (robot.x, robot.y) as origin, x-axis(+) being 0 rad
-            2. Move at that angle until robot co-ords ~= ball co-ords, or angle changes
-            3. If angle changes, go back to 1
-        """
-
-        # Get displacement, and the ball
-        ball = self.world.ball
-        displacement = self.bot.get_displacement_to_point(self.world.ball.x, self.world.ball.y)
-
-        if displacement > 20:  # 20 here is completely arbitrary, it should be a "safe" distance at which the robot can stop in front of the ball
-            # Rotate-first
-            dir_to_rotate = self.get_direction_to_rotate(ball)
-            self.bot_rotate_and_go(dir_to_rotate)
-
-            """
-             # Holonomic TODO
-             self.bot.commad(self.bot.MOVE_ANGLE + ()) etc..
-            """
-        else:
-            self.bot.command(self.bot.STOP)
-
     def aiming_towards_object(self, instance):
         # returns true if bot direction is towards instance
-        return (instance)
+        if abs(self.bot.get_rotation_to_point(instance.x, instance.y)) > 0.1:
+            return False
+        else:
+            return True
 
     #################################
     ########## AGGREGATORS ##########
@@ -266,12 +201,38 @@ class Planner():
             if (self.world.our_defender().has_ball(self.world._ball)):
                 return 'ourDefenderHasBall'
 
-        #TODO FOR WHOEVER DOES DEFENDER
         if self.mode == 'defender':
 
-            ball_x = self.world._ball.x()
-            ball_y = self.world._ball.y()
-            pass
+            ball_x = self.world.ball.x
+            ball_y = self.world.ball.y
+
+
+
+            if self.world.pitch.is_within_bounds(self.bot, ball_x, ball_y):
+                return 'inZone'
+
+            if self.world.pitch.is_within_bounds(self.world.our_attacker, ball_x, ball_y):
+                return 'inOurAttackerZone'
+
+            if self.world.pitch.is_within_bounds(self.world.their_defender, ball_x, ball_y):
+                return 'inTheirDefenderZone'
+
+            if self.world.pitch.is_within_bounds(self.world.their_attackerr, ball_x, ball_y):
+                return 'inTheirAttackerZone'
+
+
+
+            if self.bot.has_ball(self.world.ball):
+                return 'hasBall'
+
+            if self.world.our_attacker().has_ball(self.world.ball):
+                return 'ourAttackerHasBall'
+
+            if self.world.their_defender().has_ball(self.world.ball):
+                return 'opponentDefenderHasBall'
+
+            if self.world.their_attacker().has_ball(self.world.ball):
+                return 'opponentAttackerHasBall'
 
     # UPDATED "TICK" function 
     def updatePlan(self):
@@ -329,6 +290,7 @@ class Planner():
 
         # Find the different situations (states) the defender can be in
         elif self.mode == 'defender':
+            # Basic idea: Intercept ball>collect ball>pass forward
 
             if (self.state == 'noBall'):
                 if (not ball_is_owned()):
@@ -346,7 +308,7 @@ class Planner():
                                 self.robotController.close_grabbers()
                             self.state = 'hasBall'
                     else:
-                        self.mode = 'Dog' # FETCH!! (WARNING: doggie style does not care about our field in the pitch)
+                        self.mode = 'dog' # FETCH!! (WARNING: doggie style does not care about our field in the pitch)
 
         # Dog Mode for robot. NB: This is hacked together it would be better to move this into seperate functions
         elif (self.mode == 'dog'):
@@ -418,50 +380,5 @@ class Planner():
                         pass
                         #print "Suntanning :)"
 
-
-                # if (abs(angle_to_turn_to) > rotate_margin):
-                #     if (not self.action=="turn-"+dir_to_turn):
-                #         #if not already turning -> turn
-                #         self.bot_rotate_or_move(dir_to_turn)
-                #         self.action = "turn-"+dir_to_turn
-                #         print "action intiating: "+self.action
-                #         if (dir_to_turn == "turn-left"):
-                #             print "Rotating left"
-                #         elif (dir_to_turn == "turn-right"):
-                #             print "Rotating turn-right"
-                #         elif (dir_to_turn == "none"):
-                #             print "Facing Ball and moving forward"
-                #
-                #     else:
-                #         pass
-                #         #if already turning, we're good.
-                #
-                # else:
-                #     print "Distance to ball: "+str(distance_to_move)
-                #     #if no need to turn
-                #     if (self.action=="turn-right" or self.action=="turn-left"):
-                #         #if turning, stop turning
-                #         self.action="none"
-                #         print "ROTATION: none"
-                #
-                #         #print "angle to turn just fell below 0.5: "+str(angle_to_turn_to)
-                #         self.robotController.command(Robot.STOP_MOTORS)
-                #
-                #     else:
-                #         if (distance_to_move >= ball_dangerzone):
-                #             # if ball is outside of robot reach: move forward
-                #             if (not self.action=="move-forward"):
-                #                 self.robotController.command(Robot.MOVE_FORWARD)
-                #                 self.action="move-forward"
-                #                 print "MOVEMENT: ^^^"
-                #
-                #         else:
-                #             if (self.action == "move-forward"):
-                #                 self.robotController.command(Robot.STOP_MOTORS)
-                #                 self.robotController.command(Robot.OPEN_GRABBERS)
-                #                 self.action = "none"
-                #                 print "Distance to ball: "+str(distance_to_move)
-
             else:
                 print "Error, cannot find mode"
-            
