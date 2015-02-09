@@ -13,8 +13,8 @@ class Planner():
         self.state = None  # refactor planner into strategies at some point - not important for this milestone
 
         # action the robot is currently executing:
-        self.action = "idle" 
-        # idle
+        self.action = "none" 
+        # none
         # turn-left
         # turn-right
         # move-forward
@@ -40,6 +40,10 @@ class Planner():
         else:
             print "Not recognized mode!"
 
+    ################################
+    ########## SUBPLANS ############
+    ################################
+
     def get_direction_to_rotate(self, pitch_object):
         """
         Returns a string indicating which direction to turn clockwise/a-clockwise depending on angle
@@ -47,10 +51,10 @@ class Planner():
         angle = self.bot.get_rotation_to_point(pitch_object.x, pitch_object.y)
 
         if angle < 0.1:  # If the angle is greater than bearing + ~6 degrees, rotate CLKW (towards origin)
-            return 'right'
+            return 'turn-right'
 
         elif angle > -0.1:  # If the angle is less than bearing - ~6 degrees, rotate ACLKW (away from origin)
-            return 'left'
+            return 'turn-left'
         else:
             return 'none'
 
@@ -62,9 +66,9 @@ class Planner():
         needs more clarification on how much to turn etc based on refresh of world
         or on some time factor, or some amount to turn.
         """
-        if direction == 'right':
+        if direction == 'turn-right':
             self.robotController.command(Robot.TURN_RIGHT)
-        elif direction == 'left':
+        elif direction == 'turn-left':
             self.robotController.command(Robot.TURN_LEFT)
         elif direction == 'none':
             self.robotController.command(Robot.STOP_MOTORS)
@@ -76,9 +80,9 @@ class Planner():
         """
         Rotates bot towards given direction, or moves forward if the direction is none
         """
-        if direction == 'right':
+        if direction == 'turn-right':
             self.robotController.command(Robot.TURN_RIGHT)
-        elif direction == 'left':
+        elif direction == 'turn-left':
             self.robotController.command(Robot.TURN_LEFT)
         elif direction == 'none':
             self.robotController.command(Robot.MOVE_FORWARD)
@@ -208,25 +212,29 @@ class Planner():
             3. If angle changes, go back to 1
         """
 
-    #     # Get displacement, and the ball
-    #     ball = self.world.ball
-    #     displacement = self.bot.get_displacement_to_point(self.world.ball.x, self.world.ball.y)
+        # Get displacement, and the ball
+        ball = self.world.ball
+        displacement = self.bot.get_displacement_to_point(self.world.ball.x, self.world.ball.y)
 
-    #     if displacement > 20:  # 20 here is completely arbitrary, it should be a "safe" distance at which the robot can stop in front of the ball
-    #         # Rotate-first
-    #         dir_to_rotate = self.get_direction_to_rotate(ball)
-    #         self.bot_rotate_and_go(dir_to_rotate)
+        if displacement > 20:  # 20 here is completely arbitrary, it should be a "safe" distance at which the robot can stop in front of the ball
+            # Rotate-first
+            dir_to_rotate = self.get_direction_to_rotate(ball)
+            self.bot_rotate_and_go(dir_to_rotate)
 
-    #         """
-    #          # Holonomic TODO
-    #          self.bot.commad(self.bot.MOVE_ANGLE + ()) etc..
-    #         """
-    #     else:
-    #         self.bot.command(self.bot.STOP)
+            """
+             # Holonomic TODO
+             self.bot.commad(self.bot.MOVE_ANGLE + ()) etc..
+            """
+        else:
+            self.bot.command(self.bot.STOP)
 
-    # def aiming_towards_object(self, instance):
-    #     # returns true if bot direction is towards instance
-    #     return (instance)
+    def aiming_towards_object(self, instance):
+        # returns true if bot direction is towards instance
+        return (instance)
+
+    #################################
+    ########## AGGREGATORS ##########
+    #################################
 
     def determine_state(self, mode):
         """
@@ -263,8 +271,6 @@ class Planner():
             ball_x = self.world._ball.x()
             ball_y = self.world._ball.y()
             pass
-
-
 
     # UPDATED "TICK" function 
     def updatePlan(self):
@@ -341,46 +347,6 @@ class Planner():
                     else:
                         self.mode = 'Dog' # FETCH!! (WARNING: doggie style does not care about our field in the pitch)
 
-        # # Dog mode
-        # elif self.mode == 'Dog':
-        #     if (self.state == 'noBall'):
-        #         # implement chase
-        #         if (not aiming_towards_object(ball)):
-        #             self.robotController.rotate_towards_point(ball._x,ball._y)
-        #         else: # Our robot is aiming towards the ball
-        #             if (not robot_in_danger_zone()):
-        #                 distance_to_ball = self.bot.get_displacement_to_point(ball._x,ball._y)
-        #                 danger_zone_radius = 0 # personal space of ball (ie. radius around ball)
-        #                 self.robotController.move_foward(distance_to_ball - danger_zone_radius,100) #100 = engine percentage: full throttle
-        #             else: # Our robot is inside dangerzone of the ball, careful now, engines on low and approach with caution
-        #                 if (not is_grabber_opened):
-        #                     self.robotController.open_grabbers()
-        #                 distance_to_ball = distance_to_ball = self.bot.get_displacement_to_point(ball._x,ball._y)
-        #                 if (not distance_to_ball == 0):
-        #                     self.robotController.move_foward(distance_to_ball - danger_zone_radius, 25)
-        #                 else:
-        #                     if (is_grabber_opened()):
-        #                         self.robotController.close_grabbers()
-        #                     self.state = 'hasBall'
-
-        # ### FUNCTIONS TO DEFINE ###
-        # #TESTING FUNTIONS
-        # # aiming_towards_object(object) = TRUE if robot aims towards specified object (ie direction towards that point..)
-        # # robot_in_danger_zone() = TRUE if robot is inside ball's personal space
-        # # is_grabber_opened() = TRUE if grabbers are open
-        # # ball_is_owned() = TRUE if ANY robot (THAT IS NOT OURS) on the field has the ball in posession (grabbed)
-        # # ball_is_idle() = TRUE if ball is 'idle': ball is just lying around passively with specific negligable speed (thus not threatening to reach our goal)
-        # #########
-        # #ACTION FUNCTIONS
-        # # rotate_towards_point(ball._x,ball.face_y) #rotates to aim towards given x,y coordinate.
-        # # move_foward(distance, speed) #move robot forward for given distance, at a given speed
-        # # move_vertical(y) = moves robot to given y-coordinate. (y = pixel coordinate)
-        # # open_grabbers() #duhh..
-        # # close_grabbers() #another duhh
-        # #MISC FUNCTION
-        # # pitch_get_height() = returns height of pitch (in pixels)
-
-        # No Danger Zone here.
         # Dog Mode for robot. NB: This is hacked together it would be better to move this into seperate functions
         elif (self.mode == 'dog'):
 
@@ -397,53 +363,83 @@ class Planner():
 
                 dir_to_turn = self.get_direction_to_rotate(self.world._ball)
 
-                # We command the robot turn to the ball, and move forward if it is facing it.
-                # This is implementation is deeply simplified (but works)
+                # If we are not facing the ball
                 if (abs(angle_to_turn_to) > rotate_margin):
-                    if (not self.action=="turn-"+dir_to_turn):
-                        #if not already turning -> turn
-                        self.bot_rotate_or_move(dir_to_turn)
-                        self.action = "turn-"+dir_to_turn
-                        #print "action intiating: "+self.action
-                        if (dir_to_turn == "left"):
-                            print "ROTATION: <<<"
-                        elif (dir_to_turn == "right"):
-                            print "ROTATION: >>>"
 
+                    # check for idleness
+                    if (self.action == "none"):
+                        self.bot_rotate_to_direction(dir_to_turn)
+                        self.action == dir_to_turn
+                        print "action intiating: "+self.action
+                        if (dir_to_turn == "turn-left"):
+                            print "Rotating left"
+                        elif (dir_to_turn == "turn-right"):
+                            print "Rotating turn-right"
+                        elif (dir_to_turn == "none"):
+                            print "Facing Ball"
+
+                    # We are not none.
                     else:
-                        pass
-                        #if already turning, we're good.
-                        #print self.action+" is still executing, angle to ball: "+str(angle_to_turn_to)
+                        print self.action+" is still executing, angle to ball: "+str(angle_to_turn_to)
 
+                # We are facing the ball
                 else:
                     print "Distance to ball: "+str(distance_to_move)
-                    #if no need to turn
-                    if (self.action=="turn-right" or self.action=="turn-left"):
-                        #if turning, stop turning
-                        self.action="idle"
-                        print "ROTATION: _ _ _"
+                    
+                    if (self.action == "turn-right" or self.action == "turn-left"):
+                        print "Stop turning"
+                        self.action = "none"
+                        self.bot_rotate_or_move(dir_to_turn)
 
-                        #print "angle to turn just fell below 0.5: "+str(angle_to_turn_to)
-                        self.robotController.command(Robot.STOP_MOTORS)
+                    if (self.action == "none" &&  distance_to_move):
+                        print "Moving Forward, watch me goooo."
 
-                    else:
-                        if (distance_to_move >= ball_dangerzone):
-                            # if ball is outside of robot reach: move forward
-                            if (not self.action=="move-forward"):
-                                self.robotController.command(Robot.MOVE_FORWARD)
-                                self.action="move-forward"
-                                print "MOVEMENT: ^^^"
+
+
+                # if (abs(angle_to_turn_to) > rotate_margin):
+                #     if (not self.action=="turn-"+dir_to_turn):
+                #         #if not already turning -> turn
+                #         self.bot_rotate_or_move(dir_to_turn)
+                #         self.action = "turn-"+dir_to_turn
+                #         print "action intiating: "+self.action
+                #         if (dir_to_turn == "turn-left"):
+                #             print "Rotating left"
+                #         elif (dir_to_turn == "turn-right"):
+                #             print "Rotating turn-right"
+                #         elif (dir_to_turn == "none"):
+                #             print "Facing Ball and moving forward"
+
+                #     else:
+                #         pass
+                #         #if already turning, we're good.
+
+                # else:
+                #     print "Distance to ball: "+str(distance_to_move)
+                #     #if no need to turn
+                #     if (self.action=="turn-right" or self.action=="turn-left"):
+                #         #if turning, stop turning
+                #         self.action="none"
+                #         print "ROTATION: none"
+
+                #         #print "angle to turn just fell below 0.5: "+str(angle_to_turn_to)
+                #         self.robotController.command(Robot.STOP_MOTORS)
+
+                #     else:
+                #         if (distance_to_move >= ball_dangerzone):
+                #             # if ball is outside of robot reach: move forward
+                #             if (not self.action=="move-forward"):
+                #                 self.robotController.command(Robot.MOVE_FORWARD)
+                #                 self.action="move-forward"
+                #                 print "MOVEMENT: ^^^"
                             
-                        else:
-                            if (self.action == "move-forward"):
-                                self.robotController.command(Robot.STOP_MOTORS)
-                                self.action = "idle"
-                                print "Distance to ball: "+str(distance_to_move)
+                #         else:
+                #             if (self.action == "move-forward"):
+                #                 self.robotController.command(Robot.STOP_MOTORS)
+                #                 self.action = "none"
+                #                 print "Distance to ball: "+str(distance_to_move)
 
                         
                 print self.action
-                # Better would be being able to turn or move forward using information gained in the frame
-                # bot_rotate_or_move(dir_to_turn, angle_to_turn_to, distance_to_move)
 
             else:
                 print "Error, cannot find mode"
