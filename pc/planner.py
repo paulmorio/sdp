@@ -13,7 +13,7 @@ class Planner():
         self.state = None  # refactor planner into strategies at some point - not important for this milestone
 
         # action the robot is currently executing:
-        self.action = "none" 
+        self.action = "idle"
         # none
         # turn-left
         # turn-right
@@ -52,7 +52,6 @@ class Planner():
 
         if angle < 0.1:  # If the angle is greater than bearing + ~6 degrees, rotate CLKW (towards origin)
             return 'turn-right'
-
         elif angle > -0.1:  # If the angle is less than bearing - ~6 degrees, rotate ACLKW (away from origin)
             return 'turn-left'
         else:
@@ -84,8 +83,6 @@ class Planner():
             self.robotController.command(Robot.TURN_RIGHT)
         elif direction == 'turn-left':
             self.robotController.command(Robot.TURN_LEFT)
-        elif direction == 'none':
-            self.robotController.command(Robot.MOVE_FORWARD)
         else:
             print "ERROR in get_direction_to_rotate"
 
@@ -363,37 +360,61 @@ class Planner():
 
                 dir_to_turn = self.get_direction_to_rotate(self.world._ball)
 
-                # If we are not facing the ball
+                # IF NOT FACING BALL
                 if (abs(angle_to_turn_to) > rotate_margin):
 
-                    # check for idleness
-                    if (self.action == "none"):
+                    # [ACTIVE] IF NOT ALREADY TURNING
+                    if (self.action != "turn-right" and self.action != "turn-left"):
                         self.bot_rotate_to_direction(dir_to_turn)
-                        self.action == dir_to_turn
-                        print "action intiating: "+self.action
+                        self.action = dir_to_turn
+
+                        print "action initiating: "+self.action
                         if (dir_to_turn == "turn-left"):
                             print "Rotating left"
                         elif (dir_to_turn == "turn-right"):
                             print "Rotating turn-right"
-                        elif (dir_to_turn == "none"):
-                            print "Facing Ball"
+                        else:
+                            print "Facing Ball - ball slightly on : "+dir_to_turn+" side"
 
-                    # We are not none.
+                    # [PASSIVE] IF ALREADY TURNING
                     else:
-                        print self.action+" is still executing, angle to ball: "+str(angle_to_turn_to)
+                        pass
+                        #print self.action+" is still executing, angle to ball: "+str(angle_to_turn_to)
 
-                # We are facing the ball
+                # IF FACING BALL
                 else:
-                    print "Distance to ball: "+str(distance_to_move)
-                    
-                    if (self.action == "turn-right" or self.action == "turn-left"):
-                        print "Stop turning"
-                        self.action = "none"
-                        self.bot_rotate_or_move(dir_to_turn)
 
-                    if (self.action == "none" and distance_to_move):
+                    # [ACTIVE] IF STILL TURNING
+                    if (self.action == "turn-right" or self.action == "turn-left"):
+                        self.action = "idle"
+                        self.robotController.command(Robot.STOP_MOTORS)
+
+                        print "Stop turning"
+
+                    # [ACTIVE] IF IDLE && OUTSIDE OF GRAB-RANGE
+                    if (self.action == "idle" and (distance_to_move > ball_dangerzone)):
+                        self.action = "move-forward"
+                        self.robotController.command(Robot.MOVE_FORWARD)
+
+                        print "action initiating: "+self.action
                         print "Moving Forward, watch me goooo."
 
+                    # [PASSIVE] IF ALREADY MOVING FORWARD && OUTSIDE OF GRAB-RANGE
+                    elif (self.action == "move-forward" and (distance_to_move > ball_dangerzone)):
+                        pass
+                        #print "Still moving forward"
+                        #print "Distance to ball: "+str(distance_to_move)
+
+                    # [ACTIVE] IF MOVING FORWARD BUT INSIDE GRAB RANGE
+                    elif (self.action == "move-forward" and (distance_to_move <= ball_dangerzone)):
+                        self.robotController.command(Robot.STOP_MOTORS)
+                        self.action = "idle"
+                        print "I am close enough, ball is secured. Back to Idle until something happens"
+
+                    # [PASSIVE]
+                    elif (self.action == "idle" and (distance_to_move <= ball_dangerzone)):
+                        pass
+                        #print "Suntanning :)"
 
 
                 # if (abs(angle_to_turn_to) > rotate_margin):
@@ -408,11 +429,11 @@ class Planner():
                 #             print "Rotating turn-right"
                 #         elif (dir_to_turn == "none"):
                 #             print "Facing Ball and moving forward"
-
+                #
                 #     else:
                 #         pass
                 #         #if already turning, we're good.
-
+                #
                 # else:
                 #     print "Distance to ball: "+str(distance_to_move)
                 #     #if no need to turn
@@ -420,10 +441,10 @@ class Planner():
                 #         #if turning, stop turning
                 #         self.action="none"
                 #         print "ROTATION: none"
-
+                #
                 #         #print "angle to turn just fell below 0.5: "+str(angle_to_turn_to)
                 #         self.robotController.command(Robot.STOP_MOTORS)
-
+                #
                 #     else:
                 #         if (distance_to_move >= ball_dangerzone):
                 #             # if ball is outside of robot reach: move forward
@@ -431,15 +452,13 @@ class Planner():
                 #                 self.robotController.command(Robot.MOVE_FORWARD)
                 #                 self.action="move-forward"
                 #                 print "MOVEMENT: ^^^"
-
-                        # else:
-                        #     if (self.action == "move-forward"):
-                        #         self.robotController.command(Robot.STOP_MOTORS)
-                        #         self.robotController.command(Robot.OPEN_GRABBERS)
-                        #         self.action = "none"
-                        #         print "Distance to ball: "+str(distance_to_move)
-                        
-                print self.action
+                #
+                #         else:
+                #             if (self.action == "move-forward"):
+                #                 self.robotController.command(Robot.STOP_MOTORS)
+                #                 self.robotController.command(Robot.OPEN_GRABBERS)
+                #                 self.action = "none"
+                #                 print "Distance to ball: "+str(distance_to_move)
 
             else:
                 print "Error, cannot find mode"
