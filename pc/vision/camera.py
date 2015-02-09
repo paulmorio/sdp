@@ -6,8 +6,8 @@ class Camera(object):
     """
     Camera wrapper with frame pre-processing options.
     """
-    def __init__(self, pitch=0, options=None):
-        self.capture = cv2.VideoCapture(pitch)
+    def __init__(self, pitch, video_src=0, options=None):
+        self.capture = cv2.VideoCapture(video_src)
         calibration = tools.get_croppings(pitch=pitch)
         self.crop_values = tools.find_extremes(calibration['outline'])
 

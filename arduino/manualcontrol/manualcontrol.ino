@@ -10,9 +10,10 @@
 #include <Wire.h>
 
 // Motor numbers
-#define MOTOR_FR 0
+#define MOTOR_F 0
 #define MOTOR_B 1
-#define MOTOR_FL 2
+#define MOTOR_K 2
+#define MOTOR_G 4
 
 #define RUN_MOTORS_POWER 100
 #define RUN_MOTORS_TIME 1000 // per direction
@@ -26,15 +27,10 @@ void setup() {
   SDPsetup();
   comm.addCommand("FWD", forward);
   comm.addCommand("BACK", backward);
-  comm.addCommand("ST_FL", strafe_fl);
-  comm.addCommand("ST_FR", strafe_fr);
-  comm.addCommand("ST_BL", strafe_bl);
-  comm.addCommand("ST_BR", strafe_br);
   comm.addCommand("TURN_L", turn_left);
   comm.addCommand("TURN_R", turn_right);
   comm.addCommand("GRAB", grab);
   comm.addCommand("KICK", kick);
-  comm.addCommand("MOTORS", run_drive_motors);
   comm.addCommand("STOP", stop_drive_motors);
   comm.setDefaultHandler(invalid_command);
 
@@ -49,59 +45,25 @@ void loop() {
 // Actions
 void forward() {
   stop_drive_motors();
-  motorBackward(MOTOR_FR, MOVE_PWR);
-  motorForward(MOTOR_FL, MOVE_PWR);
+  motorForward(MOTOR_F, MOVE_PWR);
   Serial.println("Moving forward");
 }
 
 void backward() {
   stop_drive_motors();
-  motorForward(MOTOR_FR, MOVE_PWR);
-  motorBackward(MOTOR_FL, MOVE_PWR);
+  motorBackward(MOTOR_F, MOVE_PWR);
   Serial.println("Moving backward");
-}
-
-void strafe_fl() {
-  stop_drive_motors();
-  motorBackward(MOTOR_FR, MOVE_PWR);
-  motorForward(MOTOR_B, MOVE_PWR);
-  Serial.println("Strafing forward-left");
-}
-
-void strafe_fr() {
-  stop_drive_motors();
-  motorForward(MOTOR_FL, MOVE_PWR);
-  motorBackward(MOTOR_B, MOVE_PWR);
-  Serial.println("Strafing forward-right");
-}
-
-void strafe_bl() {
-  stop_drive_motors();
-  motorBackward(MOTOR_FL, MOVE_PWR);
-  motorForward(MOTOR_B, MOVE_PWR);
-  Serial.println("Strafing back-left");
-}
-
-void strafe_br() {
-  stop_drive_motors();
-  motorForward(MOTOR_FR, MOVE_PWR);
-  motorBackward(MOTOR_B, MOVE_PWR);
-  Serial.println("Strafing back-right");
 }
 
 void turn_left() {
   stop_drive_motors();
-  motorBackward(MOTOR_FR, TURN_PWR);
   motorBackward(MOTOR_B, TURN_PWR);
-  motorBackward(MOTOR_FL, TURN_PWR);
   Serial.println("Turning left");
 }
 
 void turn_right() {
   stop_drive_motors();
-  motorForward(MOTOR_FR, TURN_PWR);
   motorForward(MOTOR_B, TURN_PWR);
-  motorForward(MOTOR_FL, TURN_PWR);
   Serial.println("Turning right");
 }
 
@@ -113,26 +75,10 @@ void kick() {
     Serial.println("Kicked");
 }
 
-void run_drive_motors() {
-  Serial.println("Running the drive motors forward (clockwise)");
-  motorForward(MOTOR_FL, RUN_MOTORS_POWER);
-  motorForward(MOTOR_B, RUN_MOTORS_POWER);
-  motorForward(MOTOR_FR, RUN_MOTORS_POWER);
-  delay(RUN_MOTORS_TIME);
-  stop_drive_motors();
-  
-  Serial.println("Running the drive motors backward (anti-clockwise)");
-  motorBackward(MOTOR_FL, RUN_MOTORS_POWER);
-  motorBackward(MOTOR_B, RUN_MOTORS_POWER);
-  motorBackward(MOTOR_FR, RUN_MOTORS_POWER);
-  delay(RUN_MOTORS_TIME);
-  stop_drive_motors();
-}
-
 void stop_drive_motors() {
-  motorStop(MOTOR_FL);
+  motorStop(MOTOR_F);
   motorStop(MOTOR_B);
-  motorStop(MOTOR_FR);
+  delay(100);
 }
 
 void invalid_command(const char* command) {}
