@@ -21,7 +21,7 @@ class Robot(object):
     STOP_MOTORS = "STOP"
     COMMAND_TERMINAL = '\n'
 
-    def __init__(self, port="/dev/ttyACM0", rate=115200, timeout=1):
+    def __init__(self, port="/dev/ttyACM0", rate=115200, timeout=1, comms=True):
         """
         Create a robot object which provides action methods and opens a serial
         connection.
@@ -34,7 +34,10 @@ class Robot(object):
         :param timeout: Write timeout in seconds
         :return:
         """
-        self.serial = Serial(port, rate, timeout=timeout)
+        if comms:
+            self.serial = Serial(port, rate, timeout=timeout)
+        else:
+            self.serial = None
 
     # Serial communication methods
     def read_all(self):
@@ -47,7 +50,16 @@ class Robot(object):
 
     def command(self, command):
         """Append command terminal to string before writing to serial"""
-        self.serial.write(command + Robot.COMMAND_TERMINAL)
+        if self.serial is not None:
+            self.serial.write(command + Robot.COMMAND_TERMINAL)
+        else:
+            print command, "received."
+
+    def close(self):
+        """ Close the robot's serial port """
+        if self.serial is not None:
+            self.serial.close()
+            print "Serial port closed."
 
 
 class ManualController(object):

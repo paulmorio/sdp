@@ -11,8 +11,8 @@ class Arbiter(object):
     Ties vision/state to planning/communication.
     """
 
-    def __init__(self, pitch, colour, our_side,
-                 comm_port='/dev/ttyACM0', comms=0):
+    def __init__(self, pitch, colour, our_side, role=None,
+                 video_src=0, comm_port='/dev/ttyACM0', comms=False):
         """
         Entry point for the SDP system.
         Params:
@@ -32,7 +32,7 @@ class Arbiter(object):
         self.calibration = tools.get_colors(pitch)
 
         # Set up capture device
-        self.camera = camera.Camera(pitch)
+        self.camera = camera.Camera(pitch, video_src=video_src)
 
         # Set up vision - note that this discards the colour-corrupt first frame
         frame_shape = self.camera.get_frame().shape
@@ -46,12 +46,16 @@ class Arbiter(object):
         self.world_updater = WorldUpdater(self.pitch, self.colour, self.side,
                                           self.world, self.vision)
 
-        # Set up robotController TODO GIVE IT A BETTER NAME.
-        self.robotController = Robot()
+        # Set up robotController
+        self.robotController = Robot(port=comm_port, comms=comms)
 
-        # TODO Set up planner
-        mode = 'dog'  # ['dog', 'defender', 'attacker'] # Pull this from args or something
-        self.planner = Planner(self.world, self.robotController, mode)
+        # Set up the planner
+        if role is not None:
+            assert(role in ['dog', 'defender', 'attacker'])
+            mode = role
+            self.planner = Planner(self.world, self.robotController, mode)
+        else:
+            self.planner = None
 
         # Set up GUI
         self.gui = visiongui.VisionGUI(self.pitch)
@@ -76,8 +80,9 @@ class Arbiter(object):
                 model_positions, regular_positions, grabber_positions = \
                     self.world_updater.update_world(frame)
 
-                # Act on the updated world model # Replaces planner.tick from previously
-                self.planner.updatePlan()
+                # Act on the updated world model
+                if self.planner is not None:
+                    self.planner.updatePlan()
 
                 fps = float(counter) / (time.clock() - timer)
 
@@ -102,16 +107,32 @@ class Arbiter(object):
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("pitch", help="[0] Main pitch, [1] Secondary pitch")
     parser.add_argument(
-        "side", help="The side of our defender ['left', 'right'] allowed."
+        "pitch", help="[0] Main pitch, [1] Secondary pitch"
     )
     parser.add_argument(
         "colour", help="The colour of our team - ['yellow', 'blue'] allowed."
     )
     parser.add_argument(
+        "side", help="The side of our defender ['left', 'right'] allowed."
+    )
+    parser.add_argument(
+        "role", help="The robot's role - ['defender', 'attacker', 'dog']"
+    )
+    parser.add_argument(
         "-t", "--tablesetup",
-        help="Brings up the table setup window",
+        help="Bring up the table setup window",
+        action="store_true"
+    )
+    parser.add_mutually_exclusive_group()
+    parser.add_argument(
+        "-v", "--visiononly",
+        help="Run the vision system without the planner or robot/comms",
+        action="store_true"
+    )
+    parser.add_argument(
+        "-n", "--nocomms",
+        help="Run without comms.",
         action="store_true"
     )
     args = parser.parse_args()
@@ -124,5 +145,15 @@ if __name__ == '__main__':
         tablesetup = TableSetup(int(args.pitch))
         tablesetup.run()
 
-    arb = Arbiter(int(args.pitch), args.colour, args.side)
+    if args.visiononly:
+        arb = Arbiter(int(args.pitch), args.colour, args.side,
+                      role=None, comms=False)
+    elif args.nocomms:
+        assert args.role in ['defender', 'attacker', 'dog']
+        arb = Arbiter(int(args.pitch), args.colour, args.side,
+                      role=args.role, comms=False)
+    else:
+        assert args.role in ['defender', 'attacker', 'dog']
+        arb = Arbiter(int(args.pitch), args.colour, args.side,
+                      role=args.role, comms=True)
     arb.run()
