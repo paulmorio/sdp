@@ -433,12 +433,12 @@ class Planner():
                 #                 self.action="move-forward"
                 #                 print "MOVEMENT: ^^^"
 
-                        else:
-                            if (self.action == "move-forward"):
-                                self.robotController.command(Robot.STOP_MOTORS)
-                                self.robotController.command(Robot.OPEN_GRABBERS)
-                                self.action = "none"
-                                print "Distance to ball: "+str(distance_to_move)
+                        # else:
+                        #     if (self.action == "move-forward"):
+                        #         self.robotController.command(Robot.STOP_MOTORS)
+                        #         self.robotController.command(Robot.OPEN_GRABBERS)
+                        #         self.action = "none"
+                        #         print "Distance to ball: "+str(distance_to_move)
                         
                 print self.action
 
