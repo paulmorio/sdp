@@ -1,7 +1,6 @@
 from models.worldmodel import *
 from robot import Robot
 
-
 # Methods that 
 
 class Planner():
@@ -29,6 +28,7 @@ class Planner():
 
         # Our controllable robot (ie. NOT OBSERVED, but ACTUAL arduino one)
         self.robotController = robotController
+        self.robotStarted=40 # init robot actions
 
         # bot we are making plans for, OBSERVED robot via the vision.
         if (self.mode == 'attacker'):
@@ -45,8 +45,17 @@ class Planner():
     ################################
 
     def inside_grabber(self):
-        ball = self.world._ball
+        ball = self.world.ball
         return self.bot.can_catch_ball(ball)
+
+    def ball_inside_zone(self):
+        ball = self.world.ball
+        return self.world.pitch.is_within_bounds(self.bot, ball.x, ball.y)
+
+    def robot_inside_zone(self):
+        print "("+str(self.bot.x)+","+str(self.bot.y)+")"
+        print str(self.world.pitch.zones[self.bot.zone].isInside(self.bot.x, self.bot.y))
+        return True
 
     def get_direction_to_rotate(self, pitch_object):
         """
@@ -273,195 +282,169 @@ class Planner():
             ball_y = self.world._ball.y()
             pass
 
+    def bot_stop(self):
+        self.robotController.command(Robot.STOP_MOTORS)
+        self.action = "idle"
+        print "MOVE: _ _ _"
+
+
     # UPDATED "TICK" function 
     def updatePlan(self):
         """
         Makes plans based on the mode of the planner, and the state determined
         by the current situation (which can be found through determine_state)
         """
+        if (self.robotStarted > 0):
+            self.robotStarted -= 1
+            print "NUKE IN .."+str(self.robotStarted)
+        else:
+            # find out situation of robot (mode)
+            self.state = self.determine_state(self.mode)
 
-        # find out situation of robot (mode)
-        self.state = self.determine_state(self.mode)
+            #print str(self.robot_inside_zone())
 
-        # Find the different situations (states) the attacker can be in
-        if self.mode == 'attacker':
+            # Find the different situations (states) the attacker can be in
+            if self.mode == 'attacker':
 
-            # State when the ball is in the robots own zone but doesnt have the ball
-            # Go to ball and move to a better location.
-            if (self.state == 'inZoneNoBall'):
-                ball_x = self.world._ball.x()
-                ball_y = self.world._ball.y()
+                # State when the ball is in the robots own zone but doesnt have the ball
+                # Go to ball and move to a better location.
+                if (self.state == 'inZoneNoBall'):
+                    ball_x = self.world._ball.x()
+                    ball_y = self.world._ball.y()
 
-                angle_to_turn_to = self.bot.get_rotation_to_point(ball_x,ball_y)
-                distance_to_move = self.bot.get_displacement_to_point(ball_x, ball_y)
+                    angle_to_turn_to = self.bot.get_rotation_to_point(ball_x,ball_y)
+                    distance_to_move = self.bot.get_displacement_to_point(ball_x, ball_y)
 
-                dir_to_turn = get_direction_to_rotate(self.world._ball)
+                    dir_to_turn = get_direction_to_rotate(self.world._ball)
 
-                # We command the robot turn to the ball, and move forward if it is facing it.
-                # This is implementation is deeply simplified (but works)
-                bot_rotate_or_move(dir_to_turn)
+                    # We command the robot turn to the ball, and move forward if it is facing it.
+                    # This is implementation is deeply simplified (but works)
+                    bot_rotate_or_move(dir_to_turn)
 
-            # State when the ball is in possession by the robot, time to align with goal
-            # and shoot.
-            elif (self.state == 'hasBall'):
-                rotate_towards_goal_and_shoot()
+                # State when the ball is in possession by the robot, time to align with goal
+                # and shoot.
+                elif (self.state == 'hasBall'):
+                    rotate_towards_goal_and_shoot()
 
-            # State when the ball is in possession of the opponents defender
-            # Time to shadow the opponent defender.
-            elif (self.state == 'opponentDefenderHasBall'):
-                defen_x = self.world.their_defender()._x
-                defen_y = self.world.their_defender()._y
+                # State when the ball is in possession of the opponents defender
+                # Time to shadow the opponent defender.
+                elif (self.state == 'opponentDefenderHasBall'):
+                    defen_x = self.world.their_defender()._x
+                    defen_y = self.world.their_defender()._y
 
-                #idea is to keep aligned with them along one axis and shadow movement
-                bot_shadow_target()
+                    #idea is to keep aligned with them along one axis and shadow movement
+                    bot_shadow_target()
 
-            # State where the ball in possession of our defender
-            # Time to shadow our defender so that ball comes to our possession.
-            elif (self.state == 'ourDefenderHasBall'):
-                defen_x = self.world.our_defender()._x
-                defen_y = self.world.our_defender()._y
+                # State where the ball in possession of our defender
+                # Time to shadow our defender so that ball comes to our possession.
+                elif (self.state == 'ourDefenderHasBall'):
+                    defen_x = self.world.our_defender()._x
+                    defen_y = self.world.our_defender()._y
 
-                #idea is to keep aligned with them along one axis and shadow movement
-                #bot_shadow_target()
-            else:
-                pass
-                #bot_shadow_target()
-
-        # Find the different situations (states) the defender can be in
-        elif self.mode == 'defender':
-
-            if (self.state == 'noBall'):
-                if (not ball_is_owned()):
-                    if (not is_grabber_opened):
-                        open_grabbers()
-                    self.robotController.move_vertical(pitch_get_height()/2)
+                    #idea is to keep aligned with them along one axis and shadow movement
+                    #bot_shadow_target()
                 else:
-                    if (not ball_is_idle()):
-                        self.robotController.move_vertical(ball._y)
-                        if (not aiming_towards_object(ball)):
-                             self.robotController.rotate_towards_point(ball._x,ball._y)
-                        distance_to_ball = self.bot.get_displacement_to_point(ball._x,ball._y)
-                        if (distance_to_ball == 0): # TODO update 0 into variable depending on future: ball velocity, attempt to close grabbers exaclty at the time the ball rolls into grabbers
-                            if (is_grabber_opened()):
-                                self.robotController.close_grabbers()
-                            self.state = 'hasBall'
+                    pass
+                    #bot_shadow_target()
+
+            # Find the different situations (states) the defender can be in
+            elif self.mode == 'defender':
+
+                if (self.state == 'noBall'):
+                    if (not ball_is_owned()):
+                        if (not is_grabber_opened):
+                            open_grabbers()
+                        self.robotController.move_vertical(pitch_get_height()/2)
                     else:
-                        self.mode = 'Dog' # FETCH!! (WARNING: doggie style does not care about our field in the pitch)
-
-        # Dog Mode for robot. NB: This is hacked together it would be better to move this into seperate functions
-        elif (self.mode == 'dog'):
-
-            # If the robot does not have the ball, it should go to the ball.
-            if (self.state == 'noBall'):
-                # Get the ball position so that we may find the angle to align with it, as well as the displacement
-                ball_x = self.world._ball.x
-                ball_y = self.world._ball.y
-                rotate_margin = 0.75
-                inside_grabber = self.inside_grabber()
-
-                angle_to_turn_to = self.bot.get_rotation_to_point(ball_x,ball_y)
-                distance_to_move = self.bot.get_displacement_to_point(ball_x, ball_y)
-
-                dir_to_turn = self.get_direction_to_rotate(self.world._ball)
-
-                # IF NOT FACING BALL
-                if (abs(angle_to_turn_to) > rotate_margin):
-
-                    # [ACTIVE] IF NOT ALREADY TURNING
-                    if (self.action != "turn-right" and self.action != "turn-left"):
-                        self.bot_rotate_to_direction(dir_to_turn)
-                        self.action = dir_to_turn
-
-                        if (dir_to_turn == "turn-left"):
-                            print "ROTATE: <<<"
-                        elif (dir_to_turn == "turn-right"):
-                            print "ROTATE: >>>"
+                        if (not ball_is_idle()):
+                            self.robotController.move_vertical(ball._y)
+                            if (not aiming_towards_object(ball)):
+                                 self.robotController.rotate_towards_point(ball._x,ball._y)
+                            distance_to_ball = self.bot.get_displacement_to_point(ball._x,ball._y)
+                            if (distance_to_ball == 0): # TODO update 0 into variable depending on future: ball velocity, attempt to close grabbers exaclty at the time the ball rolls into grabbers
+                                if (is_grabber_opened()):
+                                    self.robotController.close_grabbers()
+                                self.state = 'hasBall'
                         else:
-                            print "Facing Ball - ball slightly on : "+dir_to_turn+" side"
+                            self.mode = 'Dog' # FETCH!! (WARNING: doggie style does not care about our field in the pitch)
 
-                    # [PASSIVE] IF ALREADY TURNING
+            # Dog Mode for robot. NB: This is hacked together it would be better to move this into seperate functions
+            elif (self.mode == 'dog'):
+
+                # If the robot does not have the ball, it should go to the ball.
+                if (self.state == 'noBall'):
+                    # Get the ball position so that we may find the angle to align with it, as well as the displacement
+                    ball_x = self.world._ball.x
+                    ball_y = self.world._ball.y
+                    rotate_margin = 0.75
+                    inside_grabber = self.inside_grabber()
+
+                    angle_to_turn_to = self.bot.get_rotation_to_point(ball_x,ball_y)
+                    distance_to_move = self.bot.get_displacement_to_point(ball_x, ball_y)
+
+                    dir_to_turn = self.get_direction_to_rotate(self.world._ball)
+
+                    # IF NOT FACING BALL
+                    if (abs(angle_to_turn_to) > rotate_margin):
+
+                        # [ACTIVE] IF NOT ALREADY TURNING
+                        if (self.action != "turn-right" and self.action != "turn-left"):
+                            self.bot_rotate_to_direction(dir_to_turn)
+                            self.action = dir_to_turn
+
+                            if (dir_to_turn == "turn-left"):
+                                print "ROTATE: <<<"
+                            elif (dir_to_turn == "turn-right"):
+                                print "ROTATE: >>>"
+                            else:
+                                print "Facing Ball - ball slightly on : "+dir_to_turn+" side"
+
+                        # [PASSIVE] IF ALREADY TURNING
+                        else:
+                            # [ACTIVE] IF TURNING BUT BALL CHANGED DIRECTION
+                            pass
+
+                    # IF FACING BALL
                     else:
-                        pass
-                        #print self.action+" is still executing, angle to ball: "+str(angle_to_turn_to)
 
-                # IF FACING BALL
+                        # [ACTIVE] IF STILL TURNING
+                        if (self.action == "turn-right" or self.action == "turn-left"):
+                            self.bot_stop()
+
+                        # [ACTIVE] IF IDLE && OUTSIDE OF GRAB-RANGE && BALL INSIDE ZONE
+                        elif (self.action == "idle" and not inside_grabber and self.ball_inside_zone()):
+                            self.action = "move-forward"
+                            self.robotController.command(Robot.MOVE_FORWARD)
+
+                            print "MOVE: ^^^"
+
+                        # IF ALREADY MOVING FORWARD && OUTSIDE OF GRAB-RANGE
+                        elif (self.action == "move-forward" and not inside_grabber):
+
+                            # [ACTIVE] IF BALL ROLLS OUT OF ZONE WHILE CHASING
+                            if (not self.ball_inside_zone()):
+                                self.bot_stop()
+
+                            # [PASSIVE] BALL IN ZONE
+                            else:
+                                pass
+
+                        # [ACTIVE] IF MOVING FORWARD BUT INSIDE GRAB RANGE
+                        elif (self.action == "move-forward" and inside_grabber):
+                            print "IN GRABBER RANGE"
+                            self.bot_stop()
+
+                        # [PASSIVE] IF IDLE && INSIDE GRAB-RANGE
+                        elif (self.action == "idle" and inside_grabber):
+                            print "KICK"
+                            self.robotController.command(Robot.KICK)
+                            #print "Suntanning :)"
+
+                    # [PASSIVE] IF BALL OUTSIDE ZONE
+                    if (not self.ball_inside_zone()):
+                        #print "Ball out of reach T.T "
+                        pass
+
                 else:
+                    print "Error, cannot find mode"
 
-                    # [ACTIVE] IF STILL TURNING
-                    if (self.action == "turn-right" or self.action == "turn-left"):
-                        self.action = "idle"
-                        self.robotController.command(Robot.STOP_MOTORS)
-
-                        print "ROTATE: _ _ _"
-
-                    # [ACTIVE] IF IDLE && OUTSIDE OF GRAB-RANGE
-                    if (self.action == "idle" and not inside_grabber):
-                        self.action = "move-forward"
-                        self.robotController.command(Robot.MOVE_FORWARD)
-
-                        print "MOVE: ^^^"
-
-                    # [PASSIVE] IF ALREADY MOVING FORWARD && OUTSIDE OF GRAB-RANGE
-                    elif (self.action == "move-forward" and not inside_grabber):
-                        pass
-                        #print "Still moving forward"
-                        #print "Distance to ball: "+str(distance_to_move)
-
-                    # [ACTIVE] IF MOVING FORWARD BUT INSIDE GRAB RANGE
-                    elif (self.action == "move-forward" and inside_grabber):
-                        self.robotController.command(Robot.STOP_MOTORS)
-                        self.action = "idle"
-                        print "MOVE: _ _ _"
-
-                    # [PASSIVE] IF IDLE && INSIDE GRAB-RANGE
-                    elif (self.action == "idle" and inside_grabber):
-                        pass
-                        #print "Suntanning :)"
-
-
-                # if (abs(angle_to_turn_to) > rotate_margin):
-                #     if (not self.action=="turn-"+dir_to_turn):
-                #         #if not already turning -> turn
-                #         self.bot_rotate_or_move(dir_to_turn)
-                #         self.action = "turn-"+dir_to_turn
-                #         print "action intiating: "+self.action
-                #         if (dir_to_turn == "turn-left"):
-                #             print "Rotating left"
-                #         elif (dir_to_turn == "turn-right"):
-                #             print "Rotating turn-right"
-                #         elif (dir_to_turn == "none"):
-                #             print "Facing Ball and moving forward"
-                #
-                #     else:
-                #         pass
-                #         #if already turning, we're good.
-                #
-                # else:
-                #     print "Distance to ball: "+str(distance_to_move)
-                #     #if no need to turn
-                #     if (self.action=="turn-right" or self.action=="turn-left"):
-                #         #if turning, stop turning
-                #         self.action="none"
-                #         print "ROTATION: none"
-                #
-                #         #print "angle to turn just fell below 0.5: "+str(angle_to_turn_to)
-                #         self.robotController.command(Robot.STOP_MOTORS)
-                #
-                #     else:
-                #         if (distance_to_move >= ball_dangerzone):
-                #             # if ball is outside of robot reach: move forward
-                #             if (not self.action=="move-forward"):
-                #                 self.robotController.command(Robot.MOVE_FORWARD)
-                #                 self.action="move-forward"
-                #                 print "MOVEMENT: ^^^"
-                #
-                #         else:
-                #             if (self.action == "move-forward"):
-                #                 self.robotController.command(Robot.STOP_MOTORS)
-                #                 self.robotController.command(Robot.OPEN_GRABBERS)
-                #                 self.action = "none"
-                #                 print "Distance to ball: "+str(distance_to_move)
-
-            else:
-                print "Error, cannot find mode"
-            
