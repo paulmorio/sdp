@@ -155,8 +155,8 @@ class Planner():
 
         if self.mode == 'attacker':
 
-            ball_x = self.world._ball.x()
-            ball_y = self.world._ball.y()
+            ball_x = self.world._ball.x
+            ball_y = self.world._ball.y
 
             if (self.world._pitch.is_within_bounds(self.bot, ball_x, ball_y)):
                 return 'inZone'
