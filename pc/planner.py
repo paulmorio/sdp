@@ -1,6 +1,8 @@
 from models.worldmodel import *
 from robot import *
 from time import sleep
+from math import sqrt
+from cv2 import KalmanFilter
 
 
 # Methods that 
@@ -13,6 +15,11 @@ class Planner():
         self.mode = mode
         self.state = None  # refactor planner into strategies at some point - not important for this milestone
 
+        #PENALTY CASE FOR MILESTONE
+        if (self.mode == "defender"):
+            self.ball_mode = "stopped"
+
+
         # action the robot is currently executing:
         self.action = "idle"
         # none
@@ -21,8 +28,8 @@ class Planner():
         # move-forward
         # crawl-forward <- TODO: add crawl-forward command in robot.py for arduino: move forward at LOW ACCURATE speed
         ## move-backward
-        ## strafe-left
-        ## strafe-right
+        # strafe-left
+        # strafe-right
         ## grabbing
         ## releasing
         ## kicking
@@ -34,9 +41,9 @@ class Planner():
 
         # bot we are making plans for, OBSERVED robot via the vision.
         if (self.mode == 'attacker'):
-            self.bot = self.world.our_attacker()
+            self.bot = self.world.our_attacker
         elif(self.mode == 'defender'):
-            self.bot = self.world.our_defender()
+            self.bot = self.world.our_defender
         elif(self.mode == 'dog'):
             self.bot = self.world.our_attacker
         else:
@@ -263,23 +270,22 @@ class Planner():
             if self.world.pitch.is_within_bounds(self.world.their_defender, ball_x, ball_y):
                 return 'inTheirDefenderZone'
 
-            if self.world.pitch.is_within_bounds(self.world.their_attackerr, ball_x, ball_y):
+            if self.world.pitch.is_within_bounds(self.world.their_attacker, ball_x, ball_y):
                 return 'inTheirAttackerZone'
-
 
             # Our defender has possession
             if self.bot.has_ball(self.world.ball):
                 return 'hasBall'
 
             # Our attacker has the ball
-            if self.world.our_attacker().has_ball(self.world.ball):
+            if self.world.our_attacker.has_ball(self.world.ball):
                 return 'ourAttackerHasBall'
 
             # etc..
-            if self.world.their_defender().has_ball(self.world.ball):
+            if self.world.their_defender.has_ball(self.world.ball):
                 return 'opponentDefenderHasBall'
 
-            if self.world.their_attacker().has_ball(self.world.ball):
+            if self.world.their_attacker.has_ball(self.world.ball):
                 return 'opponentAttackerHasBall'
 
     def bot_stop(self):
@@ -309,81 +315,153 @@ class Planner():
         else:
             # find out situation of robot (mode)
             self.state = self.determine_state(self.mode)
-            ball = self.world.ball
-            #print str(self.robot_inside_zone())
 
-            # Find the different situations (states) the attacker can be in
-            if self.mode == 'attacker':
+            # Attacker mode
+            if self.mode == "attacker":
+                pass
 
-                # State when the ball is in the robots own zone but doesnt have the ball
-                # Go to ball and move to a better location.
-                if (self.state == 'inZoneNoBall'):
-                    ball_x = self.world._ball.x()
-                    ball_y = self.world._ball.y()
+            # Defender mode
+            elif self.mode == "defender":
 
-                    angle_to_turn_to = self.bot.get_rotation_to_point(ball_x,ball_y)
-                    distance_to_move = self.bot.get_displacement_to_point(ball_x, ball_y)
+                # DEFINE BALL STATES (in penalty case)
+                if self.ball_mode=="stopped":
+                    if self.ball_moving() and not self.state == "inZone":
+                        self.ball_mode = "incoming"
 
-                    dir_to_turn = self.get_direction_to_rotate(self.world._ball)
+                elif self.ball_mode=="incoming" and not self.ball_moving() and not self.state=="inZone":
+                    self.ball_mode="stopped"
 
-                    # We command the robot turn to the ball, and move forward if it is facing it.
-                    # This is implementation is deeply simplified (but works)
-                    self.bot_rotate_or_move(dir_to_turn)
 
-                # State when the ball is in possession by the robot, time to align with goal
-                # and shoot.
-                elif (self.state == 'hasBall'):
-                    self.rotate_towards_goal_and_shoot()
+                elif self.ball_mode=="incoming" and not self.ball_moving() and self.state=="inZone":
+                    self.ball_mode = "caught"
 
-                # State when the ball is in possession of the opponents defender
-                # Time to shadow the opponent defender.
-                elif (self.state == 'opponentDefenderHasBall'):
-                    defen_x = self.world.their_defender()._x
-                    defen_y = self.world.their_defender()._y
+                # print self.ball_mode
 
-                    #idea is to keep aligned with them along one axis and shadow movement
-                    self.bot_shadow_target()
+                # IF BALL IS INCOMING
+                if self.ball_mode == "incoming":
 
-                # State where the ball in possession of our defender
-                # Time to shadow our defender so that ball comes to our possession.
-                elif (self.state == 'ourDefenderHasBall'):
-                    defen_x = self.world.our_defender()._x
-                    defen_y = self.world.our_defender()._y
+                    # AIM ROBOT TOWARDS ENEMY GOAL
+                    self.bot_look_at(self.world.their_goal, 0.75)
 
-                    #idea is to keep aligned with them along one axis and shadow movement
-                    #bot_shadow_target()
-                else:
-                    pass
-                    #bot_shadow_target()
+                    # IF ROBOT TOO FAR FROM PREDICTED BALL-Y-COORDINATE
+                    if not (self.ball_predict_y()) < 30: #(abs(self.bot.y - self.ball_predict_y()) < 30):
 
-            # Find the different situations (states) the defender can be in
-            elif self.mode == 'defender':
-                # Basic idea: Intercept ball>collect ball>pass forward
-                state = self.state
-                # TODO:
-                # Awaiting future refactorings
-                if state == 'inZone':
-                    if state == 'hasBall':
+                        # IF BALL-PREDICTED-Y ABOVE ROBOT
+                        if self.ball_predict_y() < 0: #self.bot.y:
+
+                            # IF BALL LEFT OF ROBOT
+                            if self.world.ball.x < self.bot.x:
+
+                                # [ACTIVE] STRAFE RIGHT (robot moves up)
+                                if (self.action != "strafe-right"):
+                                    self.action = "strafe-right"
+                                    self.robotController.command(STRAFE_RIGHT)
+
+                                    print "BOT_Y: "+str(self.bot.y)
+                                    print "BALL_Y: "+str(self.world.ball.y)
+                                    print "BALL_ANGLE: "+str(self.world.ball.angle)
+                                    print "PREDICTED_Y: "+str(self.ball_predict_y())
+                                    print "trying to catch ball on its right"
+                                # [PASSIVE]
+                                else:
+                                    pass
+
+                            # IF BALL RIGHT OF ROBOT
+                            else:
+
+                                # [ACTIVE] STRAFE LEFT (robot moves up)
+                                if (self.action != "strafe-left"):
+                                    self.action = "strafe-left"
+                                    self.robotController.command(STRAFE_LEFT)
+
+                                    print "BOT_Y: "+str(self.bot.y)
+                                    print "BALL_Y: "+str(self.world.ball.y)
+                                    print "BALL_ANGLE: "+str(self.world.ball.angle)
+                                    print "PREDICTED_Y: "+str(self.ball_predict_y())
+                                    print "trying to catch the ball on its left"
+                                # [PASSIVE]
+                                else:
+                                    pass
+
+                        # IF BALL-PREDICTED-Y BELOW ROBOT
+                        else:
+
+                            # IF BALL LEFT OF ROBOT
+                            if self.world.ball.x < self.bot.x:
+
+                                # [ACTIVE] STRAFE LEFT (robot moves down)
+                                if (self.action != "strafe-left"):
+                                    self.action = "strafe-left"
+                                    self.robotController.command(STRAFE_LEFT)
+
+                                    print "BOT_Y: "+str(self.bot.y)
+                                    print "BALL_Y: "+str(self.world.ball.y)
+                                    print "BALL_ANGLE: "+str(self.world.ball.angle)
+                                    print "PREDICTED_Y: "+str(self.ball_predict_y())
+                                    print "trying to catch ball on its left"
+                                # [PASSIVE]
+                                else:
+                                    pass
+
+                            # IF BALL RIGHT OF ROBOT
+                            else:
+
+                                # [ACTIVE] STRAFE RIGHT (robot moves down)
+                                if (self.action != "strafe-right"):
+                                    self.action = "strafe-right"
+                                    self.robotController.command(STRAFE_RIGHT)
+
+                                    print "BOT_Y: "+str(self.bot.y)
+                                    print "BALL_Y: "+str(self.world.ball.y)
+                                    print "BALL_ANGLE: "+str(self.world.ball.angle)
+                                    print "PREDICTED_Y: "+str(self.ball_predict_y())
+                                    print "trying to catch ball on its right"
+                                # [PASSIVE]
+                                else:
+                                    pass
+
+                    # ROBOT IS IN THE RIGHT POSITION TO CATCH BALL
+                    elif not self.action=="idle" :
+                        self.bot_stop()
+
+                elif self.ball_mode=="stopped" and not self.action=="idle":
+                    self.bot_stop()
+
+                # IF BALL WAS CAUGHT BY ROBOT
+                elif self.ball_mode == 'caught':
+                    if self.state == 'hasBall':
                         self.pass_forward()
                     else:
                         self.fetch_ball()
-                if state == 'inOurAttackerZone':
-                    self.defender_idle()
-                if state == 'inTheirDefenderZone':
-                    self.defender_idle()
-                if state == 'inTheirAttackerZone':
-                    self.defender_mark_attacker()
 
-                if state == 'ourAttackerHasBall':
-                    self.defender_idle()
-                if state == 'opponentDefenderHasBall':
-                    self.defender_idle()
-                if state == 'opponentAttackerHasBall':
-                    self.defender_block()
 
+
+                # DEFENDER CODE, NOT IN USE FOR MILESTONE 2! BUT KEEP HERE
+                # # TODO:
+                # # Awaiting future refactorings
+                # if self.state == 'inZone':
+                #     if self.state == 'hasBall':
+                #         self.pass_forward()
+                #     else:
+                #         self.fetch_ball()
+                # elif self.state == 'inOurAttackerZone':
+                #     self.defender_idle()
+                # elif self.state == 'inTheirDefenderZone':
+                #     self.defender_idle()
+                # elif self.state == 'inTheirAttackerZone':
+                #     self.defender_mark_attacker()
+                #
+                # elif self.state == 'ourAttackerHasBall':
+                #     self.defender_idle()
+                # elif self.state == 'opponentDefenderHasBall':
+                #     self.defender_idle()
+                # elif self.state == 'opponentAttackerHasBall':
+                #     self.defender_block()
 
             # Dog Mode for robot. NB: This is hacked together it would be better to move this into seperate functions
-            elif (self.mode == 'dog'):
+            if (self.mode == 'dog'):
+
+                print str(self.ball_moving())
 
                 # If the robot does not have the ball, it should go to the ball.
                 if (self.state == 'noBall'):
@@ -450,7 +528,7 @@ class Planner():
                         # [PASSIVE] IF IDLE && INSIDE GRAB-RANGE
                         elif (self.action == "idle" and inside_grabber):
                             print "KICK"
-                            self.robotController.command(KICK)
+                            self.robotController.command(SHOOT)
                             #print "Suntanning :)"
 
                     # [PASSIVE] IF BALL OUTSIDE ZONE
@@ -609,7 +687,7 @@ class Planner():
         -move to it
         -face towards their goal
         """
-        our_zone = self.world.our_defender.zone
+        our_zone = self.world.pitch.zones[self.bot.zone]
 
         # want to move to the middle of this zone
         x, y = our_zone.center()
@@ -742,7 +820,8 @@ class Planner():
         """
         self.bot_look_at(self.world.their_goal, 0.75)
 
-        target_x, y = self.bot.zone.center
+        my_zone = self.world.pitch.zones[self.bot.zone]
+        target_x, y = my_zone.center()
         bot_x = self.bot.x
         if bot_x > target_x + 25:
             self.bot.command(MOVE_FORWARD)
@@ -757,3 +836,49 @@ class Planner():
         -strafe left/right to get to the point where the line intersects our the vertical center of our zone
         """
         self.bot_lock_y()
+
+        if self.ball_moving():
+            pass
+
+
+    def ball_moving(self):
+        return (abs(self.world.ball.velocity) > 2)
+
+
+    # Return expected y-coordinate when ball reaches robot's X-position
+    def ball_predict_y(self):
+        ball = self.world.ball
+        bot = self.bot
+
+        if ball.angle == pi/2:
+            return ball.y
+        else:
+            angle = ball.angle
+
+        #radius = sqrt(pow(abs(ball.y - bot.y), 2)+pow(abs(ball.x - bot.x), 2))
+
+        dy = (abs(bot.x-ball.x)*sin(angle)) / sin(pi/2 - angle)
+        future_y = ball.y + dy
+
+        return future_y
+
+    # def kalman_init(self):
+    #     KF = KalmanFilter(4, 2, 0)
+    #     KF.transitionMatrix = self.ball_history_cords=[(0, 0)]*10
+    #     Mat_<float> measurement(2,1); measurement.setTo(Scalar(0));
+    #
+    #     // init...
+    #     KF.statePre.at<float>(0) = mouse_info.x;
+    #     KF.statePre.at<float>(1) = mouse_info.y;
+    #     KF.statePre.at<float>(2) = 0;
+    #     KF.statePre.at<float>(3) = 0;
+    #     setIdentity(KF.measurementMatrix);
+    #     setIdentity(KF.processNoiseCov, Scalar::all(1e-4));
+    #     setIdentity(KF.measurementNoiseCov, Scalar::all(1e-1));
+    #     setIdentity(KF.errorCovPost, Scalar::all(.1));
+    #
+    # def kalman_insert(self, point):
+    #     self.ball_history_cords.insert(0, point)
+    #     self.ball_history_cords.pop()
+
+
