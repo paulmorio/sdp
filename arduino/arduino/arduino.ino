@@ -21,6 +21,11 @@
 #define TURN_PWR 50
 #define CRAWL_PWR 75
 
+#define STRAFE_SIDE_F_POWER 70
+#define STRAFE_SIDE_B_POWER 95
+#define STRAFE_SIDE_OFFSET 20
+#define STRAFE_SIDE_OFFSET 20
+
 // Kicker and grabber constants
 #define SHOOT_POWER 100
 #define SHOOT_SWING_TIME 190
@@ -38,7 +43,7 @@
 #define RUN_MOTORS_POWER 100
 #define RUN_MOTORS_TIME 1000 // per direction
 
-#define STOP_MOTORS_DELAY 600
+#define STOP_MOTORS_DELAY 300
 
 // Command parser
 SerialCommand comm;
@@ -128,17 +133,17 @@ void strafeBL() {
 // TODO define constants (and tune)
 void strafeL() {
   stopDriveMotors();
-  motorBackward(MOTOR_FL,75);
-  motorBackward(MOTOR_FR,75);
-  motorForward(MOTOR_B,100); 
+  motorBackward(MOTOR_FL, STRAFE_SIDE_F_POWER - STRAFE_SIDE_OFFSET - 1);
+  motorBackward(MOTOR_FR, STRAFE_SIDE_F_POWER);
+  motorForward(MOTOR_B, STRAFE_SIDE_B_POWER); 
 }
 
 // TODO define constants
 void strafeR() {
   stopDriveMotors();
-  motorForward(MOTOR_FL,75);
-  motorForward(MOTOR_FR,75);
-  motorBackward(MOTOR_B,100); 
+  motorForward(MOTOR_FR, STRAFE_SIDE_F_POWER - STRAFE_SIDE_OFFSET);
+  motorForward(MOTOR_FL, STRAFE_SIDE_F_POWER);
+  motorBackward(MOTOR_B, STRAFE_SIDE_B_POWER); 
 }
 void strafeBR() {
   stopDriveMotors();
