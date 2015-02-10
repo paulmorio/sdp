@@ -2,8 +2,9 @@ from serial import Serial
 
 # Command constants
 MOVE_FORWARD = "FWD"
-CRAWL_FORWARD = "CRAWL"
+CRAWL_FORWARD = "CRAWL_F"
 MOVE_BACK = "BACK"
+CRAWL_BACK = "CRAWL_B"
 TURN_LEFT = "TURN_L"
 TURN_RIGHT = "TURN_R"
 STRAFE_LEFT = "ST_L"
@@ -26,7 +27,7 @@ COMMAND_TERMINAL = '\n'
 class Robot(object):
     """Serial connection setup, IO, and robot actions."""
 
-    def __init__(self, port="/dev/ttyACM0", rate=115200, comms=True):
+    def __init__(self, port="/dev/ttyACM0", timeout=1, rate=115200, comms=True):
         """
         Create a robot object which provides action methods and opens a serial
         connection.
@@ -36,11 +37,10 @@ class Robot(object):
         machines.
 
         :param rate: Baud rate
-        :param timeout: Write timeout in seconds
         :return:
         """
         if comms:
-            self.serial = Serial(port, rate)
+            self.serial = Serial(port, rate, timeout=timeout)
         else:
             self.serial = None
 
@@ -61,12 +61,13 @@ class Robot(object):
         if self.serial is not None:
             self.serial.write(command + COMMAND_TERMINAL)
         else:
-            print command, "received."
+            print command
 
     def close(self):
         """ Close the robot's serial port """
         if self.serial is not None:
             self.command(STOP_ALL_MOTORS)
+            self.command(GRABBER_CLOSE)
             self.serial.close()
             print "Serial port closed."
 
@@ -81,14 +82,14 @@ class ManualController(object):
 
     robot = None
 
-    def __init__(self, port="/dev/ttyACM0", rate=115200, timeout=1):
+    def __init__(self, port="/dev/ttyACM0", rate=115200):
         """
         :param port: Serial port to be used. Default is fine for DICE
         :param rate: Baudrate. Default is 115200
-        :param timeout: Write timeout in seconds. Default is 1.
         :return: None
         """
-        self.robot = Robot(port=port, rate=rate, timeout=timeout)
+        self.robot = Robot(port=port, rate=rate)
+        self.root = None
 
     def start(self):
         import Tkinter as tk
@@ -97,35 +98,42 @@ class ManualController(object):
         script_dir = os.path.dirname(os.path.realpath(__file__))
         controls_file = open(os.path.join(script_dir, "manual_controls.txt"))
         controls = controls_file.read()
-        warning = "Please ensure that the manualcontrol.ino sketch is loaded.\n"
         controls_file.close()
 
         # Compose window elements
-        root = tk.Tk()
-        text = tk.Label(root, background='white', text=(warning + controls))
+        self.root = tk.Tk()
+        text = tk.Label(self.root, background='white', text=controls)
         text.pack()
 
         # Set up key bindings
-        root.bind('w', lambda event: self.robot.command(MOVE_FORWARD))
-        root.bind('<Up>', lambda event: self.robot.command(CRAWL_FORWARD))
-        root.bind('x', lambda event: self.robot.command(MOVE_BACK))
-        root.bind('a', lambda event: self.robot.command(TURN_LEFT))
-        root.bind('d', lambda event: self.robot.command(TURN_RIGHT))
-        root.bind('q', lambda event: self.robot.command(STRAFE_FWD_LEFT))
-        root.bind('e', lambda event: self.robot.command(STRAFE_FWD_RIGHT))
-        root.bind('z', lambda event: self.robot.command(STRAFE_BACK_LEFT))
-        root.bind('c', lambda event: self.robot.command(STRAFE_BACK_RIGHT))
-        root.bind('g', lambda event: self.robot.command(GRABBER_TOGGLE))
-        root.bind('<space>', lambda event: self.robot.command(SHOOT))
-        root.bind('v', lambda event: self.robot.command(PASS))
-        root.bind('t', lambda event: self.robot.command(MOTOR_TEST))
-        root.bind('s', lambda event: self.robot.command(STOP_DRIVE_MOTORS))
+        self.root.bind('w', lambda event: self.robot.command(MOVE_FORWARD))
+        self.root.bind('<Up>', lambda event: self.robot.command(CRAWL_FORWARD))
+        self.root.bind('x', lambda event: self.robot.command(MOVE_BACK))
+        self.root.bind('<Down>', lambda event: self.robot.command(CRAWL_BACK))
+        self.root.bind('<Left>', lambda event: self.robot.command(TURN_LEFT))
+        self.root.bind('<Right>', lambda event: self.robot.command(TURN_RIGHT))
+        self.root.bind('a', lambda event: self.robot.command(STRAFE_LEFT))
+        self.root.bind('d', lambda event: self.robot.command(STRAFE_RIGHT))
+        self.root.bind('q', lambda event: self.robot.command(STRAFE_FWD_LEFT))
+        self.root.bind('e', lambda event: self.robot.command(STRAFE_FWD_RIGHT))
+        self.root.bind('z', lambda event: self.robot.command(STRAFE_BACK_LEFT))
+        self.root.bind('c', lambda event: self.robot.command(STRAFE_BACK_RIGHT))
+        self.root.bind('g', lambda event: self.robot.command(GRABBER_TOGGLE))
+        self.root.bind('<space>', lambda event: self.robot.command(SHOOT))
+        self.root.bind('v', lambda event: self.robot.command(PASS))
+        self.root.bind('t', lambda event: self.robot.command(MOTOR_TEST))
+        self.root.bind('s', lambda event: self.robot.command(STOP_DRIVE_MOTORS))
+        self.root.bind('<Escape>', self.quit)
 
         # Set window attributes and start
-        root.geometry('400x400')
-        root.wm_title("Manual Control")
-        root.wm_attributes("-topmost", 1)
-        root.mainloop()
+        self.root.geometry('400x400')
+        self.root.wm_title("Manual Control")
+        self.root.wm_attributes("-topmost", 1)
+        self.root.mainloop()
+
+    def quit(self, event):
+        self.robot.close()
+        self.root.quit()
 
 
 # Create a manualcontroller if robot.py is run from main

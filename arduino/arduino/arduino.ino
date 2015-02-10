@@ -17,29 +17,30 @@
 #define MOTOR_GRAB 4
 
 // Drive constants
-#define MOVE_PWR 75
+#define MOVE_PWR 100
 #define TURN_PWR 50
-#define CRAWL_PWR 50
+#define CRAWL_PWR 75
 
 // Kicker and grabber constants
 #define SHOOT_POWER 100
-#define SHOOT_SWING_TIME 255
+#define SHOOT_SWING_TIME 190
 
-#define PASS_POWER 60
-#define PASS_SWING_TIME 180
+#define PASS_POWER 70
+#define PASS_SWING_TIME 200
 
-#define KICKER_RESET_POWER 60
-#define KICKER_RESET_TIME 150
-
+#define KICKER_RESET_POWER 100
+#define KICKER_RESET_TIME 190
+ 
 #define GRABBER_POWER 100
-#define GRABBER_TIME 800
+#define GRABBER_TIME 450
 
 // Motor test constants
 #define RUN_MOTORS_POWER 100
 #define RUN_MOTORS_TIME 1000 // per direction
 
-#define STOP_MOTORS_DELAY 100
+#define STOP_MOTORS_DELAY 600
 
+// Command parser
 SerialCommand comm;
 
 // States
@@ -47,10 +48,14 @@ boolean grabber_open = false;
 boolean kicker_ready = true;
 
 void setup() {
+  // Using library set up - it's fine
   SDPsetup();
+  
+  // Set up command action bindings
   comm.addCommand("FWD", forward);
-  comm.addCommand("CRAWL", crawl);
+  comm.addCommand("CRAWL_F", crawlForward);
   comm.addCommand("BACK", backward);
+  comm.addCommand("CRAWL_B", crawlBackward);
   comm.addCommand("TURN_L", turnLeft);
   comm.addCommand("TURN_R", turnRight);
   comm.addCommand("ST_L", strafeL);
@@ -80,20 +85,26 @@ void loop() {
 // Actions
 void forward() {
   stopDriveMotors();
-  motorBackward(MOTOR_FR, MOVE_PWR);
   motorForward(MOTOR_FL, MOVE_PWR);
+  motorBackward(MOTOR_FR, MOVE_PWR);
 }
 
-void crawl() {
+void crawlForward() {
   stopDriveMotors();
-  motorBackward(MOTOR_FR, CRAWL_PWR);
   motorForward(MOTOR_FL, CRAWL_PWR);
+  motorBackward(MOTOR_FR, CRAWL_PWR);
 }
 
 void backward() {
   stopDriveMotors();
-  motorForward(MOTOR_FR, MOVE_PWR);
   motorBackward(MOTOR_FL, MOVE_PWR);
+  motorForward(MOTOR_FR, MOVE_PWR);
+}
+
+void crawlBackward() {
+  stopDriveMotors();
+  motorBackward(MOTOR_FL, CRAWL_PWR);
+  motorForward(MOTOR_FR, CRAWL_PWR);
 }
 
 void strafeFL() {
@@ -114,17 +125,19 @@ void strafeBL() {
   motorForward(MOTOR_B, MOVE_PWR);
 }
 
+// TODO define constants (and tune)
 void strafeL() {
   stopDriveMotors();
-  motorBackward(MOTOR_FL,70);
-  motorBackward(MOTOR_FR,70);
+  motorBackward(MOTOR_FL,75);
+  motorBackward(MOTOR_FR,75);
   motorForward(MOTOR_B,100); 
 }
 
+// TODO define constants
 void strafeR() {
   stopDriveMotors();
-  motorForward(MOTOR_FL,70);
-  motorForward(MOTOR_FR,70);
+  motorForward(MOTOR_FL,75);
+  motorForward(MOTOR_FR,75);
   motorBackward(MOTOR_B,100); 
 }
 void strafeBR() {
@@ -135,16 +148,16 @@ void strafeBR() {
 
 void turnLeft() {
   stopDriveMotors();
+  motorBackward(MOTOR_FL, TURN_PWR);
   motorBackward(MOTOR_FR, TURN_PWR);
   motorBackward(MOTOR_B, TURN_PWR);
-  motorBackward(MOTOR_FL, TURN_PWR);
 }
 
 void turnRight() {
   stopDriveMotors();
+  motorForward(MOTOR_FL, TURN_PWR);
   motorForward(MOTOR_FR, TURN_PWR);
   motorForward(MOTOR_B, TURN_PWR);
-  motorForward(MOTOR_FL, TURN_PWR);
 }
 
 void grabberToggle() {
@@ -152,15 +165,6 @@ void grabberToggle() {
     grabberOpen();
   } else {
     grabberClose();
-  }
-}
-
-void grabberOpen() {
-  if (!grabber_open) {
-    motorForward(MOTOR_GRAB, GRABBER_POWER);
-    grabber_open = true;
-    delay(GRABBER_TIME);
-    motorStop(MOTOR_GRAB);
   }
 }
 
@@ -173,10 +177,19 @@ void grabberClose() {
   }
 }
 
+void grabberOpen() {
+  if (!grabber_open) {
+    motorForward(MOTOR_GRAB, GRABBER_POWER);
+    grabber_open = true;
+    delay(GRABBER_TIME);
+    motorStop(MOTOR_GRAB);
+  }
+}
+
 void pass() {
   if (kicker_ready && grabber_open) {
     kicker_ready = false;
-    motorForward(MOTOR_KICK, PASS_POWER);
+    motorBackward(MOTOR_KICK, PASS_POWER);
     delay(PASS_SWING_TIME);
     motorStop(MOTOR_KICK);
     resetKicker();
@@ -186,7 +199,7 @@ void pass() {
 void shoot() {
   if (kicker_ready && grabber_open) {
     kicker_ready = false;
-    motorForward(MOTOR_KICK, SHOOT_POWER);
+    motorBackward(MOTOR_KICK, SHOOT_POWER);
     delay(SHOOT_SWING_TIME);
     motorStop(MOTOR_KICK);
     resetKicker();
@@ -194,11 +207,16 @@ void shoot() {
 }
 
 void resetKicker() {
-  if (!kicker_ready) {
-    motorBackward(MOTOR_KICK, KICKER_RESET_POWER);
+  if (!kicker_ready && grabber_open) {
+    delay(100);
+    motorForward(MOTOR_KICK, KICKER_RESET_POWER);
     delay(KICKER_RESET_TIME);
     motorStop(MOTOR_KICK);
     kicker_ready = true;
+  }
+  else {
+    grabberOpen();
+    resetKicker();
   }
 }
 
