@@ -118,10 +118,7 @@ class Planner():
                 else:
                     print "Facing object - object slightly on : "+dir_to_turn+" side"
 
-            # [PASSIVE] IF ALREADY TURNING
-            else:
-                # [ACTIVE] IF TURNING BUT BALL CHANGED DIRECTION
-                pass
+            return False
 
         # IF FACING OBJECT
         else:
@@ -129,6 +126,7 @@ class Planner():
             # [ACTIVE] IF STILL TURNING
             if self.action == "turn-right" or self.action == "turn-left":
                 self.bot_stop()
+            return True
 
     # Issue11
     def bot_rotate_or_move(self, direction):
@@ -291,7 +289,7 @@ class Planner():
     def bot_stop(self):
         self.robotController.command(STOP_DRIVE_MOTORS)
         self.action = "idle"
-        print "MOVE: _ _ _"
+        print "MOVE: STOPPED!"
 
     def bot_open_grabber(self):
         self.robotController.command(GRABBER_OPEN)
@@ -341,88 +339,89 @@ class Planner():
                 if self.ball_mode == "incoming":
 
                     # AIM ROBOT TOWARDS ENEMY GOAL
-                    self.bot_look_at(self.world.their_goal, 0.75)
+                    if self.bot_look_at(self.world.their_goal, 0.75):
 
-                    # IF ROBOT TOO FAR FROM PREDICTED BALL-Y-COORDINATE
-                    if not (self.ball_predict_y()) < 30: #(abs(self.bot.y - self.ball_predict_y()) < 30):
+                        # IF ROBOT TOO FAR FROM PREDICTED BALL-Y-COORDINATE
+                        if not (self.ball_predict_y()) < 30: #(abs(self.bot.y - self.ball_predict_y()) < 30):
 
-                        # IF BALL-PREDICTED-Y ABOVE ROBOT
-                        if self.ball_predict_y() < 0: #self.bot.y:
+                            # IF BALL-PREDICTED-Y ABOVE ROBOT
+                            if self.ball_predict_y() < 0: #self.bot.y:
 
-                            # IF BALL LEFT OF ROBOT
-                            if self.world.ball.x < self.bot.x:
+                                # IF BALL LEFT OF ROBOT
+                                if self.world.ball.x < self.bot.x:
 
-                                # [ACTIVE] STRAFE RIGHT (robot moves up)
-                                if (self.action != "strafe-right"):
-                                    self.action = "strafe-right"
-                                    self.robotController.command(STRAFE_RIGHT)
+                                    # [ACTIVE] STRAFE RIGHT (robot moves up)
+                                    if (self.action != "strafe-right"):
+                                        self.action = "strafe-right"
+                                        self.robotController.command(STRAFE_RIGHT)
 
-                                    print "BOT_Y: "+str(self.bot.y)
-                                    print "BALL_Y: "+str(self.world.ball.y)
-                                    print "BALL_ANGLE: "+str(self.world.ball.angle)
-                                    print "PREDICTED_Y: "+str(self.ball_predict_y())
-                                    print "trying to catch ball on its right"
-                                # [PASSIVE]
+                                        print "BOT_Y: "+str(self.bot.y)
+                                        print "BALL_Y: "+str(self.world.ball.y)
+                                        print "BALL_ANGLE: "+str(self.world.ball.angle)
+                                        print "PREDICTED_Y: "+str(self.ball_predict_y())
+                                        print "trying to catch ball on its right"
+                                    # [PASSIVE]
+                                    else:
+                                        pass
+
+                                # IF BALL RIGHT OF ROBOT
                                 else:
-                                    pass
 
-                            # IF BALL RIGHT OF ROBOT
+                                    # [ACTIVE] STRAFE LEFT (robot moves up)
+                                    if (self.action != "strafe-left"):
+                                        self.action = "strafe-left"
+                                        self.robotController.command(STRAFE_LEFT)
+
+                                        print "BOT_Y: "+str(self.bot.y)
+                                        print "BALL_Y: "+str(self.world.ball.y)
+                                        print "BALL_ANGLE: "+str(self.world.ball.angle)
+                                        print "PREDICTED_Y: "+str(self.ball_predict_y())
+                                        print "trying to catch the ball on its left"
+                                    # [PASSIVE]
+                                    else:
+                                        pass
+
+                            # IF BALL-PREDICTED-Y BELOW ROBOT
                             else:
 
-                                # [ACTIVE] STRAFE LEFT (robot moves up)
-                                if (self.action != "strafe-left"):
-                                    self.action = "strafe-left"
-                                    self.robotController.command(STRAFE_LEFT)
+                                # IF BALL LEFT OF ROBOT
+                                if self.world.ball.x < self.bot.x:
 
-                                    print "BOT_Y: "+str(self.bot.y)
-                                    print "BALL_Y: "+str(self.world.ball.y)
-                                    print "BALL_ANGLE: "+str(self.world.ball.angle)
-                                    print "PREDICTED_Y: "+str(self.ball_predict_y())
-                                    print "trying to catch the ball on its left"
-                                # [PASSIVE]
+                                    # [ACTIVE] STRAFE LEFT (robot moves down)
+                                    if (self.action != "strafe-left"):
+                                        self.action = "strafe-left"
+                                        self.robotController.command(STRAFE_LEFT)
+
+                                        print "BOT_Y: "+str(self.bot.y)
+                                        print "BALL_Y: "+str(self.world.ball.y)
+                                        print "BALL_ANGLE: "+str(self.world.ball.angle)
+                                        print "PREDICTED_Y: "+str(self.ball_predict_y())
+                                        print "trying to catch ball on its left"
+                                    # [PASSIVE]
+                                    else:
+                                        pass
+
+                                # IF BALL RIGHT OF ROBOT
                                 else:
-                                    pass
 
-                        # IF BALL-PREDICTED-Y BELOW ROBOT
-                        else:
+                                    # [ACTIVE] STRAFE RIGHT (robot moves down)
+                                    if (self.action != "strafe-right"):
+                                        self.action = "strafe-right"
+                                        self.robotController.command(STRAFE_RIGHT)
 
-                            # IF BALL LEFT OF ROBOT
-                            if self.world.ball.x < self.bot.x:
+                                        print "BOT_Y: "+str(self.bot.y)
+                                        print "BALL_Y: "+str(self.world.ball.y)
+                                        print "BALL_ANGLE: "+str(self.world.ball.angle)
+                                        print "PREDICTED_Y: "+str(self.ball_predict_y())
+                                        print "trying to catch ball on its right"
+                                    # [PASSIVE]
+                                    else:
+                                        pass
 
-                                # [ACTIVE] STRAFE LEFT (robot moves down)
-                                if (self.action != "strafe-left"):
-                                    self.action = "strafe-left"
-                                    self.robotController.command(STRAFE_LEFT)
-
-                                    print "BOT_Y: "+str(self.bot.y)
-                                    print "BALL_Y: "+str(self.world.ball.y)
-                                    print "BALL_ANGLE: "+str(self.world.ball.angle)
-                                    print "PREDICTED_Y: "+str(self.ball_predict_y())
-                                    print "trying to catch ball on its left"
-                                # [PASSIVE]
-                                else:
-                                    pass
-
-                            # IF BALL RIGHT OF ROBOT
-                            else:
-
-                                # [ACTIVE] STRAFE RIGHT (robot moves down)
-                                if (self.action != "strafe-right"):
-                                    self.action = "strafe-right"
-                                    self.robotController.command(STRAFE_RIGHT)
-
-                                    print "BOT_Y: "+str(self.bot.y)
-                                    print "BALL_Y: "+str(self.world.ball.y)
-                                    print "BALL_ANGLE: "+str(self.world.ball.angle)
-                                    print "PREDICTED_Y: "+str(self.ball_predict_y())
-                                    print "trying to catch ball on its right"
-                                # [PASSIVE]
-                                else:
-                                    pass
-
-                    # ROBOT IS IN THE RIGHT POSITION TO CATCH BALL
-                    elif not self.action=="idle" :
-                        self.bot_stop()
+                        # ROBOT IS IN THE RIGHT POSITION TO CATCH BALL
+                        elif not self.action=="idle" :
+                            print "ROBOT IN RIGHT POSITION. WAITING FOR ARRIVAL"
+                            self.bot_stop()
 
                 elif self.ball_mode=="stopped" and not self.action=="idle":
                     self.bot_stop()
@@ -461,14 +460,14 @@ class Planner():
             # Dog Mode for robot. NB: This is hacked together it would be better to move this into seperate functions
             if (self.mode == 'dog'):
 
-                print str(self.ball_moving())
+                #print str(self.ball_moving())
 
                 # If the robot does not have the ball, it should go to the ball.
                 if (self.state == 'noBall'):
                     # Get the ball position so that we may find the angle to align with it, as well as the displacement
                     ball_x = self.world._ball.x
                     ball_y = self.world._ball.y
-                    rotate_margin = 0.75
+                    rotate_margin = 0.3
                     inside_grabber = self.inside_grabber()
 
                     angle_to_turn_to = self.bot.get_rotation_to_point(ball_x,ball_y)
@@ -858,7 +857,13 @@ class Planner():
         #radius = sqrt(pow(abs(ball.y - bot.y), 2)+pow(abs(ball.x - bot.x), 2))
 
         dy = (abs(bot.x-ball.x)*sin(angle)) / sin(pi/2 - angle)
-        future_y = ball.y + dy
+
+        angle = divmod(angle, 2*pi)
+
+        if pi/2 < angle < 3*pi/2:
+            future_y = ball.y - dy
+        else:
+            future_y = ball.y + dy
 
         return future_y
 

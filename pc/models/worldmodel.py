@@ -73,12 +73,14 @@ class World(object):
         if (self._our_side == 'left' and
                 not(self.our_defender.x < self.their_attacker.x
                     < self.our_attacker.x < self.their_defender.x)):
-            print "WARNING: The sides are probably wrong!"
+            pass
+            #print "WARNING: The sides are probably wrong!"
 
         if (self._our_side == 'right' and
                 not(self.our_defender.x > self.their_attacker.x
                     > self.our_attacker.x > self.their_defender.x)):
-            print "WARNING: The sides are probably wrong!"
+            pass
+            #print "WARNING: The sides are probably wrong!"
 
 
 class WorldUpdater:
