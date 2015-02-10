@@ -28,10 +28,10 @@
 
 // Kicker and grabber constants
 #define SHOOT_POWER 100
-#define SHOOT_SWING_TIME 190
+#define SHOOT_SWING_TIME 220
 
-#define PASS_POWER 70
-#define PASS_SWING_TIME 200
+#define PASS_POWER 75
+#define PASS_SWING_TIME 190
 
 #define KICKER_RESET_POWER 100
 #define KICKER_RESET_TIME 190
