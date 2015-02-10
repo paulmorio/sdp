@@ -1,7 +1,7 @@
 from pc.models.worldmodel import WorldUpdater, World
 from pc.vision import tools, calibrationgui, visiongui, camera, vision
 from pc.planner import Planner
-from pc.robot import Robot, STOP_ALL_MOTORS
+from pc.robot import Robot
 import cv2
 import time
 
@@ -102,10 +102,9 @@ class Arbiter(object):
         except:
             raise
         finally:
-            self.robotController.command(STOP_ALL_MOTORS)
+            self.robotController.close()
             self.camera.release()
             tools.save_colors(self.pitch, self.calibration)
-            self.robotController.close()
 
 
 # TODO add comm_port and video source arguments - defaults are fine though.
@@ -140,6 +139,7 @@ if __name__ == '__main__':
         help="Run without comms.",
         action="store_true"
     )
+
     args = parser.parse_args()
     assert(int(args.pitch) in [0, 1])
     assert(args.colour in ["blue", "yellow"])
@@ -157,6 +157,7 @@ if __name__ == '__main__':
         assert args.role in ['defender', 'attacker', 'dog']
         arb = Arbiter(int(args.pitch), args.colour, args.side,
                       role=args.role, comms=False)
+
     else:
         assert args.role in ['defender', 'attacker', 'dog']
         arb = Arbiter(int(args.pitch), args.colour, args.side,
