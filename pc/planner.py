@@ -267,101 +267,36 @@ class Planner():
             # find out situation of robot (mode)
             self.state = self.determine_state(self.mode)
             ball = self.world.ball
-            #print str(self.robot_inside_zone())
 
-            # Find the different situations (states) the attacker can be in
-            if self.mode == 'attacker':
+            # Attacker mode
+            if self.mode == "attacker":
+                pass
 
-                # State when the ball is in the robots own zone but doesnt have the ball
-                # Go to ball and move to a better location.
-                if (self.state == 'inZoneNoBall'):
-                    ball_x = self.world._ball.x()
-                    ball_y = self.world._ball.y()
-
-                    angle_to_turn_to = self.bot.get_rotation_to_point(ball_x,ball_y)
-                    distance_to_move = self.bot.get_displacement_to_point(ball_x, ball_y)
-
-                    dir_to_turn = self.get_direction_to_rotate(self.world._ball)
-
-                    # We command the robot turn to the ball, and move forward if it is facing it.
-                    # This is implementation is deeply simplified (but works)
-                    self.bot_rotate_or_move(dir_to_turn)
-
-                # State when the ball is in possession by the robot, time to align with goal
-                # and shoot.
-                elif (self.state == 'hasBall'):
-                    self.rotate_towards_goal_and_shoot()
-
-                # State when the ball is in possession of the opponents defender
-                # Time to shadow the opponent defender.
-                elif (self.state == 'opponentDefenderHasBall'):
-                    defen_x = self.world.their_defender()._x
-                    defen_y = self.world.their_defender()._y
-
-                    #idea is to keep aligned with them along one axis and shadow movement
-                    self.bot_shadow_target()
-
-                # State where the ball in possession of our defender
-                # Time to shadow our defender so that ball comes to our possession.
-                elif (self.state == 'ourDefenderHasBall'):
-                    defen_x = self.world.our_defender()._x
-                    defen_y = self.world.our_defender()._y
-
-                    #idea is to keep aligned with them along one axis and shadow movement
-                    #bot_shadow_target()
-                else:
-                    pass
-                    #bot_shadow_target()
-
-
-            # Find the different situations (states) the defender can be in
-            elif self.mode == 'defender':
-                # Basic idea: Intercept ball>collect ball>pass forward
-                state = self.state
-                if (self.state == 'noBall'):
-                    if (not self.ball_is_owned()):
-                        if (not self.is_grabber_opened):
-                            self.open_grabbers()
-                        self.robotController.move_vertical(self.pitch_get_height()/2)
-                    else:
-                        if (not self.ball_is_idle()):
-                            self.robotController.move_vertical(ball._y)
-                            if (not self.aiming_towards_object(ball)):
-                                 self.robotController.rotate_towards_point(ball._x, ball._y)
-                            distance_to_ball = self.bot.get_displacement_to_point(ball._x,ball._y)
-                            if (distance_to_ball == 0): # TODO update 0 into variable depending on future: ball velocity, attempt to close grabbers exaclty at the time the ball rolls into grabbers
-                                if (self.is_grabber_opened()):
-                                    self.robotController.close_grabbers()
-                                self.state = 'hasBall'
-                        else:
-                            self.mode = 'Dog' # FETCH!! (WARNING: doggie style does not care about our field in the pitch)
-                """
+            # Defender mode
+            elif self.mode == "defender":
                 # TODO:
                 # Awaiting future refactorings
-                if state == 'inZone':
-                    if state == 'hasBall':
-                        pass_forward()
+                if self.state == 'inZone':
+                    if self.state == 'hasBall':
+                        self.pass_forward()
                     else:
-                        fetch_ball()
-                if state == 'inOurAttackerZone':
-                    defender_idle()
-                if state == 'inTheirDefenderZone':
-                    defender_idle()
-                if state == 'inTheirAttackerZone':
-                    defender_mark_attacker()
+                        self.fetch_ball()
+                elif self.state == 'inOurAttackerZone':
+                    self.defender_idle()
+                elif self.state == 'inTheirDefenderZone':
+                    self.defender_idle()
+                elif self.state == 'inTheirAttackerZone':
+                    self.defender_mark_attacker()
 
-
-
-                if state == 'ourAttackerHasBall':
-                    defender_idle()
-                if state == 'opponentDefenderHasBall':
-                    defender_idle()
-                if state == 'opponentAttackerHasBall':
-                    defender_block()
-                """
+                elif self.state == 'ourAttackerHasBall':
+                    self.defender_idle()
+                elif self.state == 'opponentDefenderHasBall':
+                    self.defender_idle()
+                elif self.state == 'opponentAttackerHasBall':
+                    self.defender_block()
 
             # Dog Mode for robot. NB: This is hacked together it would be better to move this into seperate functions
-            elif (self.mode == 'dog'):
+            if (self.mode == 'dog'):
 
                 # If the robot does not have the ball, it should go to the ball.
                 if (self.state == 'noBall'):
@@ -429,7 +364,7 @@ class Planner():
                         # [PASSIVE] IF IDLE && INSIDE GRAB-RANGE
                         elif (self.action == "idle" and inside_grabber):
                             print "KICK"
-                            self.robotController.command(KICK)
+                            self.robotController.command(SHOOT)
                             #print "Suntanning :)"
 
                     # [PASSIVE] IF BALL OUTSIDE ZONE
