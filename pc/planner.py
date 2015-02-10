@@ -1,11 +1,7 @@
 from models.worldmodel import *
 from robot import *
 from time import sleep
-from math import sqrt
-from cv2 import KalmanFilter
 
-
-# Methods that 
 
 class Planner():
 
@@ -19,7 +15,6 @@ class Planner():
         if (self.mode == "defender"):
             self.ball_mode = "stopped"
 
-
         # action the robot is currently executing:
         self.action = "idle"
         # none
@@ -30,9 +25,8 @@ class Planner():
         ## move-backward
         # strafe-left
         # strafe-right
-        ## grabbing
+        ## grabbing # essentially replaced by
         ## releasing
-        ## kicking
         # shooting
         # passing
         
@@ -80,7 +74,6 @@ class Planner():
             return 'turn-left'
         else:
             return 'none'
-
 
     # This method is likely unnecessary but kept because it is used in teuns dog implementation.
     def bot_rotate_to_direction(self, direction):
@@ -141,7 +134,7 @@ class Planner():
     ########## AGGREGATORS ##########
     #################################
 
-    def determine_state(self, mode):
+    def determine_state(self):
         """
         This method determines the state of the robot given the robots mode, 
         and the situation on the pitch
@@ -155,20 +148,14 @@ class Planner():
 
         if self.mode == 'attacker':
 
-            ball_x = self.world._ball.x
-            ball_y = self.world._ball.y
+            ball_x = self.world.ball.x
+            ball_y = self.world.ball.y
 
-            if (self.world._pitch.is_within_bounds(self.bot, ball_x, ball_y)):
+            if self.world.pitch.is_within_bounds(self.bot, ball_x, ball_y):
                 return 'inZone'
 
-            if (self.bot.has_ball(self.world._ball)):
+            if self.bot.has_ball(self.world.ball):
                 return 'hasBall'
-
-            # if (self.world.their_defender().has_ball(self.world._ball)):
-            #     return 'opponentDefenderHasBall'
-            #
-            # if (self.world.our_defender().has_ball(self.world._ball)):
-            #     return 'ourDefenderHasBall'
 
         if self.mode == 'defender':
 
@@ -231,7 +218,7 @@ class Planner():
             print "NUKE IN .."+str(self.robotStarted)
         else:
             # find out situation of robot (mode)
-            self.state = self.determine_state(self.mode)
+            self.state = self.determine_state()
 
             # Attacker mode
             if self.mode == "attacker":
@@ -767,6 +754,7 @@ class Planner():
         -face towards their goal
         -shoot!
         """
+        # Face towards their goal (assumes no obstacles)
         # True = facing goal, false = still rotating
         if self.bot_look_at(self.world.their_goal, 0.35):
                 self.action = "shooting"
