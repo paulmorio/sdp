@@ -1,27 +1,32 @@
 from serial import Serial
 
+# Command constants
+MOVE_FORWARD = "FWD"
+CRAWL_FORWARD = "CRAWL"
+MOVE_BACK = "BACK"
+TURN_LEFT = "TURN_L"
+TURN_RIGHT = "TURN_R"
+STRAFE_LEFT = "ST_L"
+STRAFE_RIGHT = "ST_R"
+STRAFE_FWD_LEFT = "ST_FL"
+STRAFE_FWD_RIGHT = "ST_FR"
+STRAFE_BACK_LEFT = "ST_BL"
+STRAFE_BACK_RIGHT = "ST_BR"
+GRABBER_TOGGLE = "GRAB"
+GRABBER_OPEN = "O_GRAB"
+GRABBER_CLOSE = "C_GRAB"
+SHOOT = "SHOOT"
+PASS = "PASS"
+STOP_DRIVE_MOTORS = "STOP_D"
+STOP_ALL_MOTORS = "STOP_A"
+MOTOR_TEST = "MOTORS"
+COMMAND_TERMINAL = '\n'
+
 
 class Robot(object):
     """Serial connection setup, IO, and robot actions."""
 
-    # Command constants
-    MOVE_FORWARD = "FWD"
-    MOVE_BACK = "BACK"
-    TURN_LEFT = "TURN_L"
-    TURN_RIGHT = "TURN_R"
-    STRAFE_FWD_LEFT = "ST_FL"
-    STRAFE_FWD_RIGHT = "ST_FR"
-    STRAFE_BACK_LEFT = "ST_BL"
-    STRAFE_BACK_RIGHT = "ST_BR"
-    GRAB = "GRAB"
-    OPEN_GRABBERS = "O_GRAB"
-    CLOSE_GRABBERS = "C_GRAB"
-    KICK = "KICK"
-    MOTOR_TEST = "MOTORS"
-    STOP_MOTORS = "STOP"
-    COMMAND_TERMINAL = '\n'
-
-    def __init__(self, port="/dev/ttyACM0", rate=115200, timeout=1, comms=True):
+    def __init__(self, port="/dev/ttyACM0", rate=115200, comms=True):
         """
         Create a robot object which provides action methods and opens a serial
         connection.
@@ -35,7 +40,7 @@ class Robot(object):
         :return:
         """
         if comms:
-            self.serial = Serial(port, rate, timeout=timeout)
+            self.serial = Serial(port, rate)
         else:
             self.serial = None
 
@@ -54,13 +59,14 @@ class Robot(object):
     def command(self, command):
         """Append command terminal to string before writing to serial"""
         if self.serial is not None:
-            self.serial.write(command + Robot.COMMAND_TERMINAL)
+            self.serial.write(command + COMMAND_TERMINAL)
         else:
             print command, "received."
 
     def close(self):
         """ Close the robot's serial port """
         if self.serial is not None:
+            self.command(STOP_ALL_MOTORS)
             self.serial.close()
             print "Serial port closed."
 
@@ -100,19 +106,20 @@ class ManualController(object):
         text.pack()
 
         # Set up key bindings
-        root.bind('w', lambda event: self.robot.command(Robot.MOVE_FORWARD))
-        root.bind('x', lambda event: self.robot.command(Robot.MOVE_BACK))
-        root.bind('a', lambda event: self.robot.command(Robot.TURN_LEFT))
-        root.bind('d', lambda event: self.robot.command(Robot.TURN_RIGHT))
-        root.bind('q', lambda event: self.robot.command(Robot.STRAFE_FWD_LEFT))
-        root.bind('e', lambda event: self.robot.command(Robot.STRAFE_FWD_RIGHT))
-        root.bind('z', lambda event: self.robot.command(Robot.STRAFE_BACK_LEFT))
-        root.bind('c',
-                  lambda event: self.robot.command(Robot.STRAFE_BACK_RIGHT))
-        root.bind('g', lambda event: self.robot.command(Robot.GRAB))
-        root.bind('<space>', lambda event: self.robot.command(Robot.KICK))
-        root.bind('t', lambda event: self.robot.command(Robot.MOTOR_TEST))
-        root.bind('s', lambda event: self.robot.command(Robot.STOP_MOTORS))
+        root.bind('w', lambda event: self.robot.command(MOVE_FORWARD))
+        root.bind('<Up>', lambda event: self.robot.command(CRAWL_FORWARD))
+        root.bind('x', lambda event: self.robot.command(MOVE_BACK))
+        root.bind('a', lambda event: self.robot.command(TURN_LEFT))
+        root.bind('d', lambda event: self.robot.command(TURN_RIGHT))
+        root.bind('q', lambda event: self.robot.command(STRAFE_FWD_LEFT))
+        root.bind('e', lambda event: self.robot.command(STRAFE_FWD_RIGHT))
+        root.bind('z', lambda event: self.robot.command(STRAFE_BACK_LEFT))
+        root.bind('c', lambda event: self.robot.command(STRAFE_BACK_RIGHT))
+        root.bind('g', lambda event: self.robot.command(GRABBER_TOGGLE))
+        root.bind('<space>', lambda event: self.robot.command(SHOOT))
+        root.bind('v', lambda event: self.robot.command(PASS))
+        root.bind('t', lambda event: self.robot.command(MOTOR_TEST))
+        root.bind('s', lambda event: self.robot.command(STOP_DRIVE_MOTORS))
 
         # Set window attributes and start
         root.geometry('400x400')

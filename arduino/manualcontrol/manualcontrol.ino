@@ -33,8 +33,8 @@ void setup() {
   comm.addCommand("ST_BR", strafe_br);
   comm.addCommand("TURN_L", turn_left);
   comm.addCommand("TURN_R", turn_right);
-  comm.addCommand("GRABOPEN", grabopen);
-  comm.addCommand("GRABCLOSE", grabclose);
+  comm.addCommand("G_OPEN", grabopen);
+  comm.addCommand("G_CLOSE", grabclose);
   comm.addCommand("KICK", kick);
   comm.addCommand("MOTORS", run_drive_motors);
   comm.addCommand("STOP", stop_drive_motors);
