@@ -33,6 +33,8 @@ class Planner():
         ## grabbing
         ## releasing
         ## kicking
+        # shooting
+        # passing
         
 
         # Our controllable robot (ie. NOT OBSERVED, but ACTUAL arduino one)
@@ -128,89 +130,6 @@ class Planner():
                 self.bot_stop()
             return True
 
-    # Issue11
-    def bot_rotate_or_move(self, direction):
-        """
-        Rotates bot towards given direction, or moves forward if the direction is none
-        """
-        if direction == 'turn-right':
-            self.robotController.command(TURN_RIGHT)
-        elif direction == 'turn-left':
-            self.robotController.command(TURN_LEFT)
-        else:
-            print "ERROR in get_direction_to_rotate"
-
-    # Issue11
-    def bot_get_ball(self):
-        """
-        Has the bot move to the ball, and grab it
-        """
-        ball = self.world._ball
-
-        # We have to make sure we don't have the ball already
-        if not self.bot.has_ball:
-                    # If the robot cannot catch the ball yet
-            if not self.bot.can_catch_ball(ball):
-                dir_to_rotate = self.get_direction_to_rotate(ball)
-                #self.bot_rotate_and_go(dir_to_rotate)
-
-            # Otherwise (if the ball is within catching range) "grab" until we have possession of the ball
-            else:
-                self.robotController.command(GRABBER_OPEN)
-
-        else:
-            pass
-
-    # Issue11
-    def rotate_towards_goal_and_shoot(self):
-        """
-        when the bot has possession of the ball, will cause it to rotate to their goal and shoot
-        """
-        # Now that we have the ball, rotate towards the own goal.
-        dir_to_rotate = self.get_direction_to_rotate(self.world.their_goal)
-        if dir_to_rotate != 'none':
-            pass    #self.bot_rotate(dir_to_rotate)
-        else:  # Finished rotating to face goal, can now kick
-            self.robotController.command(SHOOT)
-
-    # MILESTONE
-    def bot_pass_forward(self):
-        """
-        When the bot has possession of the ball, will cause it to rotate towards their goal and pass
-        """
-        # Now that we have the ball, rotate towards the right attacking zone.  # IMPORTANT: 'side' has to be 'left'
-        dir_to_rotate = self.get_direction_to_rotate(self.world.their_goal)
-        if dir_to_rotate != 'none':  # If we need to rotate, do so
-            pass    #self.bot_rotate(dir_to_rotate)
-        else:  # Finished rotating to face goal, can now kick
-            self.bot.command(PASS)  # TODO: pass? Can just replace with a "KICK" depending.
-
-    # ISSUE11
-    def bot_shadow_target(self):
-        """
-        Simple defensive solution when the ball is not in our defending zone, rotate to move on the y-axis only, 
-        and attempt to shadow the ball along the y axis
-        """
-        ball = self.world.ball
-
-        # If the ball is not in our zone, stay mobile
-        if not self.world.pitch.zones[self.world.our_defender.zone].isInside(ball.x, ball.y):
-            # face ~3/2pi angle, ie towards the bottom of the pitch
-            angle = self.bot.angle
-            desired = (3.0 / 2.0) * pi
-
-            if angle < desired - 0.1:
-                self.robotController.command(TURN_LEFT)
-            elif angle > desired + 0.1:
-                self.robotController.command(TURN_RIGHT)
-
-            # if the balls ~y co-ord is bigger than ours, move forwards to intercept
-            # if the balls ~y co-rds is less than ours, move backwards to intercept
-            if ball.y > self.bot.y + 5:
-                self.robotController.command(MOVE_FORWARD)
-            elif ball.y < self.bot.y - 5:
-                self.robotController.command(MOVE_BACK)
-
     def aiming_towards_object(self, instance):
         # returns true if bot direction is towards instance
         if abs(self.bot.get_rotation_to_point(instance.x, instance.y)) > 0.1:
@@ -240,16 +159,16 @@ class Planner():
             ball_y = self.world._ball.y()
 
             if (self.world._pitch.is_within_bounds(self.bot, ball_x, ball_y)):
-                return 'inZoneNoBall'
+                return 'inZone'
 
             if (self.bot.has_ball(self.world._ball)):
                 return 'hasBall'
 
-            if (self.world.their_defender().has_ball(self.world._ball)):
-                return 'opponentDefenderHasBall'
-
-            if (self.world.our_defender().has_ball(self.world._ball)):
-                return 'ourDefenderHasBall'
+            # if (self.world.their_defender().has_ball(self.world._ball)):
+            #     return 'opponentDefenderHasBall'
+            #
+            # if (self.world.our_defender().has_ball(self.world._ball)):
+            #     return 'ourDefenderHasBall'
 
         if self.mode == 'defender':
 
@@ -316,7 +235,12 @@ class Planner():
 
             # Attacker mode
             if self.mode == "attacker":
-                pass
+
+                # IF BALL IN ZONE
+                if self.state == 'inZone':
+                    self.fetch_ball()
+                elif self.state == 'hasBall':
+                    self.basic_shoot()
 
             # Defender mode
             elif self.mode == "defender":
@@ -582,7 +506,7 @@ class Planner():
 
             # [ACTIVE] IF FACING OUR ATTACKER && HAVE THE BALL
             if self.action == "idle" and self.state == "hasBall":
-                self.action = "pass"
+                self.action = "passing"
                 self.robotController.command(GRABBER_OPEN)
                 self.bot.catcher = "open"
                 print "GRABBER: OPEN"
@@ -784,7 +708,6 @@ class Planner():
 
                         print "ROTATE: _ _ _"
 
-
     def bot_at_point(self, pitch_object):
         """
         Check if the bot is close to a given object
@@ -823,9 +746,9 @@ class Planner():
         target_x, y = my_zone.center()
         bot_x = self.bot.x
         if bot_x > target_x + 25:
-            self.bot.command(MOVE_FORWARD)
+            self.robotController.command(MOVE_FORWARD)
         elif bot_x < target_x + -25:
-            self.bot.command(MOVE_BACK)
+            self.robotController.command(MOVE_BACK)
 
     def defender_block(self):
         """
@@ -839,6 +762,26 @@ class Planner():
         if self.ball_moving():
             pass
 
+    def basic_shoot(self):
+        """
+        -face towards their goal
+        -shoot!
+        """
+        # True = facing goal, false = still rotating
+        if self.bot_look_at(self.world.their_goal, 0.35):
+                self.action = "shooting"
+                self.robotController.command(GRABBER_OPEN)
+                self.bot.catcher = "open"
+                print "GRABBER: OPEN"
+                # need to add a delay here?
+                # possible alternatives
+                sleep(0.5)
+                self.robotController.command(SHOOT)
+                print "SHOOT"
+
+        else:
+            # [PASSIVE] IF STILL TURNING
+            pass
 
     def ball_moving(self):
         return (abs(self.world.ball.velocity) > 2)
@@ -854,8 +797,6 @@ class Planner():
         else:
             angle = ball.angle
 
-        #radius = sqrt(pow(abs(ball.y - bot.y), 2)+pow(abs(ball.x - bot.x), 2))
-
         dy = (abs(bot.x-ball.x)*sin(angle)) / sin(pi/2 - angle)
 
         angle = divmod(angle, 2*pi)
@@ -866,24 +807,5 @@ class Planner():
             future_y = ball.y + dy
 
         return future_y
-
-    # def kalman_init(self):
-    #     KF = KalmanFilter(4, 2, 0)
-    #     KF.transitionMatrix = self.ball_history_cords=[(0, 0)]*10
-    #     Mat_<float> measurement(2,1); measurement.setTo(Scalar(0));
-    #
-    #     // init...
-    #     KF.statePre.at<float>(0) = mouse_info.x;
-    #     KF.statePre.at<float>(1) = mouse_info.y;
-    #     KF.statePre.at<float>(2) = 0;
-    #     KF.statePre.at<float>(3) = 0;
-    #     setIdentity(KF.measurementMatrix);
-    #     setIdentity(KF.processNoiseCov, Scalar::all(1e-4));
-    #     setIdentity(KF.measurementNoiseCov, Scalar::all(1e-1));
-    #     setIdentity(KF.errorCovPost, Scalar::all(.1));
-    #
-    # def kalman_insert(self, point):
-    #     self.ball_history_cords.insert(0, point)
-    #     self.ball_history_cords.pop()
 
 
