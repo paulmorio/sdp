@@ -1,7 +1,7 @@
 from pc.models.worldmodel import WorldUpdater, World
 from pc.vision import tools, calibrationgui, visiongui, camera, vision
 from pc.planner import Planner
-from pc.robot import Robot
+from pc.robot import Robot, STOP_ALL_MOTORS
 import cv2
 import time
 
@@ -102,7 +102,7 @@ class Arbiter(object):
         except:
             raise
         finally:
-            self.robotController.command(Robot.STOP_MOTORS)
+            self.robotController.command(STOP_ALL_MOTORS)
             self.camera.release()
             tools.save_colors(self.pitch, self.calibration)
             self.robotController.close()
