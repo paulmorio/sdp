@@ -717,23 +717,17 @@ class Planner():
         """
         # If the robot does not have the ball, it should go to the ball.
         if self.state == 'noBall':
-            ball_x = self.world.ball.x
-            ball_y = self.world.ball.y
             rotate_margin = 0.40
             inside_grabber = self.inside_grabber()
-
-            angle_to_turn_to = self.bot.get_rotation_to_point(ball_x, ball_y)
-
-            dir_to_turn = self.get_direction_to_rotate(self.world.ball)
 
             # IF FACING BALL
             if self.bot_look_at(self.world.ball, rotate_margin):
                 # [ACTIVE] IF STILL TURNING
-                if (self.action == "turn-right" or self.action == "turn-left"):
+                if self.action == "turn-right" or self.action == "turn-left":
                     self.bot_stop()
 
                 # [ACTIVE] IF IDLE && OUTSIDE OF GRAB-RANGE && BALL INSIDE ZONE
-                elif (self.action == "idle" and not inside_grabber and self.ball_inside_zone()):
+                elif self.action == "idle" and not inside_grabber and self.ball_inside_zone():
                     self.action = "crawl-forward"
                     self.robot_controller.command(GRABBER_OPEN)
                     self.bot.catcher = "open"
@@ -742,10 +736,10 @@ class Planner():
                     print "MOVE: ^^^  &&  GRABBER: OPEN"
 
                 # IF ALREADY MOVING FORWARD && OUTSIDE OF GRAB-RANGE
-                elif (self.action == "crawl-forward" and not inside_grabber):
+                elif self.action == "crawl-forward" and not inside_grabber:
 
                     # [ACTIVE] IF BALL ROLLS OUT OF ZONE WHILE CHASING
-                    if (not self.ball_inside_zone()):
+                    if not self.ball_inside_zone():
                         self.bot_stop()
 
                     # [PASSIVE] BALL IN ZONE
