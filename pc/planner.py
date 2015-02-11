@@ -27,6 +27,7 @@ class Planner():
         elif self.mode == "defender":
             self.shoot_target = "attackerzone"
 
+
         # action the robot is currently executing:
         self.action = "idle"
         # none
@@ -57,6 +58,8 @@ class Planner():
             self.bot = self.world.our_attacker
         else:
             print "Not recognized mode!"
+
+        self.bot.catcher = "closed"
 
     def init_dog(self):
         self.state = 'noBall'
@@ -262,12 +265,15 @@ class Planner():
             self.robotStarted -= 1
             print "NUKE IN .."+str(self.robotStarted)
 
-            if self.robotStarted == 10:
-                self.bot_open_grabber()
+            if not self.mode == "defender":
+                if self.robotStarted == 10:
+                    self.bot_open_grabber()
 
-            if self.robotStarted == 5:
-                self.bot_open_grabber()
+                if self.robotStarted == 5:
+                    self.bot_open_grabber()
         else:
+
+
 
             if self.antiflood_counter > 0:
                 self.antiflood_counter -= 1
@@ -307,31 +313,76 @@ class Planner():
                     # IF BALL IS INCOMING
                     if self.ball_mode == "incoming":
 
+                        self.bot_open_grabber()
                         # AIM ROBOT TOWARDS ENEMY GOAL
                         # create fake pitch object with bot x, large y-co-ord
 
                         target_x = self.bot.x
-                        target_y = 10000  # arbitrarily large
+                        target_y = 1000  # arbitrarily large
+
+                        ##edit
+                        angle_to_turn_to = self.bot.get_rotation_to_point(self.bot.x, self.world.our_goal.y)
+                        dir_to_turn = self.get_direction_to_rotate(self.world.our_goal)
+                        ##edit
 
                         target_point = Coordinate(target_x, target_y)
 
-                        # IF WE ARE FACING THE POINT
-                        if self.bot_look_at(target_point, 0.50):
+                        # IF NOT FACING BALL
+                        if (abs(angle_to_turn_to) > 0.50):
 
-                            # IF ROBOT TOO FAR FROM PREDICTED BALL-Y-COORDINATE
-                            if abs(self.bot.y - self.ball_predict_y()) > 15:
+                        # # IF WE ARE FACING THE POINT
+                        # if self.bot_look_at(target_point, 0.50):
 
-                                # IF BALL-PREDICTED-Y ABOVE ROBOT
-                                if self.ball_predict_y() > self.bot.y:
+                            # [ACTIVE] IF NOT ALREADY TURNING
+                            if (self.action != "turn-right" and self.action != "turn-left"):
+                                self.bot_rotate_to_direction(dir_to_turn)
+                                self.action = dir_to_turn
 
-                                    # [ACTIVE] MOVE FORWARD (UP)
-                                    if self.action != "move-forward":
-                                        self.action = "move-forward"
-                                        self.robot_controller.command(MOVE_FORWARD)
+                                if (dir_to_turn == "turn-left"):
+                                    print "ROTATE: <<<"
+                                elif (dir_to_turn == "turn-right"):
+                                    print "ROTATE: >>>"
+                                else:
+                                    print "Facing Ball - ball slightly on : "+dir_to_turn+" side"
 
-                                    # [PASSIVE] IF MOVING FORWARD
-                                    elif self.action == "move-forward":
-                                        pass
+                            # [PASSIVE] IF ALREADY TURNING
+                            else:
+                                pass
+
+                        # IF FACING GOAL
+                        else:
+                            # [ACTIVE] IF STILL TURNING
+                            if (self.action == "turn-right" or self.action == "turn-left"):
+                                self.bot_stop()
+
+                            elif self.action != "move-forward":
+
+                                if abs(self.bot.y - self.world.our_goal.y) > 30:
+                                    self.action = "move-forward"
+                                    self.robot_controller.command(MOVE_FORWARD)
+
+                                else:
+                                    self.bot_stop()
+
+
+
+
+
+
+                            # # IF ROBOT TOO FAR FROM PREDICTED BALL-Y-COORDINATE
+                            # if abs(self.bot.y - self.ball_predict_y()) > 15:
+                            #
+                            #     # IF BALL-PREDICTED-Y ABOVE ROBOT
+                            #     if self.ball_predict_y() > self.bot.y:
+                            #
+                            #         # [ACTIVE] MOVE FORWARD (UP)
+                            #         if self.action != "move-forward":
+                            #             self.action = "move-forward"
+                            #             self.robot_controller.command(MOVE_FORWARD)
+                            #
+                            #         # [PASSIVE] IF MOVING FORWARD
+                            #         elif self.action == "move-forward":
+                            #             pass
 
                                     # STRAFE CODE
                                     # # IF BALL LEFT OF ROBOT
@@ -370,16 +421,16 @@ class Planner():
                                     #         pass
 
                                 # IF BALL-PREDICTED-Y BELOW ROBOT
-                                else:
-
-                                    # [ACTIVE] MOVE BACK (DOWN)
-                                    if self.action != "move-back":
-                                        self.action = "move-back"
-                                        self.robot_controller.command(MOVE_BACK)
-
-                                    # [PASSIVE] IF MOVING BACK
-                                    elif self.action == "move-back":
-                                        pass
+                                # else:
+                                #
+                                #     # [ACTIVE] MOVE BACK (DOWN)
+                                #     if self.action != "move-back":
+                                #         self.action = "move-back"
+                                #         self.robot_controller.command(MOVE_BACK)
+                                #
+                                #     # [PASSIVE] IF MOVING BACK
+                                #     elif self.action == "move-back":
+                                #         pass
 
                                     # STRAFE CODE
                                     # # IF BALL LEFT OF ROBOT
@@ -418,10 +469,10 @@ class Planner():
                                     #     else:
                                     #         pass
 
-                            # ROBOT IS IN THE RIGHT POSITION TO CATCH BALL
-                            elif not self.action == "idle":
-                                print "ROBOT IN RIGHT POSITION. WAITING FOR ARRIVAL"
-                                self.bot_stop()
+                            # # ROBOT IS IN THE RIGHT POSITION TO CATCH BALL
+                            # elif not self.action == "idle":
+                            #     print "ROBOT IN RIGHT POSITION. WAITING FOR ARRIVAL"
+                            #     self.bot_stop()
 
                     elif self.ball_mode == "stopped" and not self.action == "idle":
                         self.bot_stop()
@@ -506,7 +557,7 @@ class Planner():
                                 print "CRAWL: ^^^"
 
                                 # [ACTIVE] IF BALL IS CLOSE CLOSE GRABBER
-                                if (self.bot.get_displacement_to_point(self.world.ball.x, self.world.ball.y) < 40):
+                                if (self.bot.get_displacement_to_point(self.world.ball.x, self.world.ball.y) < 60):
                                     print "PRE-CLOSING GRABBER ________"
                                     self.bot_close_grabber()
                                 # [ACTIVE] (ELSE) IF BALL IS TOO FAR AWAY OPEN GRABBER
@@ -600,22 +651,16 @@ class Planner():
                                 print "AIM AT GOAL, OPEN GRABBER, PREPARING SHOT!"
                                 print "angle to goal: "+str(abs(angle_to_turn_to))+" > 0.30"
 
-                                self.final_countdown = 15
+                                self.final_countdown = 10
                                 self.bot_stop()
 
-                            # [ACTIVE] IF COUNTDOWN DOWN TO 40
-                            if self.final_countdown >= 10:
-                                print "open at 2"
-                                self.bot_open_grabber()
 
-                            if 0 <= self.final_countdown < 10:
-                                # IF DEFENDER AND TRYING TO SHOOT INTO ATTACKER ZONE:
+                            if self.final_countdown == 0:
+                                self.bot_open_grabber()
                                 if self.shoot_target=="attackerzone":
                                     self.robot_controller.command(PASS)
                                 else:
                                     self.robot_controller.command(SHOOT)
-
-                            if self.final_countdown == 0:
                                 self.final_countdown = -1
 
                                 # IF DEFENDER AND TRYING TO SHOOT INTO ATTACKER ZONE:
@@ -657,7 +702,7 @@ class Planner():
         """
 
         # TODO: code stolen from above - re-steal when updated work is committed
-        rotate_margin = 0.75
+        rotate_margin = 0.50
         our_attacker = self.world.our_attacker
         angle_to_turn_to = self.bot.get_rotation_to_point(our_attacker.x, our_attacker.y)
         dir_to_turn = self.get_direction_to_rotate(self.world.ball)
@@ -692,9 +737,7 @@ class Planner():
             # [ACTIVE] IF FACING OUR ATTACKER && HAVE THE BALL
             if self.action == "idle" and self.state == "hasBall":
                 self.action = "passing"
-                self.robot_controller.command(GRABBER_OPEN)
-                self.bot.catcher = "open"
-                print "GRABBER: OPEN"
+                self.bot_open_grabber()
                 # need to add a delay here?
                 # possible alternatives
                 sleep(0.5)
@@ -715,54 +758,50 @@ class Planner():
         -open grabber when ball is in our zone and we're facing it
         -close grabber when in grabber area
         """
-        # If the robot does not have the ball, it should go to the ball.
-        if self.state == 'noBall':
-            rotate_margin = 0.40
-            inside_grabber = self.inside_grabber()
+        rotate_margin = 0.50
+        inside_grabber = self.inside_grabber()
 
-            # IF FACING BALL
-            if self.bot_look_at(self.world.ball, rotate_margin):
-                # [ACTIVE] IF STILL TURNING
-                if self.action == "turn-right" or self.action == "turn-left":
+        # IF FACING BALL
+        if self.bot_look_at(self.world.ball, rotate_margin):
+            # [ACTIVE] IF STILL TURNING
+            if self.action == "turn-right" or self.action == "turn-left":
+                self.bot_stop()
+
+            # [ACTIVE] IF IDLE && OUTSIDE OF GRAB-RANGE && BALL INSIDE ZONE
+            elif self.action == "idle" and not inside_grabber and self.ball_inside_zone():
+                print "CRAWL: ^^^  &&  GRABBER: OPEN"
+                self.action = "crawl-forward"
+                self.bot_open_grabber()
+                self.robot_controller.command(CRAWL_FORWARD)
+
+            # IF ALREADY MOVING FORWARD && OUTSIDE OF GRAB-RANGE
+            elif self.action == "crawl-forward" and not inside_grabber:
+
+                # [ACTIVE] IF BALL ROLLS OUT OF ZONE WHILE CHASING
+                if not self.ball_inside_zone():
                     self.bot_stop()
 
-                # [ACTIVE] IF IDLE && OUTSIDE OF GRAB-RANGE && BALL INSIDE ZONE
-                elif self.action == "idle" and not inside_grabber and self.ball_inside_zone():
-                    self.action = "crawl-forward"
-                    self.robot_controller.command(GRABBER_OPEN)
-                    self.bot.catcher = "open"
-                    self.robot_controller.command(CRAWL_FORWARD)
-
-                    print "MOVE: ^^^  &&  GRABBER: OPEN"
-
-                # IF ALREADY MOVING FORWARD && OUTSIDE OF GRAB-RANGE
-                elif self.action == "crawl-forward" and not inside_grabber:
-
-                    # [ACTIVE] IF BALL ROLLS OUT OF ZONE WHILE CHASING
-                    if not self.ball_inside_zone():
-                        self.bot_stop()
-
-                    # [PASSIVE] BALL IN ZONE
-                    else:
-                        pass
-
-                # [ACTIVE] IF MOVING FORWARD BUT INSIDE GRAB RANGE
-                elif self.action == "crawl-forward" and inside_grabber:
-                    self.bot_stop()
-                    self.bot_close_grabber()
-
-                # [PASSIVE] IF IDLE && INSIDE GRAB-RANGE
-                elif self.action == "idle" and inside_grabber:
+                # [PASSIVE] BALL IN ZONE
+                else:
                     pass
 
-            # IF NOT FACING BALL
-            else:
+            # [ACTIVE] IF MOVING FORWARD BUT INSIDE GRAB RANGE
+            elif self.action == "crawl-forward" and inside_grabber:
+                self.bot_stop()
+                self.bot_close_grabber()
+
+            # [PASSIVE] IF IDLE && INSIDE GRAB-RANGE
+            elif self.action == "idle" and inside_grabber:
                 pass
 
-            # [PASSIVE] IF BALL OUTSIDE ZONE
-            if not self.ball_inside_zone():
-                #print "Ball out of reach T.T "
-                pass
+        # IF NOT FACING BALL
+        else:
+            pass
+
+        # [PASSIVE] IF BALL OUTSIDE ZONE
+        if not self.ball_inside_zone():
+            #print "Ball out of reach T.T "
+            pass
 
     def defender_idle(self):
         """
@@ -931,9 +970,7 @@ class Planner():
         # True = facing goal, false = still rotating
         if self.bot_look_at(self.world.their_goal, 0.35):
                 self.action = "shooting"
-                self.robot_controller.command(GRABBER_OPEN)
-                self.bot.catcher = "open"
-                print "GRABBER: OPEN"
+                self.bot_open_grabber()
                 # need to add a delay here?
                 # possible alternatives
                 sleep(0.5)

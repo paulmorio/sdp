@@ -28,7 +28,7 @@ COMMAND_TERMINAL = '\n'
 class Robot(object):
     """Serial connection setup, IO, and robot actions."""
 
-    def __init__(self, port="/dev/ttyACM0", timeout=0.05, rate=115200, comms=True):
+    def __init__(self, port="/dev/ttyACM0", timeout=0.01, rate=115200, comms=True):
         """
         Create a robot object which provides action methods and opens a serial
         connection.
@@ -89,7 +89,6 @@ class Robot(object):
             self.command(self.last_command)
         elif ack[0] == self.ack_bit:
             self.ack_bit = '1' if self.ack_bit == '0' else '1'
-            print "acknowledged"
 
 
 class ManualController(object):

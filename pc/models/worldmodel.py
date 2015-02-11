@@ -118,9 +118,9 @@ class WorldUpdater:
         model_positions = self.postprocessing.analyze(model_positions)
         self.world.update_positions(model_positions)
         self.world.our_defender.catcher_area = \
-            {'width': 30, 'height': 18, 'front_offset': 10}
+            {'width': 30, 'height': 25, 'front_offset': 10}
         self.world.our_attacker.catcher_area = \
-            {'width': 30, 'height': 18, 'front_offset': 10}
+            {'width': 30, 'height': 25, 'front_offset': 10}
         grabbers = {
             'our_defender': self.world.our_defender.catcher_area,
             'our_attacker': self.world.our_attacker.catcher_area
