@@ -43,7 +43,7 @@
 #define RUN_MOTORS_POWER 100
 #define RUN_MOTORS_TIME 1000 // per direction
 
-#define STOP_MOTORS_DELAY 300
+#define STOP_MOTORS_DELAY 150
 
 // Command parser
 SerialCommand comm;
