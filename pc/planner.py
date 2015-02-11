@@ -18,6 +18,10 @@ class Planner():
         if (self.mode == "defender"):
             self.ball_mode = "stopped"
 
+        # for our dear toy example, he never has the ball
+        if self.mode == 'dog':
+            self.state = 'noBall'
+
         # action the robot is currently executing:
         self.action = "idle"
         # none
@@ -36,7 +40,7 @@ class Planner():
 
         # Our controllable robot (ie. NOT OBSERVED, but ACTUAL arduino one)
         self.robotController = robotController
-        self.robotStarted=40 # init robot actions
+        self.robotStarted=60 # init robot actions
 
         # bot we are making plans for, OBSERVED robot via the vision.
         if (self.mode == 'attacker'):
@@ -149,10 +153,6 @@ class Planner():
         :param mode: anything from ['dog', 'attacker', 'defender']
         """
 
-        # for our dear toy example, he never has the ball
-        if self.mode == 'dog':
-            return 'noBall'
-
         if self.mode == 'attacker':
 
             ball_x = self.world.ball.x
@@ -206,9 +206,10 @@ class Planner():
         print "MOVE: STOPPED!"
 
     def bot_open_grabber(self):
-        self.robotController.command(GRABBER_OPEN)
-        self.bot.catcher = "open"
-        print "GRABBER: OPEN"
+        if not self.bot.catcher == "open":
+            self.robotController.command(GRABBER_OPEN)
+            self.bot.catcher = "open"
+            print "GRABBER: OPEN"
 
     def bot_close_grabber(self):
         self.robotController.command(GRABBER_CLOSE)
@@ -241,7 +242,8 @@ class Planner():
                 self.antiflood_counter = self.antiflood_limit
 
                 # find out situation of robot (mode)
-                self.state = self.determine_state()
+                if self.mode != "dog":
+                    self.state = self.determine_state()
 
                 # Attacker mode
                 if self.mode == "attacker":
@@ -401,7 +403,7 @@ class Planner():
                     ball_x = self.world._ball.x
                     ball_y = self.world._ball.y
                     friendly_space = 70
-                    rotate_margin = 0.3
+                    rotate_margin = 0.5
                     inside_grabber = self.inside_grabber()
 
                     # If the robot does not have the ball, it should go to the ball.
@@ -412,6 +414,7 @@ class Planner():
 
                         # IF NOT FACING BALL
                         if (abs(angle_to_turn_to) > rotate_margin):
+                            self.bot_open_grabber()
 
                             # [ACTIVE] IF NOT ALREADY TURNING
                             if (self.action != "turn-right" and self.action != "turn-left"):
@@ -440,9 +443,9 @@ class Planner():
                             # [ACTIVE] IF IDLE && OUTSIDE OF GRAB-RANGE && BALL INSIDE ZONE
                             elif (self.action == "idle" and not inside_grabber and self.ball_inside_zone()):
                                 self.action = "move-forward"
-                                self.robotController.command(MOVE_FORWARD)
+                                self.robotController.command(CRAWL_FORWARD)
 
-                                print "MOVE: ^^^"
+                                print "CRAWL: ^^^"
 
                             # IF ALREADY MOVING FORWARD && OUTSIDE OF FRIENDLY-SPACE
                             elif (self.action == "move-forward" and not inside_grabber):
@@ -464,7 +467,7 @@ class Planner():
 
                             # [ACTIVE] IF IDLE && INSIDE GRAB-RANGE
                             elif (self.action == "idle" and inside_grabber):
-                                print "GRAB"
+                                print "CAUGHT BALL"
                                 self.state = 'hasBall'
                                 self.bot_close_grabber()
 
@@ -501,6 +504,7 @@ class Planner():
 
                                 # [ACTIVE] IF BALL NO LONGER INSIDE GRABBER AREA
                                 if not self.inside_grabber():
+                                    print "LOST BALL"
                                     self.state = "noBall"
 
                         # IF LOOKING AT ENEMY GOAL
@@ -519,6 +523,7 @@ class Planner():
 
                             # [ACTIVE] IF BALL NOT IN GRABBER AREA
                             else:
+                                print "LOST BALL"
                                 self.state = "noBall"
 
                     else:
