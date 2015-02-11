@@ -1,6 +1,6 @@
 from pc.models.worldmodel import WorldUpdater, World
 from pc.vision import tools, calibrationgui, visiongui, camera, vision
-from pc.planner import Planner
+from pc.planning.planner import Planner
 from pc.robot import Robot
 import cv2
 import time
@@ -56,7 +56,7 @@ class Arbiter(object):
 
         # Set up the planner
         if role is not None:
-            assert(role in ['dog', 'defender', 'attacker'])
+            assert(role in ['defender', 'attacker'])
             mode = role
             self.planner = Planner(self.world, self.robotController, mode)
         else:
@@ -154,12 +154,12 @@ if __name__ == '__main__':
         arb = Arbiter(int(args.pitch), args.colour, args.side,
                       role=None, comms=False)
     elif args.nocomms:
-        assert args.role in ['defender', 'attacker', 'dog']
+        assert args.role in ['defender', 'attacker']
         arb = Arbiter(int(args.pitch), args.colour, args.side,
                       role=args.role, comms=False)
 
     else:
-        assert args.role in ['defender', 'attacker', 'dog']
+        assert args.role in ['defender', 'attacker']
         arb = Arbiter(int(args.pitch), args.colour, args.side,
                       role=args.role, comms=True)
     arb.run()

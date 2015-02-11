@@ -17,9 +17,9 @@
 #define MOTOR_GRAB 4
 
 // Drive constants
-#define MOVE_PWR 90
-#define TURN_PWR 60
-#define CRAWL_PWR 60
+#define MOVE_PWR 100
+#define TURN_PWR 50
+#define CRAWL_PWR 80
 
 // Kicker and grabber constants
 #define SHOOT_POWER 100
