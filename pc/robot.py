@@ -21,13 +21,14 @@ PASS = "PASS"
 STOP_DRIVE_MOTORS = "STOP_D"
 STOP_ALL_MOTORS = "STOP_A"
 MOTOR_TEST = "MOTORS"
+READY = "READY"
 COMMAND_TERMINAL = '\n'
 
 
 class Robot(object):
     """Serial connection setup, IO, and robot actions."""
 
-    def __init__(self, port="/dev/ttyACM0", timeout=1, rate=115200, comms=True):
+    def __init__(self, port="/dev/ttyACM0", timeout=0.05, rate=115200, comms=True):
         """
         Create a robot object which provides action methods and opens a serial
         connection.
@@ -39,10 +40,17 @@ class Robot(object):
         :param rate: Baud rate
         :return:
         """
+        self.last_command = None
+        self.ready = False
         if comms:
+            self.ack_bit = '0'
             self.serial = Serial(port, rate, timeout=timeout)
+            self.command(READY)
+            self.ready = True
+
         else:
             self.serial = None
+            self.ready = True
 
     # Serial communication methods
     def read_all(self):
@@ -59,8 +67,10 @@ class Robot(object):
     def command(self, command):
         """Append command terminal to string before writing to serial"""
         if self.serial is not None:
+            self.last_command = command
             print "COMMAND ENTERED: "+str(command)
             self.serial.write(command + COMMAND_TERMINAL)
+            self.ack()
         else:
             print command
 
@@ -71,6 +81,15 @@ class Robot(object):
             self.command(GRABBER_CLOSE)
             self.serial.close()
             print "Serial port closed."
+
+    def ack(self):
+        ack = None
+        ack = self.serial.readline()
+        if ack == '':
+            self.command(self.last_command)
+        elif ack[0] == self.ack_bit:
+            self.ack_bit = '1' if self.ack_bit == '0' else '1'
+            print "acknowledged"
 
 
 class ManualController(object):
@@ -113,16 +132,12 @@ class ManualController(object):
         self.root.bind('<Down>', lambda event: self.robot.command(CRAWL_BACK))
         self.root.bind('<Left>', lambda event: self.robot.command(TURN_LEFT))
         self.root.bind('<Right>', lambda event: self.robot.command(TURN_RIGHT))
-        self.root.bind('a', lambda event: self.robot.command(STRAFE_LEFT))
-        self.root.bind('d', lambda event: self.robot.command(STRAFE_RIGHT))
-        self.root.bind('q', lambda event: self.robot.command(STRAFE_FWD_LEFT))
-        self.root.bind('e', lambda event: self.robot.command(STRAFE_FWD_RIGHT))
-        self.root.bind('z', lambda event: self.robot.command(STRAFE_BACK_LEFT))
-        self.root.bind('c', lambda event: self.robot.command(STRAFE_BACK_RIGHT))
-        self.root.bind('g', lambda event: self.robot.command(GRABBER_TOGGLE))
+        self.root.bind('a', lambda event: self.robot.command(TURN_LEFT))
+        self.root.bind('d', lambda event: self.robot.command(TURN_RIGHT))
+        self.root.bind('o', lambda event: self.robot.command(GRABBER_OPEN))
+        self.root.bind('c', lambda event: self.robot.command(GRABBER_CLOSE))
         self.root.bind('<space>', lambda event: self.robot.command(SHOOT))
         self.root.bind('v', lambda event: self.robot.command(PASS))
-        self.root.bind('t', lambda event: self.robot.command(MOTOR_TEST))
         self.root.bind('s', lambda event: self.robot.command(STOP_DRIVE_MOTORS))
         self.root.bind('<Escape>', self.quit)
 

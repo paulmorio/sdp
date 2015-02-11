@@ -1,11 +1,10 @@
 [w] -> Move forward
 [x] -> Move backward
-[a] -> Strafe left
-[d] -> Strafe right
-[q] -> Strafe FL
-[e] -> Strafe FR
-[z] -> Strafe BL
-[c] -> Strafe BR
+[a] -> Turn left
+[d] -> Turn right
+
+[o] -> Open grabber
+[c] -> Close grabber
 
 [s] -> Stop motors
 
@@ -14,10 +13,7 @@
 <Left> -> Turn left
 <Right> -> Turn right
 
-[g] -> Toggle grabber
 [space] -> Shoot
 [v] -> Pass
-
-[t] -> Run motors (TEST)
 
 <Escape> -> Quit
