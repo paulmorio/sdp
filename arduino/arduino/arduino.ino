@@ -19,7 +19,7 @@
 // Drive constants
 #define MOVE_PWR 100
 #define TURN_PWR 50
-#define CRAWL_PWR 75
+#define CRAWL_PWR 80
 
 #define STRAFE_SIDE_F_POWER 70
 #define STRAFE_SIDE_B_POWER 95
