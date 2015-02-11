@@ -59,6 +59,7 @@ class Robot(object):
     def command(self, command):
         """Append command terminal to string before writing to serial"""
         if self.serial is not None:
+            print "COMMAND ENTERED: "+str(command)
             self.serial.write(command + COMMAND_TERMINAL)
         else:
             print command
