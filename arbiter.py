@@ -56,7 +56,7 @@ class Arbiter(object):
 
         # Set up the planner
         if role is not None:
-            assert(role in ['defender', 'attacker'])
+            assert(role in ['defender', 'attacker', 'dog'])
             mode = role
             self.planner = Planner(self.world, self.robot_controller, mode)
         else:
@@ -154,7 +154,7 @@ if __name__ == '__main__':
         arb = Arbiter(int(args.pitch), args.colour, args.side,
                       role=None, comms=False)
     elif args.nocomms:
-        assert args.role in ['defender', 'attacker']
+        assert args.role in ['defender', 'attacker', 'dog']
         arb = Arbiter(int(args.pitch), args.colour, args.side,
                       role=args.role, comms=False)
 
