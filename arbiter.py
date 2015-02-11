@@ -159,7 +159,7 @@ if __name__ == '__main__':
                       role=args.role, comms=False)
 
     else:
-        assert args.role in ['defender', 'attacker']
+        assert args.role in ['defender', 'attacker', 'dog']
         arb = Arbiter(int(args.pitch), args.colour, args.side,
                       role=args.role, comms=True)
     arb.run()
