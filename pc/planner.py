@@ -11,7 +11,7 @@ class Planner():
         self.mode = mode
         self.state = None  # refactor planner into strategies at some point - not important for this milestone
 
-        self.antiflood_limit = 2
+        self.antiflood_limit = 0
         self.antiflood_counter = self.antiflood_limit
 
         #PENALTY CASE FOR MILESTONE
@@ -21,6 +21,7 @@ class Planner():
         # for our dear toy example, he never has the ball
         if self.mode == 'dog':
             self.state = 'noBall'
+            self.final_countdown = -1
 
         # action the robot is currently executing:
         self.action = "idle"
@@ -479,6 +480,10 @@ class Planner():
                     # IF ROBOT HAS BALL
                     elif self.state == 'hasBall':
 
+                        # IF BALL IMPOSSIBLY FAR FROM ROBOT
+                        if (abs(self.ball.get_displacement_to_point(self.bot.x, self.bot.y)) > 50):
+                            self.state = "noBall"
+
                         angle_to_turn_to = self.bot.get_rotation_to_point(self.world.their_goal.x, self.world.their_goal.y)
                         dir_to_turn = self.get_direction_to_rotate(self.world.their_goal)
 
@@ -501,30 +506,61 @@ class Planner():
 
                             # IF ROTATING TO ENEMY GOAL
                             else:
-
-                                # [ACTIVE] IF BALL NO LONGER INSIDE GRABBER AREA
-                                if not self.inside_grabber():
-                                    print "LOST BALL"
-                                    self.state = "noBall"
+                                pass
+                                # # [ACTIVE] IF BALL NO LONGER INSIDE GRABBER AREA
+                                # if not self.inside_grabber():
+                                #     print "LOST BALL"
+                                #     self.state = "noBall"
 
                         # IF LOOKING AT ENEMY GOAL
                         else:
+                            # [CONSTANT] DECREMENT FINAL_COUNTDOWN IF APPLICABLE
+                            if self.final_countdown > 0:
+                                print "FINAL COUNTDOWN: "+str(self.final_countdown)
+                                self.final_countdown -= 1
 
-                            # IF BALL INSIDE GRABBER AREA
-                            if self.inside_grabber():
+                            # [ACTIVE] IF GRABBER STILL CLOSED
+                            if self.bot.catcher == "closed" and self.final_countdown < 0:
+                                print "AIM AT GOAL, OPEN GRABBER, PREPARING SHOT!"
+                                print "angle to goal: "+str(abs(angle_to_turn_to))+" > 0.50"
 
-                                # [ACTIVE] IF GRABBER STILL CLOSED
-                                if self.bot.catcher == "closed":
-                                    self.bot_open_grabber()
+                                self.final_countdown = 50
+                                self.bot_stop()
 
-                                # [ACTIVE] IF GRABBER OPEN
-                                else:
-                                    self.robotController.command(SHOOT)
+                            # [ACTIVE] IF COUNTDOWN DOWN TO 40
+                            elif self.final_countdown == 40:
+                                self.bot_open_grabber()
 
-                            # [ACTIVE] IF BALL NOT IN GRABBER AREA
-                            else:
-                                print "LOST BALL"
+                            elif self.final_countdown == 30:
+                                self.bot_open_grabber()
+
+                            elif self.final_countdown == 10:
+                                self.robotController.command(SHOOT)
+
+                            elif self.final_countdown == 0:
+                                self.final_countdown = -1
+                                self.robotController.command(SHOOT)
                                 self.state = "noBall"
+
+
+                            # # IF BALL INSIDE GRABBER AREA
+                            # if self.inside_grabber():
+                            #
+                            #     # [ACTIVE] IF GRABBER STILL CLOSED
+                            #     if self.bot.catcher == "closed":
+                            #         print "AIM AT GOAL, OPEN GRABBER, PREPARING SHOT!"
+                            #         print "angle to goal: "+str(abs(angle_to_turn_to))+" > 0.50"
+                            #
+                            #         self.bot_open_grabber()
+                            #
+                            #     # [ACTIVE] IF GRABBER OPEN
+                            #     else:
+                            #         self.robotController.command(SHOOT)
+                            #
+                            # # [ACTIVE] IF BALL NOT IN GRABBER AREA
+                            # else:
+                            #     print "LOST BALL"
+                            #     self.state = "noBall"
 
                     else:
                         print "Error, state unknown: "+str(self.state)
