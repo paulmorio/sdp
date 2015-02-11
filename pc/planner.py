@@ -9,19 +9,23 @@ class Planner():
     def __init__(self, world, robotController, mode):
         self.world = world
         self.mode = mode
-        self.state = None  # refactor planner into strategies at some point - not important for this milestone
+        self.state = None
 
-        self.antiflood_limit = 0
+        self.antiflood_limit = 5
         self.antiflood_counter = self.antiflood_limit
 
         #PENALTY CASE FOR MILESTONE
-        if (self.mode == "defender"):
+        if self.mode == "defender":
             self.ball_mode = "stopped"
 
         # for our dear toy example, he never has the ball
         if self.mode == 'dog':
-            self.state = 'noBall'
-            self.final_countdown = -1
+            self.shoot_target = "goal"
+            self.init_dog()
+        elif self.mode == "attacker":
+            self.shoot_target = "goal"
+        elif self.mode == "defender":
+            self.shoot_target = "attackerzone"
 
         # action the robot is currently executing:
         self.action = "idle"
@@ -29,7 +33,7 @@ class Planner():
         # turn-left
         # turn-right
         # move-forward
-        # crawl-forward <- TODO: add crawl-forward command in robot.py for arduino: move forward at LOW ACCURATE speed
+        # crawl-forward
         ## move-backward
         # strafe-left
         # strafe-right
@@ -37,6 +41,8 @@ class Planner():
         ## releasing
         # shooting
         # passing
+
+        self.final_countdown = -1
         
 
         # Our controllable robot (ie. NOT OBSERVED, but ACTUAL arduino one)
@@ -44,15 +50,18 @@ class Planner():
         self.robotStarted=60 # init robot actions
 
         # bot we are making plans for, OBSERVED robot via the vision.
-        if (self.mode == 'attacker'):
+        if self.mode == 'attacker':
             self.bot = self.world.our_attacker
-        elif(self.mode == 'defender'):
+        elif self.mode == 'defender':
             self.bot = self.world.our_defender
-        elif(self.mode == 'dog'):
+        elif self.mode == 'dog':
             self.bot = self.world.our_attacker
         else:
             print "Not recognized mode!"
 
+    def init_dog(self):
+        self.state = 'noBall'
+        self.final_countdown = -1
     ################################
     ########## SUBPLANS ############
     ################################
@@ -63,7 +72,8 @@ class Planner():
 
     def inside_friendly_space(self, distance):
         ball = self.world.ball
-        return (abs(ball.get_displacement_to_point(self.bot.x, self.bot.y)) < distance)
+        return abs(ball.get_displacement_to_point(self.bot.x, self.bot.y)) \
+            < distance
 
     def ball_inside_zone(self):
         ball = self.world.ball
@@ -87,7 +97,6 @@ class Planner():
         else:
             return 'none'
 
-    # This method is likely unnecessary but kept because it is used in teuns dog implementation.
     def bot_rotate_to_direction(self, direction):
         """
         Rotates bot towards given direction
@@ -97,10 +106,13 @@ class Planner():
         """
         if direction == 'turn-right':
             self.robotController.command(TURN_RIGHT)
+            self.bot.action = 'turn-right'
         elif direction == 'turn-left':
             self.robotController.command(TURN_LEFT)
-        elif direction == 'none':
+            self.bot.action = 'turn-left'
+        elif direction == 'none':  # This code should never execute
             self.robotController.command(STOP_DRIVE_MOTORS)
+            self.bot.action = 'idle'
         else:
             print "ERROR in get_direction_to_rotate"
 
@@ -116,7 +128,6 @@ class Planner():
             # [ACTIVE] IF NOT ALREADY TURNING
             if self.action != "turn-right" and self.action != "turn-left":
                 self.bot_rotate_to_direction(dir_to_turn)
-                self.action = dir_to_turn
 
                 if dir_to_turn == "turn-left":
                     print "ROTATE: <<<"
@@ -124,6 +135,11 @@ class Planner():
                     print "ROTATE: >>>"
                 else:
                     print "Facing object - object slightly on : "+dir_to_turn+" side"
+
+            # [PASSIVE] IF ALREADY TURNING
+            else:
+                # resend command
+                self.bot_rotate_to_direction(dir_to_turn)
 
             return False
 
@@ -228,11 +244,9 @@ class Planner():
             print "NUKE IN .."+str(self.robotStarted)
 
             if self.robotStarted == 10:
-                self.robotController.command(GRABBER_OPEN)
                 self.bot_open_grabber()
 
             if self.robotStarted == 5:
-                self.robotController.command(GRABBER_OPEN)
                 self.bot_open_grabber()
         else:
 
@@ -368,11 +382,8 @@ class Planner():
 
                     # IF BALL WAS CAUGHT BY ROBOT
                     elif self.ball_mode == 'caught':
-                        if self.state == 'hasBall':
-                            self.pass_forward()
-                        else:
-                            self.fetch_ball()
-
+                        self.mode = "dog"
+                        self.init_dog()
 
 
                     # DEFENDER CODE, NOT IN USE FOR MILESTONE 2! BUT KEEP HERE
@@ -404,7 +415,7 @@ class Planner():
                     ball_x = self.world._ball.x
                     ball_y = self.world._ball.y
                     friendly_space = 70
-                    rotate_margin = 0.5
+                    rotate_margin = 0.75
                     inside_grabber = self.inside_grabber()
 
                     # If the robot does not have the ball, it should go to the ball.
@@ -431,7 +442,6 @@ class Planner():
 
                             # [PASSIVE] IF ALREADY TURNING
                             else:
-                                # [ACTIVE] IF TURNING BUT BALL CHANGED DIRECTION
                                 pass
 
                         # IF FACING BALL
@@ -443,7 +453,7 @@ class Planner():
 
                             # [ACTIVE] IF IDLE && OUTSIDE OF GRAB-RANGE && BALL INSIDE ZONE
                             elif (self.action == "idle" and not inside_grabber and self.ball_inside_zone()):
-                                self.action = "move-forward"
+                                self.action = "crawl-forward"
                                 self.robotController.command(CRAWL_FORWARD)
 
                                 print "CRAWL: ^^^"
@@ -457,7 +467,9 @@ class Planner():
 
                                 # [PASSIVE] BALL IN ZONE
                                 else:
-                                    pass
+                                    # resend command
+                                    self.robotController.command(CRAWL_FORWARD)
+                                    #pass
 
                             # [ACTIVE] IF MOVING FORWARD BUT INSIDE GRAB RANGE
                             elif (self.action == "move-forward" and inside_grabber):
@@ -481,7 +493,7 @@ class Planner():
                     elif self.state == 'hasBall':
 
                         # IF BALL IMPOSSIBLY FAR FROM ROBOT
-                        if (abs(self.ball.get_displacement_to_point(self.bot.x, self.bot.y)) > 50):
+                        if (abs(self.bot.get_displacement_to_point(self.world.ball.x, self.world.ball.y)) > 50):
                             self.state = "noBall"
 
                         angle_to_turn_to = self.bot.get_rotation_to_point(self.world.their_goal.x, self.world.their_goal.y)
@@ -535,11 +547,21 @@ class Planner():
                                 self.bot_open_grabber()
 
                             elif self.final_countdown == 10:
-                                self.robotController.command(SHOOT)
+                                # IF DEFENDER AND TRYING TO SHOOT INTO ATTACKER ZONE:
+                                if self.shoot_target=="attackerzone":
+                                    self.robotController.command(PASS)
+                                else:
+                                    self.robotController.command(SHOOT)
 
                             elif self.final_countdown == 0:
                                 self.final_countdown = -1
-                                self.robotController.command(SHOOT)
+
+                                # IF DEFENDER AND TRYING TO SHOOT INTO ATTACKER ZONE:
+                                if self.shoot_target=="attackerzone":
+                                    self.robotController.command(PASS)
+                                else:
+                                    self.robotController.command(SHOOT)
+
                                 self.state = "noBall"
 
 
@@ -583,7 +605,6 @@ class Planner():
             # [ACTIVE] IF NOT ALREADY TURNING
             if self.action != "turn-right" and self.action != "turn-left":
                 self.bot_rotate_to_direction(dir_to_turn)
-                self.action = dir_to_turn
 
                 if dir_to_turn == "turn-left":
                     print "ROTATE: <<<"
@@ -652,7 +673,6 @@ class Planner():
                 # [ACTIVE] IF NOT ALREADY TURNING
                 if (self.action != "turn-right" and self.action != "turn-left"):
                     self.bot_rotate_to_direction(dir_to_turn)
-                    self.action = dir_to_turn
 
                     if (dir_to_turn == "turn-left"):
                         print "ROTATE: <<<"
@@ -663,7 +683,8 @@ class Planner():
 
                 # [PASSIVE] IF ALREADY TURNING
                 else:
-                    # [ACTIVE] IF TURNING BUT BALL CHANGED DIRECTION
+                    # resend command
+                    self.bot_rotate_to_direction(dir_to_turn)
                     pass
 
             # IF FACING BALL
@@ -675,10 +696,10 @@ class Planner():
 
                 # [ACTIVE] IF IDLE && OUTSIDE OF GRAB-RANGE && BALL INSIDE ZONE
                 elif (self.action == "idle" and not inside_grabber and self.ball_inside_zone()):
-                    self.action = "move-forward"
+                    self.action = "crawl-forward"
                     self.robotController.command(GRABBER_OPEN)
                     self.bot.catcher = "open"
-                    self.robotController.command(MOVE_FORWARD)
+                    self.robotController.command(CRAWL_FORWARD)
 
                     print "MOVE: ^^^  &&  GRABBER: OPEN"
 
@@ -691,16 +712,19 @@ class Planner():
 
                     # [PASSIVE] BALL IN ZONE
                     else:
+                        # resend command
+                        self.robotController.command(GRABBER_OPEN)
+                        self.robotController.command(CRAWL_FORWARD)
                         pass
 
                 # [ACTIVE] IF MOVING FORWARD BUT INSIDE GRAB RANGE
-                elif (self.action == "move-forward" and inside_grabber):
+                elif self.action == "move-forward" and inside_grabber:
                     self.bot_stop()
                     self.bot_close_grabber()
 
                 # [PASSIVE] IF IDLE && INSIDE GRAB-RANGE
-                elif (self.action == "idle" and inside_grabber):
-                    pass
+                elif self.action == "idle" and inside_grabber:
+                    self.bot_close_grabber()
 
             # [PASSIVE] IF BALL OUTSIDE ZONE
             if (not self.ball_inside_zone()):
@@ -734,7 +758,6 @@ class Planner():
             # [ACTIVE] IF NOT ALREADY TURNING
             if self.action != "turn-right" and self.action != "turn-left":
                 self.bot_rotate_to_direction(dir_to_turn)
-                self.action = dir_to_turn
 
                 if dir_to_turn == "turn-left":
                     print "ROTATE: <<<"
@@ -788,7 +811,6 @@ class Planner():
                     # [ACTIVE] IF NOT ALREADY TURNING
                     if self.action != "turn-right" and self.action != "turn-left":
                         self.bot_rotate_to_direction(dir_to_turn)
-                        self.action = dir_to_turn
 
                         if dir_to_turn == "turn-left":
                             print "ROTATE: <<<"
