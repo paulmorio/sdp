@@ -7,15 +7,10 @@ MOVE_BACK = "BACK"
 CRAWL_BACK = "CRAWL_B"
 TURN_LEFT = "TURN_L"
 TURN_RIGHT = "TURN_R"
-STRAFE_LEFT = "ST_L"
-STRAFE_RIGHT = "ST_R"
-STRAFE_FWD_LEFT = "ST_FL"
-STRAFE_FWD_RIGHT = "ST_FR"
-STRAFE_BACK_LEFT = "ST_BL"
-STRAFE_BACK_RIGHT = "ST_BR"
 GRABBER_TOGGLE = "GRAB"
 GRABBER_OPEN = "O_GRAB"
 GRABBER_CLOSE = "C_GRAB"
+GRABBER_DEFAULT = "C_GRAB"
 SHOOT = "SHOOT"
 PASS = "PASS"
 STOP_DRIVE_MOTORS = "STOP_D"
@@ -28,7 +23,8 @@ COMMAND_TERMINAL = '\n'
 class Robot(object):
     """Serial connection setup, IO, and robot actions."""
 
-    def __init__(self, port="/dev/ttyACM0", timeout=0.01, rate=115200, comms=True):
+    def __init__(self, port="/dev/ttyACM0", timeout=0.05,
+                 rate=115200, comms=True):
         """
         Create a robot object which provides action methods and opens a serial
         connection.
@@ -36,9 +32,10 @@ class Robot(object):
         :param port: Default is "/dev/ttyACM0". This changes based on
         platform, etc. The default should correspond to what shows on the DICE
         machines.
-
+        :param timeout: Serial read timeout - used for alternating bit protocol.
         :param rate: Baud rate
-        :return:
+        :param comms: If true then start serial comms.
+        :return: Robot object
         """
         self.last_command = None
         self.ready = False
@@ -52,50 +49,61 @@ class Robot(object):
             self.serial = None
             self.ready = True
 
-    # Serial communication methods
-    def read_all(self):
+    def command(self, command, arguments=[]):
         """
-        Read all data from serial.
+        Send a command to the robot then wait for acknowledgement. Resend
+        the command if no acknowledgement is received within the serial read
+        timeout.
 
-        :return: Byte representation of data on serial.
+        :param command: The command to be sent. This should be one of the
+        constants defined within this module.
+        :param arguments: Optional arguments to be appended to the command.
         """
-        if self.serial:
-            return self.serial.read(self.serial.inWaiting())
-        else:
-            print "No comms!"
-
-    def command(self, command):
-        """Append command terminal to string before writing to serial"""
         if self.serial is not None:
             self.last_command = command
-            print "COMMAND ENTERED: "+str(command)
+
+            # Append alternating bit and given arguments
+            self.last_command += ' ' + self.ack_bit
+            for arg in arguments:
+                self.last_command += ' ' + arg
+
+            # Append terminal char, wait for acknowledgement
             self.serial.write(command + COMMAND_TERMINAL)
             self.ack()
         else:
             print command
 
     def close(self):
-        """ Close the robot's serial port """
+        """
+        Teardown sequence. Stop robot motors, set grabber to default position,
+        then close the serial port
+        """
         if self.serial is not None:
             self.command(STOP_ALL_MOTORS)
             self.command(GRABBER_CLOSE)
             self.serial.close()
-            print "Serial port closed."
+            print "Robot teardown complete. Serial connection is closed."
 
     def ack(self):
-        ack = None
-        ack = self.serial.readline()
-        if ack == '':
-            self.command(self.last_command)
-        elif ack[0] == self.ack_bit:
+        """
+        Wait for the robot to acknowledge the most recent command. Resend
+        this command if no acknowledgement is received within the serial port
+        timeout.
+        """
+        ack = self.serial.readline()  # returns empty string on timeout
+        if ack != '' and ack[0] == self.ack_bit:  # Successful ack
             self.ack_bit = '1' if self.ack_bit == '0' else '1'
-            self.serial.flushInput()
+        else:  # No ack within timeout - resend command
+            self.command(self.last_command)
 
 
 class ManualController(object):
     """
     A graphical window which provides manual control of the robot. This
     allows for easy partial testing of the robot's actions.
+
+    Note that this requires that the manualcontrol sketch is loaded on the
+    Arduino.
 
     See manual_controls.txt for controls.
     """
@@ -106,12 +114,15 @@ class ManualController(object):
         """
         :param port: Serial port to be used. Default is fine for DICE
         :param rate: Baudrate. Default is 115200
-        :return: None
+        :return: ManualController object.
         """
         self.robot = Robot(port=port, rate=rate)
         self.root = None
 
     def start(self):
+        """
+        Create a tkinter GUI window to show manual controls and capture keys.
+        """
         import Tkinter as tk
         import os
         # Grab control text from file
@@ -134,31 +145,35 @@ class ManualController(object):
         self.root.bind('<Right>', lambda event: self.robot.command(TURN_RIGHT))
         self.root.bind('a', lambda event: self.robot.command(TURN_LEFT))
         self.root.bind('d', lambda event: self.robot.command(TURN_RIGHT))
+        self.root.bind('g', lambda event: self.robot.command(GRABBER_TOGGLE))
         self.root.bind('o', lambda event: self.robot.command(GRABBER_OPEN))
         self.root.bind('c', lambda event: self.robot.command(GRABBER_CLOSE))
         self.root.bind('<space>', lambda event: self.robot.command(SHOOT))
         self.root.bind('v', lambda event: self.robot.command(PASS))
         self.root.bind('s', lambda event: self.robot.command(STOP_DRIVE_MOTORS))
-        self.root.bind('<Escape>', self.quit)
+        self.root.bind('<Escape>', lambda event: self.quit())
 
         # Set window attributes and start
         self.root.geometry('400x400')
         self.root.wm_title("Manual Control")
         self.root.wm_attributes("-topmost", 1)
         self.root.mainloop()
+        self.root.protocol('WM_DELETE_WINDOW', self.quit)
 
-    def quit(self, event):
+    def quit(self):
+        """
+        Initialise robot teardown then destroy window.
+        """
         self.robot.close()
         self.root.quit()
 
 
 # Create a manualcontroller if robot.py is run from main
-# TODO: add no-comms option for testing
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("port", help="DICE /dev/ttyACM0")
-
+    parser.add_argument("port",
+                        help="Serial port to use - DICE is /dev/ttyACM0")
     args = parser.parse_args()
     controller = ManualController(port=args.port)
     controller.start()

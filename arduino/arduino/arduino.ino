@@ -1,8 +1,11 @@
 /*
   Arduino code for SDP Group 7 2014
-    
-  This code assumes that clockwise is 'forward' for each motor, so please wire them up
-  as such.
+  
+  This sketch is for use with planner control.
+  
+  This code implements an alternating bit protocol for use with the
+  robot.py module. Please adhere to the existing examples when writing
+  code as failing to acknowledge commands will result in very bad things.
 */
 
 #include <SDPArduino.h>
@@ -41,8 +44,6 @@ SerialCommand comm;
 boolean grabber_open = false;
 boolean kicker_ready = true;
 
-boolean ack_bit = false;
-
 void setup() {
   // Using library set up - it's fine
   SDPsetup();
@@ -56,6 +57,7 @@ void setup() {
   comm.addCommand("TURN_R", turnRight);
   comm.addCommand("O_GRAB", grabberOpen);
   comm.addCommand("C_GRAB", grabberClose);
+  comm.addCommand("GRAB", grabberToggle);
   comm.addCommand("SHOOT", shoot);
   comm.addCommand("PASS", pass);
   comm.addCommand("STOP_D", stopDriveMotors);
@@ -69,56 +71,68 @@ void loop() {
 }
 
 void isReady() {
-  ack();
+  /*
+    Set grabber to default position and let the system know
+    that the robot is ready to receive commands
+   */
+  ack(comm.next());
   grabberClose();
   stopAllMotors();
 }
 
 // Actions
 void forward() {
-  ack();
+  ack(comm.next());
   motorStop(MOTOR_B);
   motorBackward(MOTOR_FR, MOVE_PWR);
   motorForward(MOTOR_FL, MOVE_PWR);
 }
 
 void crawlForward() {
-  ack();
+  ack(comm.next());
   motorStop(MOTOR_B);
-  motorForward(MOTOR_FL, CRAWL_PWR + 10);
+  motorForward(MOTOR_FL, CRAWL_PWR);
   motorBackward(MOTOR_FR, CRAWL_PWR);
 }
 
 void backward() {
-  ack();
+  ack(comm.next());
   motorStop(MOTOR_B);
   motorForward(MOTOR_FR, MOVE_PWR);
   motorBackward(MOTOR_FL, MOVE_PWR);
 }
 
 void crawlBackward() {
-  ack();
+  ack(comm.next());
   motorStop(MOTOR_B);
   motorBackward(MOTOR_FL, CRAWL_PWR);
   motorForward(MOTOR_FR, CRAWL_PWR);
 }
 
 void turnLeft() {
-  ack();
+  ack(comm.next());
   motorBackward(MOTOR_FL, TURN_PWR);
   motorBackward(MOTOR_FR, TURN_PWR);
   motorForward(MOTOR_B, TURN_PWR);
 }
 
 void turnRight() {
-  ack();
+  ack(comm.next());
   motorForward(MOTOR_FL, TURN_PWR);
   motorForward(MOTOR_FR, TURN_PWR);
   motorBackward(MOTOR_B, TURN_PWR);
 }
 
+void grabberToggle() {
+  if (grabber_open) {
+    grabberClose();
+  } else {
+    grabberOpen();
+  }
+}
+
 void grabberClose() {
-  ack();
+  ack(comm.next());
   if (grabber_open && kicker_ready) {
     motorBackward(MOTOR_GRAB, GRABBER_POWER);
     grabber_open = false;
@@ -128,7 +142,7 @@ void grabberClose() {
 }
 
 void grabberOpen() {
-  ack();
+  ack(comm.next());
   if (!grabber_open) {
     motorForward(MOTOR_GRAB, GRABBER_POWER);
     grabber_open = true;
@@ -138,7 +152,7 @@ void grabberOpen() {
 }
 
 void pass() {
-  ack();
+  ack(comm.next());
   if (kicker_ready && grabber_open) {
     kicker_ready = false;
     motorBackward(MOTOR_KICK, PASS_POWER);
@@ -149,7 +163,7 @@ void pass() {
 }
 
 void shoot() {
-  ack();
+  ack(comm.next());
   if (kicker_ready && grabber_open) {
     kicker_ready = false;
     motorBackward(MOTOR_KICK, SHOOT_POWER);
@@ -174,25 +188,19 @@ void resetKicker() {
 }
 
 void stopDriveMotors() {
-  ack();
+  ack(comm.next());
   motorStop(MOTOR_FL);
   motorStop(MOTOR_B);
   motorStop(MOTOR_FR);
 }
 
 void stopAllMotors() {
-  ack();
+  ack(comm.next());
   motorAllStop();
 }
 
-void ack() {
-  if (ack_bit) {
-    ack_bit = false;
-    Serial.println("1");
-  } else {
-    ack_bit = true;
-    Serial.println("0");
-  }
+void ack(String ack_bit) {
+  Serial.println(ack_bit);
   Serial.flush();  // force send
 }
 void invalidCommand(const char* command) {}

@@ -3,6 +3,7 @@
 [a] -> Turn left
 [d] -> Turn right
 
+[g] -> Toggle grabber
 [o] -> Open grabber
 [c] -> Close grabber
 

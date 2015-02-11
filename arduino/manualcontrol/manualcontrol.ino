@@ -1,8 +1,12 @@
 /*
   Arduino code for SDP Group 7 2014
-    
-  This code assumes that clockwise is 'forward' for each motor, so please wire them up
-  as such.
+  
+  This sketch is for use with the ManualControl python class and allows
+  for the control of the robot via a keyboard.
+  
+  This code implements an alternating bit protocol for use with the
+  robot.py module. Please adhere to the existing examples when writing
+  code as failing to acknowledge commands will result in very bad things.
 */
 
 #include <SDPArduino.h>
@@ -10,179 +14,194 @@
 #include <Wire.h>
 
 // Motor numbers
-#define MOTOR_FR 0
+#define MOTOR_FR 5
 #define MOTOR_B 1
 #define MOTOR_FL 2
 #define MOTOR_KICK 3
+#define MOTOR_GRAB 4
 
-#define RUN_MOTORS_POWER 100
-#define RUN_MOTORS_TIME 1000 // per direction
-
+// Drive constants
 #define MOVE_PWR 100
-#define TURN_PWR 100
+#define TURN_PWR 50
+#define CRAWL_PWR 100
 
+// Kicker and grabber constants
+#define SHOOT_POWER 100
+#define SHOOT_SWING_TIME 220
+
+#define PASS_POWER 75
+#define PASS_SWING_TIME 190
+
+#define KICKER_RESET_POWER 100
+#define KICKER_RESET_TIME 190
+ 
+#define GRABBER_POWER 100
+#define GRABBER_TIME 800
+
+// Command parser
 SerialCommand comm;
 
-void setup() {
-  SDPsetup();
-  comm.addCommand("FWD", forward);
-  comm.addCommand("BACK", backward);
-  comm.addCommand("ST_FL", strafe_fl);
-  comm.addCommand("ST_FR", strafe_fr);
-  comm.addCommand("ST_BL", strafe_bl);
-  comm.addCommand("ST_BR", strafe_br);
-  comm.addCommand("TURN_L", turn_left);
-  comm.addCommand("TURN_R", turn_right);
-  comm.addCommand("G_OPEN", grabopen);
-  comm.addCommand("G_CLOSE", grabclose);
-  comm.addCommand("KICK", kick);
-  comm.addCommand("MOTORS", run_drive_motors);
-  comm.addCommand("STOP", stop_drive_motors);
-  comm.addCommand("STRAFE_R", strafe_r);
-  comm.addCommand("STRAFE_L", strafe_l);
-  
-  comm.setDefaultHandler(invalid_command);
+// States
+boolean grabber_open = false;
+boolean kicker_ready = true;
 
-  Serial.println("<Ready>");
+void setup() {
+  // Using library set up - it's fine
+  SDPsetup();
+  
+  // Set up command action bindings
+  comm.addCommand("FWD", forward);
+  comm.addCommand("CRAWL_F", crawlForward);
+  comm.addCommand("BACK", backward);
+  comm.addCommand("CRAWL_B", crawlBackward);
+  comm.addCommand("TURN_L", turnLeft);
+  comm.addCommand("TURN_R", turnRight);
+  comm.addCommand("O_GRAB", grabberOpen);
+  comm.addCommand("C_GRAB", grabberClose);
+  comm.addCommand("GRAB", grabberToggle);
+  comm.addCommand("SHOOT", shoot);
+  comm.addCommand("PASS", pass);
+  comm.addCommand("STOP_D", stopDriveMotors);
+  comm.addCommand("STOP_A", stopAllMotors);
+  comm.addCommand("READY", isReady);
+  comm.setDefaultHandler(invalidCommand);
 }
 
 void loop() {
   comm.readSerial();
 }
 
+void isReady() {
+  /*
+    Set grabber to default position and let the system know
+    that the robot is ready to receive commands
+   */
+  ack(comm.next());
+  grabberClose();
+  stopAllMotors();
+}
 
 // Actions
 void forward() {
-  stop_drive_motors();
+  ack(comm.next());
+  motorStop(MOTOR_B);
   motorBackward(MOTOR_FR, MOVE_PWR);
   motorForward(MOTOR_FL, MOVE_PWR);
-  Serial.println("Moving forward");
+}
+
+void crawlForward() {
+  ack(comm.next());
+  motorStop(MOTOR_B);
+  motorForward(MOTOR_FL, CRAWL_PWR);
+  motorBackward(MOTOR_FR, CRAWL_PWR);
 }
 
 void backward() {
-  stop_drive_motors();
+  ack(comm.next());
+  motorStop(MOTOR_B);
   motorForward(MOTOR_FR, MOVE_PWR);
   motorBackward(MOTOR_FL, MOVE_PWR);
-  Serial.println("Moving backward");
 }
 
-void strafe_fl() {
-  stop_drive_motors();
-  motorBackward(MOTOR_FR, MOVE_PWR);
-  motorForward(MOTOR_B, MOVE_PWR);
-  Serial.println("Strafing forward-left");
+void crawlBackward() {
+  ack(comm.next());
+  motorStop(MOTOR_B);
+  motorBackward(MOTOR_FL, CRAWL_PWR);
+  motorForward(MOTOR_FR, CRAWL_PWR);
 }
 
-void strafe_fr() {
-  stop_drive_motors();
-  motorForward(MOTOR_FL, MOVE_PWR);
-  motorBackward(MOTOR_B, MOVE_PWR);
-  Serial.println("Strafing forward-right");
-}
-
-void strafe_bl() {
-  stop_drive_motors();
-  motorBackward(MOTOR_FL, MOVE_PWR);
-  motorForward(MOTOR_B, MOVE_PWR);
-  Serial.println("Strafing back-left");
-}
-
-void strafe_l() {
-  stop_drive_motors();
-  motorBackward(MOTOR_FL,70);
-  motorBackward(MOTOR_FR,70);
-  motorForward(MOTOR_B,100); 
-}
-
-void strafe_r() {
-  stop_drive_motors();
-  motorForward(MOTOR_FL,70);
-  motorForward(MOTOR_FR,70);
-  motorBackward(MOTOR_B,100); 
-}
-void strafe_br() {
-  stop_drive_motors();
-  motorForward(MOTOR_FR, MOVE_PWR);
-  motorBackward(MOTOR_B, MOVE_PWR);
-  Serial.println("Strafing back-right");
-}
-
-void turn_left() {
-  stop_drive_motors();
-  motorBackward(MOTOR_FR, TURN_PWR);
-  motorBackward(MOTOR_B, TURN_PWR);
+void turnLeft() {
+  ack(comm.next());
   motorBackward(MOTOR_FL, TURN_PWR);
-
-  Serial.println("Turning left");
-}
-
-void L45() {
- stop_drive_motors();
   motorBackward(MOTOR_FR, TURN_PWR);
-  motorBackward(MOTOR_B, TURN_PWR);
-  motorBackward(MOTOR_FL, TURN_PWR);
-  delay(180);
-  stop_drive_motors();
-  
-}
-void turn_right() {
-  stop_drive_motors();
-  motorForward(MOTOR_FR, TURN_PWR);
   motorForward(MOTOR_B, TURN_PWR);
+}
+
+void turnRight() {
+  ack(comm.next());
   motorForward(MOTOR_FL, TURN_PWR);
-
-  Serial.println("Turning right");
+  motorForward(MOTOR_FR, TURN_PWR);
+  motorBackward(MOTOR_B, TURN_PWR);
 }
 
-void grabopen() {
-    stop_drive_motors();
-    motorForward(4,100);
-    delay(800);
-    stop_drive_motors();
-    Serial.println("Grabbed");
+void grabberToggle() {
+  if (grabber_open) {
+    grabberClose();
+  } else {
+    grabberOpen();
+  }
 }
 
-void grabclose() {
-    stop_drive_motors();
-    motorBackward(4,100);
-    delay(800);
-    stop_drive_motors();
-    Serial.println("Grabbed");
+void grabberClose() {
+  ack(comm.next());
+  if (grabber_open && kicker_ready) {
+    motorBackward(MOTOR_GRAB, GRABBER_POWER);
+    grabber_open = false;
+    delay(GRABBER_TIME);
+    motorStop(MOTOR_GRAB);
+  }
 }
 
-void kick() {
-    motorForward(MOTOR_KICK, 100);
-    delay(500);
-    stop_drive_motors();
-    delay(20);
-    motorBackward(MOTOR_KICK,60);
-    delay(150);
-    stop_drive_motors();
-    Serial.println("Kicked");
+void grabberOpen() {
+  ack(comm.next());
+  if (!grabber_open) {
+    motorForward(MOTOR_GRAB, GRABBER_POWER);
+    grabber_open = true;
+    delay(GRABBER_TIME);
+    motorStop(MOTOR_GRAB);
+  }
 }
 
-void run_drive_motors() {
-  Serial.println("Running the drive motors forward (clockwise)");
-  motorForward(MOTOR_FL, RUN_MOTORS_POWER);
-  motorForward(MOTOR_B, RUN_MOTORS_POWER);
-  motorForward(MOTOR_FR, RUN_MOTORS_POWER);
-  delay(RUN_MOTORS_TIME);
-  stop_drive_motors();
-  
-  Serial.println("Running the drive motors backward (anti-clockwise)");
-  motorBackward(MOTOR_FL, RUN_MOTORS_POWER);
-  motorBackward(MOTOR_B, RUN_MOTORS_POWER);
-  motorBackward(MOTOR_FR, RUN_MOTORS_POWER);
-  delay(RUN_MOTORS_TIME);
-  stop_drive_motors();
+void pass() {
+  ack(comm.next());
+  if (kicker_ready && grabber_open) {
+    kicker_ready = false;
+    motorBackward(MOTOR_KICK, PASS_POWER);
+    delay(PASS_SWING_TIME);
+    motorStop(MOTOR_KICK);
+    resetKicker();
+  }
 }
 
-void stop_drive_motors() {
+void shoot() {
+  ack(comm.next());
+  if (kicker_ready && grabber_open) {
+    kicker_ready = false;
+    motorBackward(MOTOR_KICK, SHOOT_POWER);
+    delay(SHOOT_SWING_TIME);
+    motorStop(MOTOR_KICK);
+    resetKicker();
+  }
+}
+
+void resetKicker() {
+  if (!kicker_ready && grabber_open) {
+    delay(100);
+    motorForward(MOTOR_KICK, KICKER_RESET_POWER);
+    delay(KICKER_RESET_TIME);
+    motorStop(MOTOR_KICK);
+    kicker_ready = true;
+  }
+  else {
+    grabberOpen();
+    resetKicker();
+  }
+}
+
+void stopDriveMotors() {
+  ack(comm.next());
   motorStop(MOTOR_FL);
   motorStop(MOTOR_B);
   motorStop(MOTOR_FR);
-  motorStop(MOTOR_KICK);
-  motorStop(4);
 }
 
-void invalid_command(const char* command) {}
+void stopAllMotors() {
+  ack(comm.next());
+  motorAllStop();
+}
+
+void ack(String ack_bit) {
+  Serial.println(ack_bit);
+  Serial.flush();  // force send
+}
+void invalidCommand(const char* command) {}
