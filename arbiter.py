@@ -52,13 +52,13 @@ class Arbiter(object):
                                           self.world, self.vision)
 
         # Set up robotController
-        self.robotController = Robot(port=comm_port, comms=comms)
+        self.robot_controller = Robot(port=comm_port, comms=comms)
 
         # Set up the planner
         if role is not None:
             assert(role in ['dog', 'defender', 'attacker'])
             mode = role
-            self.planner = Planner(self.world, self.robotController, mode)
+            self.planner = Planner(self.world, self.robot_controller, mode)
         else:
             self.planner = None
 
@@ -87,7 +87,7 @@ class Arbiter(object):
 
                 # Act on the updated world model
                 if self.planner is not None:
-                    self.planner.updatePlan()
+                    self.planner.update_plan()
 
                 fps = float(counter) / (time.clock() - timer)
 
@@ -102,7 +102,7 @@ class Arbiter(object):
         except:
             raise
         finally:
-            self.robotController.close()
+            self.robot_controller.close()
             self.camera.release()
             tools.save_colors(self.pitch, self.calibration)
 
