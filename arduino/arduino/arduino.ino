@@ -10,7 +10,7 @@
 #include <Wire.h>
 
 // Motor numbers
-#define MOTOR_FR 0
+#define MOTOR_FR 5
 #define MOTOR_B 1
 #define MOTOR_FL 2
 #define MOTOR_KICK 3
@@ -19,12 +19,7 @@
 // Drive constants
 #define MOVE_PWR 100
 #define TURN_PWR 50
-#define CRAWL_PWR 75
-
-#define STRAFE_SIDE_F_POWER 70
-#define STRAFE_SIDE_B_POWER 95
-#define STRAFE_SIDE_OFFSET 20
-#define STRAFE_SIDE_OFFSET 20
+#define CRAWL_PWR 80
 
 // Kicker and grabber constants
 #define SHOOT_POWER 100
@@ -39,11 +34,7 @@
 #define GRABBER_POWER 100
 #define GRABBER_TIME 450
 
-// Motor test constants
-#define RUN_MOTORS_POWER 100
-#define RUN_MOTORS_TIME 1000 // per direction
-
-#define STOP_MOTORS_DELAY 150
+#define STOP_MOTORS_DELAY 100
 
 // Command parser
 SerialCommand comm;
@@ -63,20 +54,12 @@ void setup() {
   comm.addCommand("CRAWL_B", crawlBackward);
   comm.addCommand("TURN_L", turnLeft);
   comm.addCommand("TURN_R", turnRight);
-  comm.addCommand("ST_L", strafeL);
-  comm.addCommand("ST_R", strafeR);
-  comm.addCommand("ST_FL", strafeFL);
-  comm.addCommand("ST_FR", strafeFR);
-  comm.addCommand("ST_BL", strafeBL);
-  comm.addCommand("ST_BR", strafeBR);
-  comm.addCommand("GRAB", grabberToggle);
   comm.addCommand("O_GRAB", grabberOpen);
   comm.addCommand("C_GRAB", grabberClose);
   comm.addCommand("SHOOT", shoot);
   comm.addCommand("PASS", pass);
   comm.addCommand("STOP_D", stopDriveMotors);
   comm.addCommand("STOP_A", stopAllMotors);
-  comm.addCommand("MOTORS", runDriveMotors);
   comm.setDefaultHandler(invalidCommand);
 
   Serial.println("<Ready>");
@@ -86,91 +69,41 @@ void loop() {
   comm.readSerial();
 }
 
-
 // Actions
 void forward() {
-  stopDriveMotors();
-  motorForward(MOTOR_FL, MOVE_PWR);
+  motorStop(MOTOR_B);
   motorBackward(MOTOR_FR, MOVE_PWR);
+  motorForward(MOTOR_FL, MOVE_PWR);
 }
 
 void crawlForward() {
-  stopDriveMotors();
-  motorForward(MOTOR_FL, CRAWL_PWR);
+  motorStop(MOTOR_B);
+  motorForward(MOTOR_FL, CRAWL_PWR + 10);
   motorBackward(MOTOR_FR, CRAWL_PWR);
 }
 
 void backward() {
-  stopDriveMotors();
-  motorBackward(MOTOR_FL, MOVE_PWR);
+  motorStop(MOTOR_B);
   motorForward(MOTOR_FR, MOVE_PWR);
+  motorBackward(MOTOR_FL, MOVE_PWR);
 }
 
 void crawlBackward() {
-  stopDriveMotors();
+  motorStop(MOTOR_B);
   motorBackward(MOTOR_FL, CRAWL_PWR);
   motorForward(MOTOR_FR, CRAWL_PWR);
 }
 
-void strafeFL() {
-  stopDriveMotors();
-  motorBackward(MOTOR_FR, MOVE_PWR);
-  motorForward(MOTOR_B, MOVE_PWR);
-}
-
-void strafeFR() {
-  stopDriveMotors();
-  motorForward(MOTOR_FL, MOVE_PWR);
-  motorBackward(MOTOR_B, MOVE_PWR);
-}
-
-void strafeBL() {
-  stopDriveMotors();
-  motorBackward(MOTOR_FL, MOVE_PWR);
-  motorForward(MOTOR_B, MOVE_PWR);
-}
-
-// TODO define constants (and tune)
-void strafeL() {
-  stopDriveMotors();
-  motorBackward(MOTOR_FL, STRAFE_SIDE_F_POWER - STRAFE_SIDE_OFFSET - 1);
-  motorBackward(MOTOR_FR, STRAFE_SIDE_F_POWER);
-  motorForward(MOTOR_B, STRAFE_SIDE_B_POWER); 
-}
-
-// TODO define constants
-void strafeR() {
-  stopDriveMotors();
-  motorForward(MOTOR_FR, STRAFE_SIDE_F_POWER - STRAFE_SIDE_OFFSET);
-  motorForward(MOTOR_FL, STRAFE_SIDE_F_POWER);
-  motorBackward(MOTOR_B, STRAFE_SIDE_B_POWER); 
-}
-void strafeBR() {
-  stopDriveMotors();
-  motorForward(MOTOR_FR, MOVE_PWR);
-  motorBackward(MOTOR_B, MOVE_PWR);
-}
-
 void turnLeft() {
-  stopDriveMotors();
   motorBackward(MOTOR_FL, TURN_PWR);
   motorBackward(MOTOR_FR, TURN_PWR);
-  motorBackward(MOTOR_B, TURN_PWR);
-}
-
-void turnRight() {
-  stopDriveMotors();
-  motorForward(MOTOR_FL, TURN_PWR);
-  motorForward(MOTOR_FR, TURN_PWR);
   motorForward(MOTOR_B, TURN_PWR);
 }
 
-void grabberToggle() {
-  if (!grabber_open) {
-    grabberOpen();
-  } else {
-    grabberClose();
-  }
+void turnRight() {
+  motorForward(MOTOR_FL, TURN_PWR);
+  motorForward(MOTOR_FR, TURN_PWR);
+  motorBackward(MOTOR_B, TURN_PWR);
 }
 
 void grabberClose() {
@@ -223,22 +156,6 @@ void resetKicker() {
     grabberOpen();
     resetKicker();
   }
-}
-
-void runDriveMotors() {
-  Serial.println("Running the drive motors forward (clockwise)");
-  motorForward(MOTOR_FL, RUN_MOTORS_POWER);
-  motorForward(MOTOR_B, RUN_MOTORS_POWER);
-  motorForward(MOTOR_FR, RUN_MOTORS_POWER);
-  delay(RUN_MOTORS_TIME);
-  stopDriveMotors();
-  
-  Serial.println("Running the drive motors backward (anti-clockwise)");
-  motorBackward(MOTOR_FL, RUN_MOTORS_POWER);
-  motorBackward(MOTOR_B, RUN_MOTORS_POWER);
-  motorBackward(MOTOR_FR, RUN_MOTORS_POWER);
-  delay(RUN_MOTORS_TIME);
-  stopDriveMotors();
 }
 
 void stopDriveMotors() {
