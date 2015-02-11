@@ -193,5 +193,6 @@ void ack() {
     ack_bit = true;
     Serial.println("0");
   }
+  Serial.flush();  // force send
 }
 void invalidCommand(const char* command) {}

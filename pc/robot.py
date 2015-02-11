@@ -89,6 +89,7 @@ class Robot(object):
             self.command(self.last_command)
         elif ack[0] == self.ack_bit:
             self.ack_bit = '1' if self.ack_bit == '0' else '1'
+            self.serial.flushInput()
 
 
 class ManualController(object):
