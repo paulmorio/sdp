@@ -7,6 +7,15 @@
   This code implements an alternating bit protocol for use with the
   robot.py module. Please adhere to the existing examples when writing
   code as failing to acknowledge commands will result in very bad things.
+  
+  An example command implementation adhering to this protocol would be
+  structured as follows:
+  void command() {
+    arg1 = comm.next() // Fixed number of arguments
+    arg2 = comm.next()
+    ack(comm.next()) // Acknowledge once args are read
+    doStuff();
+  }
 */
 
 #include <SDPArduino.h>
@@ -204,4 +213,5 @@ void ack(String ack_bit) {
   Serial.println(ack_bit);
   Serial.flush();  // force send
 }
+
 void invalidCommand(const char* command) {}

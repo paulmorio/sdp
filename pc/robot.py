@@ -92,7 +92,10 @@ class Robot(object):
         """
         ack = self.serial.readline()  # returns empty string on timeout
         if ack != '' and ack[0] == self.ack_bit:  # Successful ack
-            self.ack_bit = '1' if self.ack_bit == '0' else '1'
+            if self.ack_bit == '1':
+                self.ack_bit = '0'
+            else:
+                self.ack_bit = '1'
         else:  # No ack within timeout - resend command
             self.command(self.last_command)
 
