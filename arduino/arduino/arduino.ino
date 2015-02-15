@@ -13,9 +13,8 @@
 #include <Wire.h>
 
 // Motor numbers
-#define MOTOR_FR 5
-#define MOTOR_B 1
-#define MOTOR_FL 2
+#define MOTOR_L 1
+#define MOTOR_R 2
 #define MOTOR_KICK 3
 #define MOTOR_GRAB 4
 
@@ -83,44 +82,44 @@ void isReady() {
 // Actions
 void forward() {
   ack(comm.next());
-  motorStop(MOTOR_B);
-  motorBackward(MOTOR_FR, MOVE_PWR);
-  motorForward(MOTOR_FL, MOVE_PWR);
+  //motorStop(MOTOR_B);
+  motorForward(MOTOR_L, MOVE_PWR);
+  motorForward(MOTOR_R, MOVE_PWR);
 }
 
 void crawlForward() {
   ack(comm.next());
-  motorStop(MOTOR_B);
-  motorForward(MOTOR_FL, CRAWL_PWR);
-  motorBackward(MOTOR_FR, CRAWL_PWR);
+  //motorStop(MOTOR_B);
+  motorForward(MOTOR_L, MOVE_PWR);
+  motorForward(MOTOR_R, MOVE_PWR);
 }
 
 void backward() {
   ack(comm.next());
-  motorStop(MOTOR_B);
-  motorForward(MOTOR_FR, MOVE_PWR);
-  motorBackward(MOTOR_FL, MOVE_PWR);
+  //motorStop(MOTOR_B);
+  motorBackward(MOTOR_L, MOVE_PWR);
+  motorBackward(MOTOR_R, MOVE_PWR);
 }
 
 void crawlBackward() {
   ack(comm.next());
-  motorStop(MOTOR_B);
-  motorBackward(MOTOR_FL, CRAWL_PWR);
-  motorForward(MOTOR_FR, CRAWL_PWR);
+  //motorStop(MOTOR_B);
+  motorBackward(MOTOR_L, MOVE_PWR);
+  motorBackward(MOTOR_R, MOVE_PWR);
 }
 
 void turnLeft() {
   ack(comm.next());
-  motorBackward(MOTOR_FL, TURN_PWR);
-  motorBackward(MOTOR_FR, TURN_PWR);
-  motorForward(MOTOR_B, TURN_PWR);
+  //motorStop(MOTOR_B);
+  motorBackward(MOTOR_L, MOVE_PWR);
+  motorForward(MOTOR_R, MOVE_PWR);
 }
 
 void turnRight() {
   ack(comm.next());
-  motorForward(MOTOR_FL, TURN_PWR);
-  motorForward(MOTOR_FR, TURN_PWR);
-  motorBackward(MOTOR_B, TURN_PWR);
+  //motorStop(MOTOR_B);
+  motorForward(MOTOR_L, MOVE_PWR);
+  motorBackward(MOTOR_R, MOVE_PWR);
 }
 
 void grabberToggle() {
@@ -190,7 +189,6 @@ void resetKicker() {
 void stopDriveMotors() {
   ack(comm.next());
   motorStop(MOTOR_FL);
-  motorStop(MOTOR_B);
   motorStop(MOTOR_FR);
 }
 
