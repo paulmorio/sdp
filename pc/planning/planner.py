@@ -54,7 +54,7 @@ class Planner:
             self.strategy.reset()
         return self.transitions[self.state]
 
-    def plan(self):
+    def update_plan(self):
         """
         Run the appropriate planner for the given profile.
         """

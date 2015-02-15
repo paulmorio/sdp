@@ -1,6 +1,6 @@
 from pc.models.worldmodel import WorldUpdater, World
 from pc.vision import tools, calibrationgui, visiongui, camera, vision
-from pc.planner import Planner
+from pc.planning.planner import Planner
 from pc.robot import Robot
 import cv2
 import time
@@ -11,7 +11,7 @@ class Arbiter(object):
     Ties vision/state to planning/communication.
     """
 
-    def __init__(self, pitch, colour, our_side, role=None,
+    def __init__(self, pitch, colour, our_side, profile=None,
                  video_src=0, comm_port='/dev/ttyACM0', comms=False):
         """
         Entry point for the SDP system. Initialises all components
@@ -55,10 +55,8 @@ class Arbiter(object):
         self.robot_controller = Robot(port=comm_port, comms=comms)
 
         # Set up the planner
-        if role is not None:
-            assert(role in ['defender', 'attacker', 'dog'])
-            mode = role
-            self.planner = Planner(self.world, self.robot_controller, mode)
+        if profile is not None:
+            self.planner = Planner(self.world, self.robot_controller, profile)
         else:
             self.planner = None
 
@@ -121,7 +119,7 @@ if __name__ == '__main__':
         "side", help="The side of our defender ['left', 'right'] allowed."
     )
     parser.add_argument(
-        "role", help="The robot's role - ['defender', 'attacker', 'dog']"
+        "profile", help="The planning profile - ['attacker', 'passer']"
     )
     parser.add_argument(
         "-t", "--tablesetup",
