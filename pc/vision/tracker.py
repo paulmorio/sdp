@@ -36,8 +36,9 @@ class Tracker(object):
             frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
             # Create a mask
-            frame_mask = cv2.inRange(frame_hsv, adjustments['min'],
-                                     adjustments['max'])
+            # TODO - make this less of a shitty hack
+            frame_mask = cv2.inRange(frame_hsv, adjustments['min'][:3],
+                                     adjustments['max'][:3])
 
             # Apply threshold to the masked image, no idea what the values mean
             return_val, threshold = cv2.threshold(frame_mask, 127, 255, 0)
@@ -402,8 +403,9 @@ class BallTracker(Tracker):
             contours, hierarchy, mask = self.preprocess(
                 frame,
                 self.crop,
-                color['min'],
-                color['max'],
+                # TODO - make this less of a shitty hack
+                color['min'][:3],
+                color['max'][:3],
                 color['contrast'],
                 color['blur']
             )
