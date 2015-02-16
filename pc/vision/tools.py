@@ -75,10 +75,14 @@ def get_colors(pitch=0, filename=PATH+'/calibrations/calibrations.json'):
     # convert mins and maxes into np.array
     for key in current:
         key_dict = current[key]
-        if 'min' in key_dict:
-            key_dict['min'] = np.array(tuple(key_dict['min']))
-        if 'max' in key_dict:
-            key_dict['max'] = np.array(tuple(key_dict['max']))
+        if 'hsv_min' in key_dict:
+            key_dict['hsv_min'] = np.array(tuple(key_dict['hsv_min']))
+        if 'hsv_max' in key_dict:
+            key_dict['hsv_max'] = np.array(tuple(key_dict['hsv_max']))
+        if 'rgb_min' in key_dict:
+            key_dict['rgb_min'] = np.array(tuple(key_dict['rgb_min']))
+        if 'rgb_max' in key_dict:
+            key_dict['rgb_max'] = np.array(tuple(key_dict['rgb_max']))
 
     return current
 
@@ -91,10 +95,14 @@ def save_colors(pitch, colors, filename=PATH+'/calibrations/calibrations.json'):
     # convert np.arrays into lists
     for key in colors:
         key_dict = colors[key]
-        if 'min' in key_dict:
-            key_dict['min'] = list(key_dict['min'])
-        if 'max' in key_dict:
-            key_dict['max'] = list(key_dict['max'])
+        if 'hsv_min' in key_dict:
+            key_dict['hsv_min'] = list(key_dict['hsv_min'])
+        if 'hsv_max' in key_dict:
+            key_dict['hsv_max'] = list(key_dict['hsv_max'])
+        if 'rgb_min' in key_dict:
+            key_dict['rgb_min'] = list(key_dict['rgb_min'])
+        if 'rgb_max' in key_dict:
+            key_dict['rgb_max'] = list(key_dict['rgb_max'])
 
     if machine_name in json_content:
         json_content[machine_name][pitch_name].update(colors)

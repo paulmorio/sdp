@@ -35,12 +35,20 @@ class Tracker(object):
             # Convert frame to HSV
             frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-            # Create a mask
-            # TODO - make this less of a shitty hack
-            frame_mask = cv2.inRange(frame_hsv, adjustments['min'][:3],
-                                     adjustments['max'][:3])
+            # Create a HSV mask
+            hsv_frame_mask = cv2.inRange(frame_hsv, adjustments['hsv_min'], adjustments['hsv_max'])
+
+            # Create a RGB mask
+            rgb_frame_mask = cv2.inRange(frame_hsv, adjustments['rgb_min'], adjustments['rgb_max'])
+
+            # Use HSV and RGB mask to create the resultant mask
+            frame_mask = cv2.bitwise_and(hsv_frame_mask, hsv_frame_mask, mask=rgb_frame_mask)
 
             # Apply threshold to the masked image, no idea what the values mean
+
+            # This converts a greyscale (ie 1-channel) image to a black-white image
+            # Converts everything with value <(<= ?) 127 to black, >(>= ?) 127 to white
+            # The range of values is 0-255, so this produces a nice halfway split
             return_val, threshold = cv2.threshold(frame_mask, 127, 255, 0)
 
             # Find contours
@@ -51,12 +59,13 @@ class Tracker(object):
             )
             return contours
         except:
+            print "Exception in get_contours (tracker.py)"
             return None
 
     # TODO this function is a mess - probably hacked together at last minute
     # TODO Kernel mask and erosion were left in unused
     # TODO: Used by Ball tracker - REFACTOR
-    def preprocess(self, frame, crop, min_color, max_color, contrast, blur):
+    def preprocess(self, frame, crop, min_hsv_color, max_hsv_color, min_rgb_color, max_rgb_color, contrast, blur):
         # Crop frame
         frame = frame[crop[2]:crop[3], crop[0]:crop[1]]
 
@@ -73,8 +82,14 @@ class Tracker(object):
         # Convert frame to HSV
         frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-        # Create a mask
-        frame_mask = cv2.inRange(frame_hsv, min_color, max_color)
+        # Create a HSV mask
+        hsv_frame_mask = cv2.inRange(frame_hsv, min_hsv_color, max_hsv_color)
+
+        # Create a RGB mask
+        rgb_frame_mask = cv2.inRange(frame, min_rgb_color, max_rgb_color)
+
+        # Use HSV and RGB mask to create the resultant mask
+        frame_mask = cv2.bitwise_and(hsv_frame_mask, hsv_frame_mask, mask=rgb_frame_mask)
 
         # Apply threshold to the masked image, no idea what the values mean
         return_val, threshold = cv2.threshold(frame_mask, 127, 255, 0)
@@ -403,9 +418,10 @@ class BallTracker(Tracker):
             contours, hierarchy, mask = self.preprocess(
                 frame,
                 self.crop,
-                # TODO - make this less of a shitty hack
-                color['min'][:3],
-                color['max'][:3],
+                color['hsv_min'],
+                color['hsv_max'],
+                color['rgb_min'],
+                color['rgb_max'],
                 color['contrast'],
                 color['blur']
             )
