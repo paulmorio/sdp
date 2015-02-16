@@ -46,10 +46,22 @@ class Planner(object):
         elif self._profile == 'passer':
             self.passer_transition()
 
-        plan = self._strategy.get_plan()
+        plan = self._strategy.get_action()
         if plan is not None:
             pass
             # TODO send plan/action to robot controller
+
+    def update_strategy(self):
+        """
+        Set the appropriate strategy given the current state.
+        If you wish to switch to a 'fresh' copy of the current
+        strategy then you must explicitly call its reset method.
+        """
+        # If new strategy is actually new.
+        new_strategy = self._strategies[self._state]
+        if new_strategy is not self._strategy:
+            self._strategy.reset()
+            self._strategy = new_strategy
 
     def attacker_transition(self):
         """
@@ -85,15 +97,3 @@ class Planner(object):
 
     def passer_transition(self):
         pass
-
-    def update_strategy(self):
-        """
-        Set the appropriate strategy given the current state.
-        If you wish to switch to a 'fresh' copy of the current
-        strategy then you must explicitly call its reset method.
-        """
-        # If new strategy is actually new.
-        new_strategy = self._strategies[self._state]
-        if new_strategy is not self._strategy:
-            self._strategy.reset()
-            self._strategy = new_strategy

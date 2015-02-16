@@ -6,10 +6,12 @@ class Strategy(object):
     A base class on which other strategies should be built. Sets up the
     interface used by the Planner class.
     """
-    def __init__(self, world, states):
+    def __init__(self, world, states, action_map):
+        self._STATES = states
+        self._STATE_ACTION_MAP = action_map
+        assert(self.all_states_mapped())
         self._world = world
-        self._states = states
-        self._state = states[0]
+        self._state = self._STATES[0]
 
     @property
     def state(self):
@@ -25,24 +27,35 @@ class Strategy(object):
         Set a new state.
         :param new_state: New state to be set. Must be valid else AssertionError
         """
-        assert (new_state in self._states)
+        assert (new_state in self._STATES)
         self._state = new_state
 
     def reset(self):
         """Reset the Strategy object to its initial state."""
-        self._state = self._states[0]
+        self._state = self._STATES[0]
 
     def final_state(self):
         """Return True if the current state is final."""
-        return self._state == self._states[-1]
+        return self._state == self._STATES[-1]
 
-    def get_plan(self):
+    def get_action(self):
         """Return the next robot action"""
-        return None
+        action_method = self._STATE_ACTION_MAP[self.state]
+        if action_method:
+            return action_method()
 
-    # Actions
+    def all_states_mapped(self):
+        """Return True if all states are mapped to functions"""
+        for state in self._STATES:
+            if state not in self._STATE_ACTION_MAP:
+                return False
+        return True
+
     def do_nothing(self):
-        """Tell the planner that there is no new action to perform."""
+        """
+        Dummy action for strategies - usually used when in final state.
+        :return: None
+        """
         return None
 
 
@@ -52,17 +65,16 @@ class Idle(Strategy):
     to if the ball is unreachable. This strategy has the robot return to its
     initial position.
     """
-    STATES = [REPOSITION, REORIENT, IDLE]
 
     def __init__(self, world):
-        super(Idle, self).__init__(world, self.STATES)
-
-        # Given the current state, return the method to be run
-        self.STATE_ACTION_MAP = {
+        states = [REPOSITION, REORIENT, IDLE]
+        action_map = {
             REPOSITION: self.move_to_origin,
             REORIENT: self.face_pitch_center,
-            IDLE: do_nothing
+            IDLE: self.do_nothing
         }
+
+        super(Idle, self).__init__(world, states, action_map)
 
     # Actions
     def move_to_origin(self):
@@ -78,6 +90,7 @@ class Idle(Strategy):
         :return: An action to be performed by the robot.
         """
         pass
+
 
 
 class Intercept(Strategy):
@@ -96,9 +109,3 @@ class PassBall(Strategy):
     pass
 
 
-def do_nothing():
-    """
-    Dummy action for strategies - usually used when in final state.
-    :return: None
-    """
-    return None
