@@ -15,6 +15,7 @@
 # Temporary files #
 ###################
 *.swp
+*.tmp
 
 # Virtual environment #
 #######################
