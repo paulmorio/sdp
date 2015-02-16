@@ -79,14 +79,14 @@ class Idle(Strategy):
     # Actions
     def move_to_origin(self):
         """
-        Move to the robot's origin.
+        Move to the robot's origin. Alter the strategy state when necessary.
         :return: An action to be performed by the robot.
         """
         pass
 
     def face_pitch_center(self):
         """
-        Face the center of the pitch - ready for kick-off
+        Face the center of the pitch. Alter the strategy state when necessary.
         :return: An action to be performed by the robot.
         """
         pass
