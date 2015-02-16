@@ -85,7 +85,7 @@ class Arbiter(object):
 
                 # Act on the updated world model
                 if self.planner is not None:
-                    self.planner.update_plan()
+                    self.planner.plan()
 
                 fps = float(counter) / (time.clock() - timer)
 

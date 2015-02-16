@@ -1,14 +1,8 @@
-from tools import *
+from strategies import *
+from utilities import *
 
 
-# Top-level state constants
-NO_BALL = 'no_ball'  # Ball not yet seen, not in play areas (init state)
-BALL_UNREACHABLE = 'ball_unreachable'  # Ball not in our margin
-BALL_REACHABLE = 'ball_reachable'  # Ball in our margin
-POSSESSION = 'have_possession'  # Our robot has the ball in its grabber
-
-
-class Planner:
+class Planner(object):
 
     def __init__(self, world, robot_controller, profile):
         """
@@ -17,97 +11,89 @@ class Planner:
         :param robot_controller: Robot control object from pc.robot
         :param profile: Planning profile.
         """
-        self.world = world
-        self.robot_controller = robot_controller
+        self._world = world
+        self._our_robot = self._world.our_attacker
+        self._robot_controller = robot_controller
 
         assert (profile in ['attacker', 'passer'])
-        self.profile = profile
+        self._profile = profile
 
-        # Transition dictionaries return a strategy given a state.
-        if self.profile == 'attacker':  # MS2+
-            self.transitions = {
-                NO_BALL: Idle(self.world),
-                BALL_UNREACHABLE: Intercept(self.world),
-                BALL_REACHABLE: GetBall(self.world),
-                POSSESSION: ShootBall(self.world)
+        # Strategy dictionaries return a strategy given a state.
+        if self._profile == 'attacker':  # MS2+
+            self._strategies = {
+                NO_BALL: Idle(self._world),
+                BALL_UNREACHABLE: Intercept(self._world),
+                BALL_REACHABLE: GetBall(self._world),
+                POSSESSION: ShootBall(self._world)
             }
-            self.state = NO_BALL
-        elif self.profile == 'passer':  # MS3
-            self.transitions = {
-                NO_BALL: Idle(self.world),
-                BALL_UNREACHABLE: Intercept(self.world),
-                BALL_REACHABLE: GetBall(self.world),
-                POSSESSION: PassBall(self.world)
+        elif self._profile == 'passer':  # MS3
+            self._strategies = {
+                NO_BALL: Idle(self._world),
+                BALL_UNREACHABLE: Intercept(self._world),
+                BALL_REACHABLE: GetBall(self._world),
+                POSSESSION: PassBall(self._world)
             }
         # Choose initial strategy
-        self.state = NO_BALL
-        self.strategy = self.transition()
+        self._state = NO_BALL
+        self._strategy = None
+        self.update_strategy()
 
-    def transition(self):
-        """
-        Transition to the appropriate strategy state given the current
-        strategy and top-level state.
-        :return: Strategy object
-        """
-        if self.strategy is not None:
-            # Reset the state of the strategy before transitioning
-            self.strategy.reset()
-        return self.transitions[self.state]
+    def plan(self):
+        """Update planner state before commanding the robot."""
+        # Run the appropriate transition function
+        if self._profile == 'attacker':
+            self.attacker_transition()
+        elif self._profile == 'passer':
+            self.passer_transition()
 
-    def update_plan(self):
-        """
-        Run the appropriate planner for the given profile.
-        """
-        plan = None
-        if self.profile == 'attacker':
-            plan = self.attacker_plan()
-        elif self.profile == 'passer':
-            plan = self.passer_plan()
+        plan = self._strategy.get_plan()
         if plan is not None:
             pass
             # TODO send plan/action to robot controller
 
-    def attacker_plan(self):
+    def attacker_transition(self):
         """
-        Determine new strategy given the current world state. MS2
-        :return: Plan/action for robot.
+        For the attacker profile.
+        Update the planner state and strategy given the current state of the
+        world model.
         """
-        # Get relevant world objects
-        our_attacker = self.world.our_attacker
-
         # If the ball is not in play
-        if not self.world.ball_in_play():
-            if self.state != NO_BALL:
-                self.state = NO_BALL
-                self.transition()
-            return self.strategy.get_plan()
+        if not self._world.ball_in_play():
+            self._state = NO_BALL
 
         # If ball is in play but unreachable (outwith our margin)
-        elif not self.world.ball_in_area([our_attacker]):
-            if not self.state == BALL_UNREACHABLE:
-                self.state = BALL_UNREACHABLE
-                self.transition()
-            return self.strategy.get_plan()
+        elif not self._world.ball_in_area([self._our_robot]):
+            self._state = BALL_UNREACHABLE
 
         # If ball is in our margin
-        elif self.world.ball_in_area([our_attacker]):
-
-            # Chasing ball and successfully grabbed
-            if self.state == BALL_REACHABLE and self.strategy.state == GRABBED:
-                self.state = POSSESSION
-                self.transition()
-
-            # Had ball and have kicked
-            elif self.state == POSSESSION and self.strategy.state == KICKED:
-                self.state = BALL_REACHABLE
-                self.transition()
+        elif self._world.ball_in_area([self._our_robot]):
 
             # Ball has just become reachable
-            elif self.state == BALL_UNREACHABLE or self.state == NO_BALL:
-                self.state = BALL_REACHABLE
-                self.transition()
+            if self._state == BALL_UNREACHABLE or self._state == NO_BALL:
+                self._state = BALL_REACHABLE
 
-            return self.strategy.get_plan()
+            # Check for strategy final state
+            if self._strategy.final_state():
+                if isinstance(self._strategy, GetBall):
+                    self._state = POSSESSION
 
-    def passer_plan(self):
+                # Had ball and have kicked
+                elif isinstance(self._strategy, ShootBall):
+                    self._state = BALL_REACHABLE
+
+        self.update_strategy()
+
+    def passer_transition(self):
         pass
+
+    def update_strategy(self):
+        """
+        Set the appropriate strategy given the current state.
+        If you wish to switch to a 'fresh' copy of the current
+        strategy then you must explicitly call its reset method.
+        """
+        # If new strategy is actually new.
+        new_strategy = self._strategies[self._state]
+        if new_strategy is not self._strategy:
+            self._strategy.reset()
+            self._strategy = new_strategy
