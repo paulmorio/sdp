@@ -33,7 +33,7 @@ void requestEvent() {
   // NB: this must be called frequently by the master else overflow is likely
   if (motorLDiff < 0) motorLDiff = -motorLDiff;
   if (motorRDiff < 0) motorRDiff = -motorRDiff;
-  Wire.write((motorLDiff << 8) + motorRDiff, 2);  // Left then right
+  Wire.write((motorLDiff << 8) + motorRDiff);  // Left then right
   motorLDiff = 0;
   motorRDiff = 0;
 }
