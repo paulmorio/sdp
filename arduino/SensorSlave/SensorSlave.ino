@@ -31,4 +31,3 @@ void sendDiffs() {
   lMotorDiff = 0;
   rMotorDiff = 0;
 }
-
