@@ -14,9 +14,9 @@
 
 // Motor numbers
 #define MOTOR_L 0
-#define MOTOR_R 2
-#define MOTOR_KICK 4
-#define MOTOR_GRAB 5
+#define MOTOR_R 1
+#define MOTOR_KICK 2
+#define MOTOR_GRAB 3
 
 #define MOVE_PWR 100
 
@@ -33,16 +33,13 @@ SerialCommand comm;
 // States and counters
 boolean grabber_open = false;
 boolean kicker_ready = true;
-boolean motorLMoving = false;
 int motorLDist = 0;
-boolean motorRMoving = false;
+int motorLDir = 0;  // -1 bw, 0 stopped; 1 fwd
 int motorRDist = 0;
+int motorRDir = 0;
 
 void setup() {
-  // Using library set up - it's fine
   SDPsetup();
-  
-  // Set up command action bindings
   comm.addCommand("MOVE", move);
   comm.addCommand("O_GRAB", grabberOpen);
   comm.addCommand("C_GRAB", grabberClose);
@@ -53,9 +50,7 @@ void setup() {
 }
 
 void loop() {
-  // Check motor counters and stop if expired
   checkMotors();
-  // Read and perform next command from serial if available
   comm.readSerial();
 }
 
@@ -78,25 +73,29 @@ void move() {
   motorLDist = atoi(comm.next());
   motorRDist = atoi(comm.next());
 
-  if (motorLDist < 0) {  // Backward - dist is neg
-    motorLMoving = true;
-    motorLDist = -motorLDist;
+  if (motorLDist < 0) {
+    motorLDir = -1;  // Bwd
     motorBackward(MOTOR_L, MOVE_PWR);
-  } else if (motorLDist > 0) {  // Forward - dist is pos
-    motorLMoving = true;
+  } 
+  else if (motorLDist > 0) {
+    motorLDir = 1;  // Fwd
     motorForward(MOTOR_L, MOVE_PWR);
-  } else {  // Stop - dist is 0
+  } 
+  else { 
+    motorLDir = 0;  // stopped
     motorStop(MOTOR_L);
   }
   
-  if (motorRDist < 0) {  // Backward - dist is neg
-    motorRMoving = true;
-    motorRDist = -motorRDist;
+  if (motorRDist < 0) {
+    motorRDir = -1;
     motorBackward(MOTOR_R, MOVE_PWR);
-  } else if (motorRDist > 0) {  // Forward - dist is pos
-    motorRDist = true;
+  } 
+  else if (motorRDist > 0) {
+    motorRDir = 1;
     motorForward(MOTOR_R, MOVE_PWR);
-  } else {  // Stop - dist is 0
+  } 
+  else {
+    motorRDir = 0;
     motorStop(MOTOR_R);
   }
 }
@@ -104,7 +103,8 @@ void move() {
 void grabberToggle() {
   if (grabber_open) {
     grabberClose();
-  } else {
+  } 
+  else {
     grabberOpen();
   }
 }
@@ -142,24 +142,36 @@ void kick() {
 
 void checkMotors() {
   // Get sensor info from slave
-  int bytesReceived = Wire.requestFrom(5, 2, true);
+  int bytesReceived = Wire.requestFrom(5, 2);
+  int8_t motorLDiff = 0;
+  int8_t motorRDiff = 0;
+  
   if (bytesReceived) {
-      int motorLDiff = Wire.read();
-      int motorRDiff = Wire.read();
-      delay(1000);
-      Serial.println(motorLDiff);
-      Serial.println(motorRDiff);
-      // Update counters, test for completion
-      /// L update and completion test
-      if (motorLMoving && (motorLDist -= motorLDiff) <= 0) {
-          motorLMoving = false;
-          motorStop(MOTOR_L);
-      }
-      /// R update and completion test
-      if (motorRMoving && (motorRDist -= motorRDiff) <= 0) {
-          motorRMoving = false;
-          motorStop(MOTOR_R);  
-      }
+    if (Wire.available()) motorLDiff = Wire.read();
+    if (Wire.available()) motorRDiff = Wire.read();
+    Serial.println(motorLDiff);
+    Serial.println(motorRDiff);
+      
+    // Update counters, test for completion     
+    /// L update and completion test
+    if (motorLDir == 1 && (motorLDist -= motorLDiff) <= 0) {
+      motorLDir = 0;
+      motorStop(MOTOR_L);
+    } 
+    else if (motorLDir == -1 && (motorLDist -= motorLDiff) >= 0) {
+      motorLDir = 0;
+      motorStop(MOTOR_L);
+    }
+      
+    /// R update and completion test
+    if (motorRDir == 1 && (motorRDist -= motorRDiff) <= 0) {
+      motorRDir = 0;
+      motorStop(MOTOR_R);
+    } 
+    else if (motorRDir == -1 && (motorRDist -= motorRDiff) >= 0) {
+      motorRDir = 0;
+      motorStop(MOTOR_R);
+    }
   }
 }   
 
