@@ -18,21 +18,11 @@
 #define MOTOR_KICK 4
 #define MOTOR_GRAB 5
 
-// Drive constants
 #define MOVE_PWR 100
-#define TURN_PWR 50
-#define CRAWL_PWR 65
-#define SLOWT_PWR 65
 
 // Kicker and grabber constants
-#define SHOOT_POWER 100
-#define SHOOT_SWING_TIME 220
-
-#define PASS_POWER 75
-#define PASS_SWING_TIME 190
-
-#define KICKER_RESET_POWER 100
-#define KICKER_RESET_TIME 190
+#define KICK_POWER 100
+#define KICK_TIME 200
  
 #define GRABBER_POWER 100
 #define GRABBER_TIME 220
@@ -40,35 +30,32 @@
 // Command parser
 SerialCommand comm;
 
-// States
+// States and counters
 boolean grabber_open = false;
 boolean kicker_ready = true;
+boolean motorLMoving = false;
+int motorLDist = 0;
+boolean motorRMoving = false;
+int motorRDist = 0;
 
 void setup() {
   // Using library set up - it's fine
   SDPsetup();
   
   // Set up command action bindings
-  comm.addCommand("FWD", forward);
-  comm.addCommand("CRAWL_F", crawlForward);
-  comm.addCommand("BACK", backward);
-  comm.addCommand("CRAWL_B", crawlBackward);
-  comm.addCommand("TURN_L", turnLeft);
-  comm.addCommand("TURN_R", turnRight);
+  comm.addCommand("MOVE", move);
   comm.addCommand("O_GRAB", grabberOpen);
   comm.addCommand("C_GRAB", grabberClose);
   comm.addCommand("GRAB", grabberToggle);
-  comm.addCommand("SHOOT", shoot);
-  comm.addCommand("PASS", pass);
-  comm.addCommand("STOP_D", stopDriveMotors);
-  comm.addCommand("STOP_A", stopAllMotors);
+  comm.addCommand("KICK", kick);
   comm.addCommand("READY", isReady);
-  comm.addCommand("SLOWT_R", SlowturnRight);
-  comm.addCommand("SLOWT_L", SlowturnLeft);
   comm.setDefaultHandler(invalidCommand);
 }
 
 void loop() {
+  // Check motor counters and stop if expired
+  checkMotors();
+  // Read and perform next command from serial if available
   comm.readSerial();
 }
 
@@ -79,64 +66,39 @@ void isReady() {
    */
   ack(comm.next());
   grabberClose();
-  stopAllMotors();
 }
 
 // Actions
-void forward() {
+void move() {
   ack(comm.next());
-  //motorStop(MOTOR_B);
-  motorForward(MOTOR_L, MOVE_PWR);
-  motorForward(MOTOR_R, MOVE_PWR);
-}
+  
+  // Arguments are the number of 'ticks' (15 deg increments) 
+  // for each motor to travel. Sign determines direction.
+  // Giving 0 args will explicitly stop the corresponding motor(s)
+  motorLDist = atoi(comm.next());
+  motorRDist = atoi(comm.next());
 
-void crawlForward() {
-  ack(comm.next());
-  //motorStop(MOTOR_B);
-  motorForward(MOTOR_L, CRAWL_PWR);
-  motorForward(MOTOR_R, CRAWL_PWR);
-}
-
-void backward() {
-  ack(comm.next());
-  //motorStop(MOTOR_B);
-  motorBackward(MOTOR_L, MOVE_PWR);
-  motorBackward(MOTOR_R, MOVE_PWR);
-}
-
-void crawlBackward() {
-  ack(comm.next());
-  //motorStop(MOTOR_B);
-  motorBackward(MOTOR_L, CRAWL_PWR);
-  motorBackward(MOTOR_R, CRAWL_PWR);
-}
-
-void turnLeft() {
-  ack(comm.next());
-  //motorStop(MOTOR_B);
-  motorBackward(MOTOR_L, MOVE_PWR);
-  motorForward(MOTOR_R, MOVE_PWR);
-}
-
-void turnRight() {
-  ack(comm.next());
-  //motorStop(MOTOR_B);
-  motorForward(MOTOR_L, MOVE_PWR);
-  motorBackward(MOTOR_R, MOVE_PWR);
-}
-
-void SlowturnLeft() {
-  ack(comm.next());
-  //motorStop(MOTOR_B);
-  motorBackward(MOTOR_L, SLOWT_PWR);
-  motorForward(MOTOR_R, SLOWT_PWR);
-}
-
-void SlowturnRight() {
-  ack(comm.next());
-  //motorStop(MOTOR_B);
-  motorForward(MOTOR_L, SLOWT_PWR);
-  motorBackward(MOTOR_R, SLOWT_PWR);
+  if (motorLDist < 0) {  // Backward - dist is neg
+    motorLMoving = true;
+    motorLDist = -motorLDist;
+    motorBackward(MOTOR_L, MOVE_PWR);
+  } else if (motorLDist > 0) {  // Forward - dist is pos
+    motorLMoving = true;
+    motorForward(MOTOR_L, MOVE_PWR);
+  } else {  // Stop - dist is 0
+    motorStop(MOTOR_L);
+  }
+  
+  if (motorRDist < 0) {  // Backward - dist is neg
+    motorRMoving = true;
+    motorRDist = -motorRDist;
+    motorBackward(MOTOR_R, MOVE_PWR);
+  } else if (motorRDist > 0) {  // Forward - dist is pos
+    motorRDist = true;
+    motorForward(MOTOR_R, MOVE_PWR);
+  } else {  // Stop - dist is 0
+    motorStop(MOTOR_R);
+  }
 }
 
 void grabberToggle() {
@@ -149,63 +111,61 @@ void grabberToggle() {
 
 void grabberClose() {
   ack(comm.next());
-  //if (grabber_open) {
+  if (grabber_open) {
     motorBackward(MOTOR_GRAB, GRABBER_POWER);
     grabber_open = false;
     delay(GRABBER_TIME);
     motorStop(MOTOR_GRAB);
-  //}
+  }
 }
 
 void grabberOpen() {
   ack(comm.next());
- //if (!grabber_open) {
+  if (!grabber_open) {
     motorForward(MOTOR_GRAB, GRABBER_POWER);
     grabber_open = true;
     delay(GRABBER_TIME);
     motorStop(MOTOR_GRAB);
- // }
-}
-
-void pass() {
-  ack(comm.next());
-  if (kicker_ready && grabber_open) {
-    kicker_ready = false;
-    motorBackward(MOTOR_KICK, PASS_POWER);
-    delay(PASS_SWING_TIME);
-    motorStop(MOTOR_KICK);
-   //  resetKicker();
   }
 }
 
-void shoot() {
+void kick() {
   ack(comm.next());
-  //if (kicker_ready && grabber_open) {
-    //kicker_ready = false;
+  if (grabber_open) {
     motorBackward(MOTOR_KICK, 100);
     delay(50);
     motorForward(MOTOR_KICK, 100);
     delay(200);
     motorStop(MOTOR_KICK);
-    //resetKicker();
-  //}
+  }
 }
 
-
-
-void stopDriveMotors() {
-  ack(comm.next());
-  motorStop(MOTOR_L);
-  motorStop(MOTOR_R);
-}
-
-void stopAllMotors() {
-  ack(comm.next());
-  motorAllStop();
-}
+void checkMotors() {
+  // Get sensor info from slave
+  int bytesReceived = Wire.requestFrom(5, 2, true);
+  if (bytesReceived) {
+      int motorLDiff = Wire.read();
+      int motorRDiff = Wire.read();
+      delay(1000);
+      Serial.println(motorLDiff);
+      Serial.println(motorRDiff);
+      // Update counters, test for completion
+      /// L update and completion test
+      if (motorLMoving && (motorLDist -= motorLDiff) <= 0) {
+          motorLMoving = false;
+          motorStop(MOTOR_L);
+      }
+      /// R update and completion test
+      if (motorRMoving && (motorRDist -= motorRDiff) <= 0) {
+          motorRMoving = false;
+          motorStop(MOTOR_R);  
+      }
+  }
+}   
 
 void ack(String ack_bit) {
   Serial.println(ack_bit);
   Serial.flush();  // force send
 }
+
 void invalidCommand(const char* command) {}
