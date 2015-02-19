@@ -65,25 +65,27 @@ void isReady() {
 
 // Actions
 void move() {
-  ack(comm.next());
+  // ack(comm.next());
   
   // Arguments are the number of 'ticks' (15 deg increments) 
   // for each motor to travel. Sign determines direction.
   // Giving 0 args will explicitly stop the corresponding motor(s)
   motorLDist = atoi(comm.next());
-  motorRDist = atoi(comm.next());
-
+  //motorRDist = atoi(comm.next());
   if (motorLDist < 0) {
     motorLDir = -1;  // Bwd
     motorBackward(MOTOR_L, MOVE_PWR);
+    motorForward(MOTOR_R, MOVE_PWR);
   } 
   else if (motorLDist > 0) {
     motorLDir = 1;  // Fwd
     motorForward(MOTOR_L, MOVE_PWR);
+    motorBackward(MOTOR_R, MOVE_PWR);
   } 
   else { 
     motorLDir = 0;  // stopped
     motorStop(MOTOR_L);
+    motorStop(MOTOR_R);
   }
   
   if (motorRDist < 0) {
@@ -142,36 +144,27 @@ void kick() {
 
 void checkMotors() {
   // Get sensor info from slave
-  int bytesReceived = Wire.requestFrom(5, 2);
+  int bytesReceived = Wire.requestFrom(5, 1);
   int8_t motorLDiff = 0;
-  int8_t motorRDiff = 0;
+  //int8_t motorRDiff = 0;
   
   if (bytesReceived) {
-    if (Wire.available()) motorLDiff = Wire.read();
-    if (Wire.available()) motorRDiff = Wire.read();
-    Serial.println(motorLDiff);
-    Serial.println(motorRDiff);
+    while (Wire.available()) motorLDiff = Wire.read();
+    //if (Wire.available()) motorRDiff = Wire.read();
+    if (motorLDiff) Serial.println(motorLDiff);
       
     // Update counters, test for completion     
     /// L update and completion test
-    if (motorLDir == 1 && (motorLDist -= motorLDiff) <= 0) {
+    if (motorLDir * (motorLDist -= motorLDiff) <= 0) {
       motorLDir = 0;
       motorStop(MOTOR_L);
-    } 
-    else if (motorLDir == -1 && (motorLDist -= motorLDiff) >= 0) {
-      motorLDir = 0;
-      motorStop(MOTOR_L);
+      motorStop(MOTOR_R);
     }
-      
     /// R update and completion test
-    if (motorRDir == 1 && (motorRDist -= motorRDiff) <= 0) {
-      motorRDir = 0;
-      motorStop(MOTOR_R);
-    } 
-    else if (motorRDir == -1 && (motorRDist -= motorRDiff) >= 0) {
-      motorRDir = 0;
-      motorStop(MOTOR_R);
-    }
+    //if (motorRDir * (motorRDist -= motorRDiff) <= 0) {
+    //  motorRDir = 0;
+    //  motorStop(MOTOR_R);
+    //}
   }
 }   
 

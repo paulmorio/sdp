@@ -20,14 +20,13 @@ void loop() {
   
   unsigned char rMotorResult = rightMotor.process();
   if (rMotorResult) {
-    if (rMotorResult == DIR_CW) rMotorDiff++;
-    else if (rMotorResult == DIR_CCW) rMotorDiff--;
+    if (rMotorResult == DIR_CW) rMotorDiff--;
+    else if (rMotorResult == DIR_CCW) rMotorDiff++;
   }
 }
 
 void sendDiffs() {
   Wire.write(lMotorDiff);
-  Wire.write(rMotorDiff);
   lMotorDiff = 0;
   rMotorDiff = 0;
 }
