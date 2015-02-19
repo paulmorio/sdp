@@ -14,25 +14,27 @@
 
 // Motor numbers
 #define MOTOR_L 0
-#define MOTOR_R 1
-#define MOTOR_KICK 2
-#define MOTOR_GRAB 3
+#define MOTOR_R 2
+#define MOTOR_K 4
+#define MOTOR_G 5
 
 #define MOVE_PWR 100
 
 // Kicker and grabber constants
 #define KICK_POWER 100
-#define KICK_TIME 200
+#define KICK_TIME 500
  
-#define GRABBER_POWER 100
-#define GRABBER_TIME 220
+#define GRAB_POWER 100
+#define GRAB_TIME 220
 
 // Command parser
 SerialCommand comm;
 
 // States and counters
-boolean grabber_open = false;
-boolean kicker_ready = true;
+boolean grabberOpen = false;
+unsigned long grabTimer = 0;
+boolean kickerReady = true;
+unsigned long kickTimer = 0;
 int motorLDist = 0;
 int motorLDir = 0;  // -1 bw, 0 stopped; 1 fwd
 int motorRDist = 0;
@@ -41,16 +43,27 @@ int motorRDir = 0;
 void setup() {
   SDPsetup();
   comm.addCommand("MOVE", move);
-  comm.addCommand("O_GRAB", grabberOpen);
-  comm.addCommand("C_GRAB", grabberClose);
-  comm.addCommand("GRAB", grabberToggle);
+  comm.addCommand("O_GRAB", openGrabber);
+  comm.addCommand("C_GRAB", closeGrabber);
   comm.addCommand("KICK", kick);
   comm.addCommand("READY", isReady);
   comm.setDefaultHandler(invalidCommand);
 }
 
 void loop() {
+  // Check kicker and grabber timers
+  time = millis();
+  if (grabTimer && time >= grabTimer) {
+    grabTimer = 0;
+    motorStop(MOTOR_G);
+  }
+  if (kickTimer && time >= kickTimer) {
+    kickTimer = 0;
+    motorStop(MOTOR_K);
+  }
+  // Check motor rotary sensors
   checkMotors();
+  // Read next command
   comm.readSerial();
 }
 
@@ -60,7 +73,7 @@ void isReady() {
     that the robot is ready to receive commands
    */
   ack(comm.next());
-  grabberClose();
+  closeGrabber();
 }
 
 // Actions
@@ -69,7 +82,7 @@ void move() {
   
   // Arguments are the number of 'ticks' (15 deg increments) 
   // for each motor to travel. Sign determines direction.
-  // Giving 0 args will explicitly stop the corresponding motor(s)
+  // Giving 0-value args will stop the corresponding motor(s)
   motorLDist = atoi(comm.next());
   //motorRDist = atoi(comm.next());
   if (motorLDist < 0) {
@@ -88,7 +101,7 @@ void move() {
     motorStop(MOTOR_R);
   }
   
-  if (motorRDist < 0) {
+  /*if (motorRDist < 0) {
     motorRDir = -1;
     motorBackward(MOTOR_R, MOVE_PWR);
   } 
@@ -99,46 +112,32 @@ void move() {
   else {
     motorRDir = 0;
     motorStop(MOTOR_R);
-  }
+  }*/
 }
 
-void grabberToggle() {
-  if (grabber_open) {
-    grabberClose();
-  } 
-  else {
-    grabberOpen();
-  }
-}
-
-void grabberClose() {
+void closeGrabber() {
   ack(comm.next());
-  if (grabber_open) {
-    motorBackward(MOTOR_GRAB, GRABBER_POWER);
-    grabber_open = false;
-    delay(GRABBER_TIME);
-    motorStop(MOTOR_GRAB);
+  if (grabberOpen && !grabTimer) {
+    motorBackward(MOTOR_G, GRAB_POWER);
+    grabberOpen = false;
+    grabTimer = millis() + GRAB_TIME;
   }
 }
 
-void grabberOpen() {
+void openGrabber() {
   ack(comm.next());
-  if (!grabber_open) {
-    motorForward(MOTOR_GRAB, GRABBER_POWER);
-    grabber_open = true;
-    delay(GRABBER_TIME);
-    motorStop(MOTOR_GRAB);
+  if (!grabberOpen && !grabTimer) {
+    motorForward(MOTOR_G, GRAB_POWER);
+    grabberOpen = true;
+    grabTimer = millis() + GRAB_TIME;
   }
 }
 
 void kick() {
   ack(comm.next());
-  if (grabber_open) {
-    motorBackward(MOTOR_KICK, 100);
-    delay(50);
-    motorForward(MOTOR_KICK, 100);
-    delay(200);
-    motorStop(MOTOR_KICK);
+  if (grabberOpen && !kickTimer) {
+    motorForward(MOTOR_K, KICK_POWER);
+    kickTimer = millis() + KICK_TIME;
   }
 }
 
@@ -151,17 +150,15 @@ void checkMotors() {
   if (bytesReceived) {
     while (Wire.available()) motorLDiff = Wire.read();
     //if (Wire.available()) motorRDiff = Wire.read();
-    if (motorLDiff) Serial.println(motorLDiff);
-      
     // Update counters, test for completion     
     /// L update and completion test
-    if (motorLDir * (motorLDist -= motorLDiff) <= 0) {
+    if (motorLDiff && motorLDir * (motorLDist -= motorLDiff) <= 0) {
       motorLDir = 0;
       motorStop(MOTOR_L);
       motorStop(MOTOR_R);
     }
     /// R update and completion test
-    //if (motorRDir * (motorRDist -= motorRDiff) <= 0) {
+    //if (motorRDiff && motorRDir * (motorRDist -= motorRDiff) <= 0) {
     //  motorRDir = 0;
     //  motorStop(MOTOR_R);
     //}
@@ -173,4 +170,7 @@ void ack(String ack_bit) {
   Serial.flush();  // force send
 }
 
-void invalidCommand(const char* command) {}
+void invalidCommand(const char* command) {
+  Serial.print("Invalid command: ");
+  Serial.println(command);
+}
