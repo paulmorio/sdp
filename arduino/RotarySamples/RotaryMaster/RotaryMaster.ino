@@ -7,7 +7,7 @@
  *
  * Rotary encoder positions are printed to serial every 200ms where the
  * first result is that of the encoder attached to the port at 11 o'clock
- * on the slave board (if the I2C ports at at 12 o'clock). The following
+ * on the slave board (with the I2C ports at at 12 o'clock). The following
  * results are in counter-clockwise sequence.
  *
  * Author: Chris Seaton, SDP Group 7 2015
