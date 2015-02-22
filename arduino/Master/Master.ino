@@ -18,8 +18,6 @@
 #define MOTOR_K 4
 #define MOTOR_G 5
 
-#define MOVE_PWR 100
-
 // Kicker and grabber constants
 #define KICK_POWER 100
 #define KICK_TIME 500
@@ -27,22 +25,26 @@
 #define GRAB_POWER 100
 #define GRAB_TIME 220
 
-// Command parser
+// Rotary encoder
+#define ROTARY_SLAVE_ADDRESS 5
+#define ROTARY_COUNT 2
+
+int rotaryMotors[] = {MOTOR_L, MOTOR_R};  // Rotary encoder motor numbers
+int rotaryCounter[ROTARY_COUNT] = {0};  // Counters for rotary encoders
+int motorDir[ROTARY_COUNT] = {0};  // Track direction of rotary encoder motors
+
+// Communications
 SerialCommand comm;
 
-// States and counters
+// Grabber/kicker states, timers
 boolean grabberOpen = false;
 unsigned long grabTimer = 0;
 boolean kickerReady = true;
 unsigned long kickTimer = 0;
-int motorLDist = 0;
-int motorLDir = 0;  // -1 bw, 0 stopped; 1 fwd
-int motorRDist = 0;
-int motorRDir = 0;
 
 void setup() {
   SDPsetup();
-  comm.addCommand("MOVE", move);
+  comm.addCommand("MOVE", drive);
   comm.addCommand("O_GRAB", openGrabber);
   comm.addCommand("C_GRAB", closeGrabber);
   comm.addCommand("KICK", kick);
@@ -52,7 +54,7 @@ void setup() {
 
 void loop() {
   // Check kicker and grabber timers
-  time = millis();
+  unsigned long time = millis();
   if (grabTimer && time >= grabTimer) {
     grabTimer = 0;
     motorStop(MOTOR_G);
@@ -61,9 +63,7 @@ void loop() {
     kickTimer = 0;
     motorStop(MOTOR_K);
   }
-  // Check motor rotary sensors
-  checkMotors();
-  // Read next command
+  checkRotaryMotors();
   comm.readSerial();
 }
 
@@ -76,46 +76,55 @@ void isReady() {
   closeGrabber();
 }
 
-// Actions
-void move() {
-  // ack(comm.next());
+void drive() {
+  /*
+   * Run drive motors L and R for given number of 'ticks' at
+   * the given motor speeds.
+   * Note that I haven't looped this code because we're probably
+   * going to add rotary encoders to the kicker and grabber.
+   * ARGS: [ack] [L_ticks] [L_power] [R_ticks] [R_power]
+   */
+  ack(comm.next());
   
-  // Arguments are the number of 'ticks' (15 deg increments) 
-  // for each motor to travel. Sign determines direction.
-  // Giving 0-value args will stop the corresponding motor(s)
-  motorLDist = atoi(comm.next());
-  //motorRDist = atoi(comm.next());
-  if (motorLDist < 0) {
-    motorLDir = -1;  // Bwd
-    motorBackward(MOTOR_L, MOVE_PWR);
-    motorForward(MOTOR_R, MOVE_PWR);
+  rotaryCounter[0] = atoi(comm.next());
+  int lPower = atoi(comm.next());
+  rotaryCounter[1] = atoi(comm.next());
+  int rPower = atoi(comm.next());
+  
+  // Motor L
+  if (rotaryCounter[0] < 0) {
+    motorDir[0] = -1;  // Bwd
+    motorBackward(MOTOR_L, lPower);
   } 
-  else if (motorLDist > 0) {
-    motorLDir = 1;  // Fwd
-    motorForward(MOTOR_L, MOVE_PWR);
-    motorBackward(MOTOR_R, MOVE_PWR);
+  else if (rotaryCounter[0] > 0) {
+    motorDir[0] = 1;  // Fwd
+    motorForward(MOTOR_L, lPower);
   } 
   else { 
-    motorLDir = 0;  // stopped
+    motorDir[0] = 0;  // stopped
     motorStop(MOTOR_L);
-    motorStop(MOTOR_R);
   }
   
-  /*if (motorRDist < 0) {
-    motorRDir = -1;
-    motorBackward(MOTOR_R, MOVE_PWR);
+  // Motor R 
+  if (rotaryCounter[1] < 0) {
+    motorDir[1] = -1;
+    motorBackward(MOTOR_R, rPower);
   } 
-  else if (motorRDist > 0) {
-    motorRDir = 1;
-    motorForward(MOTOR_R, MOVE_PWR);
+  else if (rotaryCounter[1] > 0) {
+    motorDir[1] = 1;
+    motorForward(MOTOR_R, rPower);
   } 
   else {
-    motorRDir = 0;
+    motorDir[1] = 0;
     motorStop(MOTOR_R);
-  }*/
+  }
 }
 
 void closeGrabber() {
+  /*
+   * Close the grabber with the hardcoded time and motor power
+   * ARGS: [ack]
+   */
   ack(comm.next());
   if (grabberOpen && !grabTimer) {
     motorBackward(MOTOR_G, GRAB_POWER);
@@ -125,6 +134,10 @@ void closeGrabber() {
 }
 
 void openGrabber() {
+  /*
+   * Open the grabber with the hardcoded time and motor power
+   * ARGS: [ack]
+   */
   ack(comm.next());
   if (!grabberOpen && !grabTimer) {
     motorForward(MOTOR_G, GRAB_POWER);
@@ -134,6 +147,11 @@ void openGrabber() {
 }
 
 void kick() {
+  /*
+   * Run the kicker with the hardcoded time and motor power.
+   * Grabber must be open.
+   * ARGS: [ack]
+   */
   ack(comm.next());
   if (grabberOpen && !kickTimer) {
     motorForward(MOTOR_K, KICK_POWER);
@@ -141,33 +159,24 @@ void kick() {
   }
 }
 
-void checkMotors() {
-  // Get sensor info from slave
-  int bytesReceived = Wire.requestFrom(5, 1);
-  int8_t motorLDiff = 0;
-  //int8_t motorRDiff = 0;
+void checkRotaryMotors() {
+  /* Update the rotary counters and stop motors when necessary. */
+  // Get rotary diffs from slave
+  Wire.requestFrom(ROTARY_SLAVE_ADDRESS, ROTARY_COUNT);
   
-  if (bytesReceived) {
-    while (Wire.available()) motorLDiff = Wire.read();
-    //if (Wire.available()) motorRDiff = Wire.read();
-    // Update counters, test for completion     
-    /// L update and completion test
-    if (motorLDiff && motorLDir * (motorLDist -= motorLDiff) <= 0) {
-      motorLDir = 0;
-      motorStop(MOTOR_L);
-      motorStop(MOTOR_R);
+  // Update counters and check for completion
+  for (int i = 0; i < ROTARY_COUNT; i++) {
+    int8_t diff = Wire.read();
+    if (motorDir[i] * (rotaryCounter[i]  -= diff) <= 0) {
+      motorStop(rotaryMotor[i]);
+      motorDir[i] = 0;
     }
-    /// R update and completion test
-    //if (motorRDiff && motorRDir * (motorRDist -= motorRDiff) <= 0) {
-    //  motorRDir = 0;
-    //  motorStop(MOTOR_R);
-    //}
   }
-}   
+}
 
 void ack(String ack_bit) {
   Serial.println(ack_bit);
-  Serial.flush();  // force send
+  Serial.flush();
 }
 
 void invalidCommand(const char* command) {
