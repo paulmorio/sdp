@@ -15,6 +15,7 @@ IDLE = 'idle'
 ## NON-IDLE
 REORIENT_FREESPOT = "reorient_freespot"
 REORIENT_DEFENDER = "reorient_defender"
+REORIENT_PASSER = "reorient_passer"
 OPEN_GRABBER = 'open_grabber'
 CLOSE_GRABBER = 'close_grabber'
 ROTATE = 'rotate'
