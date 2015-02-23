@@ -1,7 +1,9 @@
 # Top-level planner state constants
 NO_BALL = 'no_ball'  # Ball not yet seen, not in play areas (init state)
-BALL_UNREACHABLE = 'ball_unreachable'  # Ball not in our margin
-BALL_REACHABLE = 'ball_reachable'  # Ball in our margin
+BALL_THEIRATTACKER = 'ball_theirattacker'  # Ball in their attacker zone
+BALL_THEIRDEFENDER = 'ball_theirdefender'  # Ball in their defender zone
+BALL_OURDEFENDER = 'ball_ourdefender'  # Ball in our defender zone
+BALL_OURATTACKER = 'ball_ourattacker'  # Ball in our attacker zone
 POSSESSION = 'have_possession'  # Our robot has the ball in its grabber
 
 # Strategy state constants
@@ -10,3 +12,7 @@ DUMMY = 'dummy'
 REPOSITION = 'reposition'
 REORIENT = 'reorient'
 IDLE = 'idle'
+## NON-IDLE
+OPEN_GRABBER = 'open_grabber'
+CLOSE_GRABBER = 'close_grabber'
+ROTATE = 'rotate'

@@ -91,19 +91,94 @@ class Idle(Strategy):
         """
         pass
 
+    def open_grabber(self):
+        """
+        Open the grabber, and set the bot's catcher status to open
+        """
+        if not bot.catcher == "open":
+            robot_controller.command(GRABBER_OPEN)
+            bot.catcher = "open"
+            print "GRABBER: OPEN"
 
-
-class Intercept(Strategy):
-    pass
+    def close_grabber(self):
+        """
+        Close the grabber, and set the bot's catcher status to closed
+        """
+        pass
 
 
 class GetBall(Strategy):
+    """
+    The ball is inside of our attacker's zone, therefore: try to get it
+    first open the grabber, aim towards ball, move towards it, and grab it
+    """
+    def __init__(self, world):
+        states = [OPEN_GRABBER, REORIENT, REPOSITION, CLOSE_GRABBER]
+        action_map = {
+            OPEN_GRABBER: self.open_grabber,
+            REORIENT: self.aim_towards_ball,
+            REPOSITION: self.move_towards_ball,
+            CLOSE_GRABBER: self.grab_ball
+        }
+
+        super(GetBall, self).__init__(world, states, action_map)
+
+        def open_grabber(self):
+            pass
+
+        def aim_towards_ball(self):
+            pass
+
+        def move_towards_ball(self):
+            pass
+
+        def grab_ball(self):
+            pass
+
+
+
+class CatchBall(Strategy):
+    """
+    The ball is inside our defender's zone, therefore: position ourselves to receive ball
+    Rotate towards un-interrupted-pass position (freespot), move towards it, rotate towards defender
+    """
+    def __init__(self, world):
+        states = [OPEN_GRABBER, REORIENT, REPOSITION, REORIENT]
+        action_map = {
+            OPEN_GRABBER: self.open_grabber,
+            REORIENT: self.aim_towards_freespot,
+            REPOSITION: self.move_towards_freespot,
+            REORIENT: self.aim_towards_defender,
+        }
+
+        super(GetBall, self).__init__(world, states, action_map)
+
+        def open_grabber(self):
+            pass
+
+        def aim_towards_freespot(self):
+            pass
+
+        def move_towards_freespot(self):
+            pass
+
+        def aim_towards_defender(self):
+            pass
+
+class Confuse(Strategy):
+    """
+    The ball is in the enemy attacker's zone. Basically there's nothing we can do here.
+    """
     pass
 
+class Intercept(Strategy):
+    """
+    The ball is inside the enemy defender's zone
+    """
+    pass
 
 class ShootBall(Strategy):
     pass
-
 
 class PassBall(Strategy):
     pass

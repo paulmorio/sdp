@@ -22,15 +22,19 @@ class Planner(object):
         if self._profile == 'attacker':  # MS2+
             self._strategies = {
                 NO_BALL: Idle(self._world),
-                BALL_UNREACHABLE: Intercept(self._world),
-                BALL_REACHABLE: GetBall(self._world),
+                BALL_OURATTACKER: GetBall(self._world),
+                BALL_OURDEFENDER: CatchBall(self._world),
+                BALL_THEIRATTACKER: Confuse(self._world),
+                BALL_THEIRDEFENDER: Intercept(self._world),
                 POSSESSION: ShootBall(self._world)
             }
         elif self._profile == 'passer':  # MS3
             self._strategies = {
                 NO_BALL: Idle(self._world),
-                BALL_UNREACHABLE: Intercept(self._world),
-                BALL_REACHABLE: GetBall(self._world),
+                BALL_OURATTACKER: GetBall(self._world),
+                BALL_OURDEFENDER: CatchBall(self._world),
+                BALL_THEIRATTACKER: Confuse(self._world),
+                BALL_THEIRDEFENDER: Intercept(self._wo1rld),
                 POSSESSION: PassBall(self._world)
             }
         # Choose initial strategy
@@ -48,7 +52,7 @@ class Planner(object):
 
         plan = self._strategy.get_action()
         if plan is not None:
-            pass
+            # plan() ?????
             # TODO send plan/action to robot controller
 
     def update_strategy(self):
@@ -69,20 +73,17 @@ class Planner(object):
         Update the planner state and strategy given the current state of the
         world model.
         """
+
         # If the ball is not in play
         if not self._world.ball_in_play():
             self._state = NO_BALL
-
-        # If ball is in play but unreachable (outwith our margin)
-        elif not self._world.ball_in_area([self._our_robot]):
-            self._state = BALL_UNREACHABLE
 
         # If ball is in our margin
         elif self._world.ball_in_area([self._our_robot]):
 
             # Ball has just become reachable
-            if self._state == BALL_UNREACHABLE or self._state == NO_BALL:
-                self._state = BALL_REACHABLE
+            if self._state == BALL_OURDEFENDER or self._state == BALL_THEIRATTACKER or self._state == BALL_THEIRDEFENDER or self._state == NO_BALL:
+                self._state = BALL_OURATTACKER
 
             # Check for strategy final state
             if self._strategy.final_state():
@@ -91,7 +92,15 @@ class Planner(object):
 
                 # Had ball and have kicked
                 elif isinstance(self._strategy, ShootBall):
-                    self._state = BALL_REACHABLE
+                    self._state = BALL_OURATTACKER
+
+        # If ball is in play but unreachable (outwith our margin)
+        elif self._world.ball_in_area([self._world.our_defender]):
+            self._state = BALL_OURDEFENDER
+        elif self._world.ball_in_area([self._world.their_attacker]):
+            self._state = BALL_THEIRATTACKER
+        elif self._world.ball_in_area([self._world.their_defender]):
+            self._state = BALL_THEIRDEFENDER
 
         self.update_strategy()
 
