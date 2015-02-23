@@ -26,7 +26,7 @@ class Planner(object):
                 BALL_OURDEFENDER: CatchBall(self._world, self._robot_controller),
                 BALL_THEIRATTACKER: Confuse(self._world, self._robot_controller),
                 BALL_THEIRDEFENDER: Intercept(self._world, self._robot_controller),
-                POSSESSION: ShootBall(self._world, self._robot_controller)
+                POSSESSION: PassBall(self._world, self._robot_controller)
             }
         elif self._profile == 'passer':  # MS3
             self._strategies = {
@@ -77,7 +77,6 @@ class Planner(object):
         world model.
         """
 
-        print self._state
 
         # If the ball is not in play
         if not self._world.ball_in_play():
@@ -87,7 +86,9 @@ class Planner(object):
         elif self._world.ball_in_area([self._our_robot]):
 
             # Ball has just become reachable
-            if self._state == BALL_OURDEFENDER or self._state == BALL_THEIRATTACKER or self._state == BALL_THEIRDEFENDER or self._state == NO_BALL:
+            if self._our_robot.can_catch_ball(self._world.ball):
+                self._state = POSSESSION
+            elif self._state == BALL_OURDEFENDER or self._state == BALL_THEIRATTACKER or self._state == BALL_THEIRDEFENDER or self._state == NO_BALL:
                 self._state = BALL_OURATTACKER
 
             # Check for strategy final state

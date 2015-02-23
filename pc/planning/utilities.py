@@ -18,6 +18,7 @@ REORIENT_DEFENDER = "reorient_defender"
 OPEN_GRABBER = 'open_grabber'
 CLOSE_GRABBER = 'close_grabber'
 ROTATE = 'rotate'
+PASS = 'pass'
 
 ## CATCHER STATE
 OPENED = "open"

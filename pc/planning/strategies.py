@@ -95,6 +95,12 @@ class Strategy(object):
         #print "Moving "+str(distance)+"cm."
         pass
 
+    def pass_ball(self):
+        """
+        Pass the ball: shoot with low strength?
+        """
+        self._robot_controller.command(PASS)
+
 
 
 
@@ -259,16 +265,92 @@ class ShootBall(Strategy):
     def dummy(self):
         print "I'm a dummy!"
 
+
 class PassBall(Strategy):
     def __init__(self, world, robot_controller):
-        states = [OPEN_GRABBER]
+
+        self.bot = world.our_attacker
+        self.world = world
+
+        (self.freespot_x, self.freespot_y) = self.calc_freespot()
+
+        self.rotate_margin = 0.10
+        self.distance_margin = 40
+
+        states = [REORIENT_FREESPOT, REPOSITION, REORIENT_DEFENDER, OPEN_GRABBER, PASS]
         action_map = {
-            OPEN_GRABBER: self.open_grabber
+            REORIENT_FREESPOT: self.rotate_to_freespot,
+            REPOSITION: self.move_to_freespot,
+            REORIENT_DEFENDER: self.rotate_to_defender,
+            OPEN_GRABBER: self.open_grabber,
+            PASS: self.pass_ball
         }
 
         super(PassBall, self).__init__(world, robot_controller, states, action_map)
 
     def transition(self):
-        pass
+        (self.freespot_x, self.freespot_y) = self.calc_freespot()
+
+        print self.state
+
+        if self.state == REORIENT_FREESPOT:
+            angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
+            print "\nROTATE TO FREESPOT\nangle: "+str(angle)
+            print "margin: "+str(self.rotate_margin)
+            print "d/rotate: "+str(abs(angle < self.rotate_margin))
+
+            if abs(angle) < self.rotate_margin:
+                self.state = REPOSITION
+
+        elif self.state == REPOSITION:
+            print "\nMOVE\nour_y: "+str(self.bot.y)
+            print "freespot_y: "+str(self.freespot_y)
+            print "dy: "+str(abs(self.bot.y - self.freespot_y) < self.distance_margin)
+
+            if abs(self.bot.y - self.freespot_y) < self.distance_margin:
+                self.state = REORIENT_DEFENDER
+
+        elif self.state == REORIENT_DEFENDER:
+            angle = self.bot.get_rotation_to_point(self.world.our_defender.x, self.world.our_defender.y)
+            print "\nROTATE TO DEFENDER\nangle: "+str(angle)
+            print "margin: "+str(self.rotate_margin)
+            print "d/rotate: "+str(abs(angle < self.rotate_margin))
+
+            if abs(angle) < self.rotate_margin:
+                self.state = OPEN_GRABBER
+
+        if self.state == OPEN_GRABBER:
+            angle = self.bot.get_rotation_to_point(self.world.our_defender.x, self.world.our_defender.y)
+            print "\nPASSED WITH MARGIN\nangle: "+str(angle)+" radians from target"
+
+            if self.bot.catcher == OPENED:
+                self.state = PASS
+
+
+
+    def rotate_to_freespot(self):
+        angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
+        self.rotate(angle)
+
+    def move_to_freespot(self):
+        distance = self.bot.get_displacement_to_point(self.freespot_x, self.freespot_y)
+        self.move(distance)
+
+    def rotate_to_defender(self):
+        angle = self.bot.get_rotation_to_point(self.world.our_defender.x, self.world.our_defender.y)
+        self.rotate(angle)
+
+    def calc_freespot(self):
+        (our_center_x, our_center_y) = self.world.pitch.zones[self.bot.zone].center()
+        (their_center_x, their_center_y) = self.world.pitch.zones[self.world.their_attacker.zone].center()
+
+        if self.world.their_attacker.y > their_center_y:
+            freespot_y = (2.0/10) * self.world.pitch.height
+        else:
+            freespot_y = (8.0/10) * self.world.pitch.height
+
+        freespot_x = int(our_center_x)
+
+        return (freespot_x, freespot_y)
 
 
