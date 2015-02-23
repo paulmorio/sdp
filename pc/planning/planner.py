@@ -21,21 +21,21 @@ class Planner(object):
         # Strategy dictionaries return a strategy given a state.
         if self._profile == 'attacker':  # MS2+
             self._strategies = {
-                NO_BALL: Idle(self._world),
-                BALL_OURATTACKER: GetBall(self._world),
-                BALL_OURDEFENDER: CatchBall(self._world),
-                BALL_THEIRATTACKER: Confuse(self._world),
-                BALL_THEIRDEFENDER: Intercept(self._world),
-                POSSESSION: ShootBall(self._world)
+                NO_BALL: Idle(self._world, self._robot_controller),
+                BALL_OURATTACKER: GetBall(self._world, self._robot_controller),
+                BALL_OURDEFENDER: CatchBall(self._world, self._robot_controller),
+                BALL_THEIRATTACKER: Confuse(self._world, self._robot_controller),
+                BALL_THEIRDEFENDER: Intercept(self._world, self._robot_controller),
+                POSSESSION: ShootBall(self._world, self._robot_controller)
             }
         elif self._profile == 'passer':  # MS3
             self._strategies = {
-                NO_BALL: Idle(self._world),
-                BALL_OURATTACKER: GetBall(self._world),
-                BALL_OURDEFENDER: CatchBall(self._world),
-                BALL_THEIRATTACKER: Confuse(self._world),
-                BALL_THEIRDEFENDER: Intercept(self._wo1rld),
-                POSSESSION: PassBall(self._world)
+                NO_BALL: Idle(self._world, self._robot_controller),
+                BALL_OURATTACKER: GetBall(self._world, self._robot_controller),
+                BALL_OURDEFENDER: CatchBall(self._world, self._robot_controller),
+                BALL_THEIRATTACKER: Confuse(self._world, self._robot_controller),
+                BALL_THEIRDEFENDER: Intercept(self._world, self._robot_controller),
+                POSSESSION: PassBall(self._world, self._robot_controller)
             }
         # Choose initial strategy
         self._state = NO_BALL
@@ -50,9 +50,11 @@ class Planner(object):
         elif self._profile == 'passer':
             self.passer_transition()
 
+        self._strategy.transition() # Update strategy state
+
         plan = self._strategy.get_action()
         if plan is not None:
-            # plan() ?????
+            plan()
             # TODO send plan/action to robot controller
 
     def update_strategy(self):
@@ -64,7 +66,8 @@ class Planner(object):
         # If new strategy is actually new.
         new_strategy = self._strategies[self._state]
         if new_strategy is not self._strategy:
-            self._strategy.reset()
+            if self._strategy is not None:
+                self._strategy.reset()
             self._strategy = new_strategy
 
     def attacker_transition(self):
@@ -73,6 +76,8 @@ class Planner(object):
         Update the planner state and strategy given the current state of the
         world model.
         """
+
+        print self._state
 
         # If the ball is not in play
         if not self._world.ball_in_play():
@@ -93,6 +98,7 @@ class Planner(object):
                 # Had ball and have kicked
                 elif isinstance(self._strategy, ShootBall):
                     self._state = BALL_OURATTACKER
+                    pass
 
         # If ball is in play but unreachable (outwith our margin)
         elif self._world.ball_in_area([self._world.our_defender]):

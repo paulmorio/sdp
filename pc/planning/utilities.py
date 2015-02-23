@@ -13,6 +13,14 @@ REPOSITION = 'reposition'
 REORIENT = 'reorient'
 IDLE = 'idle'
 ## NON-IDLE
+REORIENT_FREESPOT = "reorient_freespot"
+REORIENT_DEFENDER = "reorient_defender"
 OPEN_GRABBER = 'open_grabber'
 CLOSE_GRABBER = 'close_grabber'
 ROTATE = 'rotate'
+
+## CATCHER STATE
+OPENED = "open"
+CLOSED = "closed"
+
+NONE = "no state!"

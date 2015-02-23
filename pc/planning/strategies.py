@@ -6,12 +6,14 @@ class Strategy(object):
     A base class on which other strategies should be built. Sets up the
     interface used by the Planner class.
     """
-    def __init__(self, world, states, action_map):
+    def __init__(self, world, robot_controller, states, action_map):
         self._STATES = states
         self._STATE_ACTION_MAP = action_map
         assert(self.all_states_mapped())
         self._world = world
+        self._robot_controller = robot_controller
         self._state = self._STATES[0]
+        self._bot = world.our_attacker
 
     @property
     def state(self):
@@ -58,6 +60,43 @@ class Strategy(object):
         """
         return None
 
+    ###################################################################
+    def open_grabber(self):
+        """
+        Open the grabber, and set the bot's catcher status to open
+        """
+        if not self._bot.catcher == OPENED:
+            self._robot_controller.command(OPEN_GRABBER)
+            self._bot.catcher = OPENED
+            #print "GRABBER: OPEN"
+
+    def close_grabber(self):
+        """
+        Close the grabber, and set the bot's catcher status to closed
+        """
+        if not self._bot.catcher == CLOSED:
+            self._robot_controller.command(CLOSE_GRABBER)
+            self._bot.catcher = CLOSED
+            #print "GRABBER: CLOSED"
+
+    def rotate(self, angle):
+        """
+        ROTATE THE ROBOT angle RADIANS
+        """
+        #self._robot_controller.command(ROTATE, angle)
+        #print "Rotating "+str(angle)+" radians."
+        pass
+
+    def move(self, distance):
+        """
+        MOVE THE ROBOT distance CM
+        """
+        #self._robot_controller.command(MOVE, distance)
+        #print "Moving "+str(distance)+"cm."
+        pass
+
+
+
 
 class Idle(Strategy):
     """
@@ -66,7 +105,8 @@ class Idle(Strategy):
     initial position.
     """
 
-    def __init__(self, world):
+    def __init__(self, world, robot_controller):
+
         states = [REPOSITION, REORIENT, IDLE]
         action_map = {
             REPOSITION: self.move_to_origin,
@@ -74,7 +114,10 @@ class Idle(Strategy):
             IDLE: self.do_nothing
         }
 
-        super(Idle, self).__init__(world, states, action_map)
+        super(Idle, self).__init__(world, robot_controller, states, action_map)
+
+    def transition(self):
+        pass
 
     # Actions
     def move_to_origin(self):
@@ -91,49 +134,54 @@ class Idle(Strategy):
         """
         pass
 
-    def open_grabber(self):
-        """
-        Open the grabber, and set the bot's catcher status to open
-        """
-        if not bot.catcher == "open":
-            robot_controller.command(GRABBER_OPEN)
-            bot.catcher = "open"
-            print "GRABBER: OPEN"
-
-    def close_grabber(self):
-        """
-        Close the grabber, and set the bot's catcher status to closed
-        """
-        pass
-
 
 class GetBall(Strategy):
     """
     The ball is inside of our attacker's zone, therefore: try to get it
     first open the grabber, aim towards ball, move towards it, and grab it
     """
-    def __init__(self, world):
+    def __init__(self, world, robot_controller):
+        self.ball = world._ball
+        self.bot = world.our_attacker
+
+        self.friendly_space = 70
+        self.rotate_margin = 0.50
+
         states = [OPEN_GRABBER, REORIENT, REPOSITION, CLOSE_GRABBER]
         action_map = {
             OPEN_GRABBER: self.open_grabber,
             REORIENT: self.aim_towards_ball,
             REPOSITION: self.move_towards_ball,
-            CLOSE_GRABBER: self.grab_ball
+            CLOSE_GRABBER: self.close_grabber
         }
 
-        super(GetBall, self).__init__(world, states, action_map)
+        super(GetBall, self).__init__(world, robot_controller, states, action_map)
 
-        def open_grabber(self):
-            pass
+    def transition(self):
+        # IF NOT FACING BALL
+        angle_to_turn_to = self.bot.get_rotation_to_point(self.ball.x, self.ball.y)
 
-        def aim_towards_ball(self):
-            pass
+        if self.state == OPEN_GRABBER:
+            if self.bot.catcher == OPENED:
+                self.state = REORIENT
 
-        def move_towards_ball(self):
-            pass
+        elif self.state == REORIENT:
+            if abs(angle_to_turn_to) < self.rotate_margin:
+                self.state = REPOSITION
 
-        def grab_ball(self):
-            pass
+        elif self.state == REPOSITION:
+            if self.bot.can_catch_ball(self.ball):
+                self.state = CLOSE_GRABBER
+            else:
+                self.reset()
+
+    def aim_towards_ball(self):
+        angle = self.bot.get_rotation_to_point(self.ball.x, self.ball.y)
+        self.rotate(angle)
+
+    def move_towards_ball(self):
+        distance = self.bot.get_displacement_to_point(self.ball.x, self.ball.y)
+        self.move(distance)
 
 
 
@@ -142,45 +190,85 @@ class CatchBall(Strategy):
     The ball is inside our defender's zone, therefore: position ourselves to receive ball
     Rotate towards un-interrupted-pass position (freespot), move towards it, rotate towards defender
     """
-    def __init__(self, world):
-        states = [OPEN_GRABBER, REORIENT, REPOSITION, REORIENT]
+    def __init__(self, world, robot_controller):
+
+        states = [OPEN_GRABBER, REORIENT_FREESPOT, REPOSITION, REORIENT_DEFENDER]
         action_map = {
             OPEN_GRABBER: self.open_grabber,
-            REORIENT: self.aim_towards_freespot,
+            REORIENT_FREESPOT: self.aim_towards_freespot,
             REPOSITION: self.move_towards_freespot,
-            REORIENT: self.aim_towards_defender,
+            REORIENT_DEFENDER: self.aim_towards_defender
         }
 
-        super(GetBall, self).__init__(world, states, action_map)
+        super(CatchBall, self).__init__(world, robot_controller, states, action_map)
 
-        def open_grabber(self):
-            pass
+    def transition(self):
+        pass
 
-        def aim_towards_freespot(self):
-            pass
+    def aim_towards_freespot(self):
+        pass
 
-        def move_towards_freespot(self):
-            pass
+    def move_towards_freespot(self):
+        pass
 
-        def aim_towards_defender(self):
-            pass
+    def aim_towards_defender(self):
+        pass
 
 class Confuse(Strategy):
     """
     The ball is in the enemy attacker's zone. Basically there's nothing we can do here.
     """
-    pass
+    def __init__(self, world, robot_controller):
+        states = [OPEN_GRABBER]
+        action_map = {
+            OPEN_GRABBER: self.open_grabber
+        }
+
+        super(Confuse, self).__init__(world, robot_controller, states, action_map)
+
+    def transition(self):
+        pass
 
 class Intercept(Strategy):
     """
     The ball is inside the enemy defender's zone
     """
-    pass
+    def __init__(self, world, robot_controller):
+        states = [OPEN_GRABBER]
+        action_map = {
+            OPEN_GRABBER: self.open_grabber
+        }
+
+        super(Intercept, self).__init__(world, robot_controller, states, action_map)
+
+    def transition(self):
+        pass
 
 class ShootBall(Strategy):
-    pass
+    def __init__(self, world, robot_controller):
+        states = [NONE]
+        action_map = {
+            NONE: self.dummy
+        }
+
+        super(ShootBall, self).__init__(world, robot_controller, states, action_map)
+
+    def transition(self):
+        pass
+
+    def dummy(self):
+        print "I'm a dummy!"
 
 class PassBall(Strategy):
-    pass
+    def __init__(self, world, robot_controller):
+        states = [OPEN_GRABBER]
+        action_map = {
+            OPEN_GRABBER: self.open_grabber
+        }
+
+        super(PassBall, self).__init__(world, robot_controller, states, action_map)
+
+    def transition(self):
+        pass
 
 

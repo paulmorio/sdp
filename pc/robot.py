@@ -71,7 +71,8 @@ class Robot(object):
             self.serial.write(command + COMMAND_TERMINAL)
             self.ack()
         else:
-            print command
+            #print command
+            pass
 
     def close(self):
         """

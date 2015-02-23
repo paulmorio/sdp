@@ -87,6 +87,9 @@ class Arbiter(object):
                 if self.planner is not None:
                     self.planner.plan()
 
+                #debugging: wait around a bit
+                #time.sleep(0.5)
+
                 fps = float(counter) / (time.clock() - timer)
 
                 # Draw GUIs
@@ -150,14 +153,14 @@ if __name__ == '__main__':
 
     if args.visiononly:
         arb = Arbiter(int(args.pitch), args.colour, args.side,
-                      role=None, comms=False)
+                      profile=None, comms=False)
     elif args.nocomms:
-        assert args.role in ['defender', 'attacker', 'dog']
+        assert args.profile in ['defender', 'attacker', 'dog']
         arb = Arbiter(int(args.pitch), args.colour, args.side,
-                      role=args.role, comms=False)
+                      profile=args.profile, comms=False)
 
     else:
-        assert args.role in ['defender', 'attacker', 'dog']
+        assert args.profile in ['defender', 'attacker', 'dog']
         arb = Arbiter(int(args.pitch), args.colour, args.side,
-                      role=args.role, comms=True)
+                      profile=args.profile, comms=True)
     arb.run()

@@ -272,6 +272,9 @@ class Robot(PitchObject):
         delta_x = x - self.x
         delta_y = y - self.y
         displacement = hypot(delta_x, delta_y)
+
+        #TODO: CONVERT displacement FROM PIXELS TO CM
+
         return displacement
 
     def get_direction_to_point(self, x, y):
