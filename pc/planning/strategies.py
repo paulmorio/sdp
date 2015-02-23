@@ -144,8 +144,7 @@ class GetBall(Strategy):
         self.ball = world._ball
         self.bot = world.our_attacker
 
-        self.friendly_space = 70
-        self.rotate_margin = 0.50
+        self.rotate_margin = 0.5  # TODO: tune value
 
         states = [OPEN_GRABBER, REORIENT, REPOSITION, CLOSE_GRABBER]
         action_map = {
@@ -158,15 +157,15 @@ class GetBall(Strategy):
         super(GetBall, self).__init__(world, robot_controller, states, action_map)
 
     def transition(self):
-        # IF NOT FACING BALL
-        angle_to_turn_to = self.bot.get_rotation_to_point(self.ball.x, self.ball.y)
+        print self.state
+        angle = self.bot.get_rotation_to_point(self.ball.x, self.ball.y)
 
         if self.state == OPEN_GRABBER:
             if self.bot.catcher == OPENED:
                 self.state = REORIENT
 
         elif self.state == REORIENT:
-            if abs(angle_to_turn_to) < self.rotate_margin:
+            if abs(angle) < self.rotate_margin:
                 self.state = REPOSITION
 
         elif self.state == REPOSITION:
@@ -184,35 +183,77 @@ class GetBall(Strategy):
         self.move(distance)
 
 
-
 class CatchBall(Strategy):
     """
-    The ball is inside our defender's zone, therefore: position ourselves to receive ball
-    Rotate towards un-interrupted-pass position (freespot), move towards it, rotate towards defender
+    The lazy, no-communication method:
+    Sit in the middle of our zone, with the grabber open, facing our teammate
     """
     def __init__(self, world, robot_controller):
+        self.bot = world.our_defender
+        self.passer = world.our_attacker
 
-        states = [OPEN_GRABBER, REORIENT_FREESPOT, REPOSITION, REORIENT_DEFENDER]
+        x, y = world.pitch.zones[self.bot.zone].center()
+
+        self.freespot_x = int(x)
+        self.freespot_y = int(y)
+
+        self.rotate_margin = 0.5  # TODO: tune value
+        self.displacement_margin = 30  # TODO: tune value
+
+        states = [OPEN_GRABBER, REORIENT_FREESPOT, REPOSITION, REORIENT_PASSER, IDLE]
         action_map = {
             OPEN_GRABBER: self.open_grabber,
             REORIENT_FREESPOT: self.aim_towards_freespot,
             REPOSITION: self.move_towards_freespot,
-            REORIENT_DEFENDER: self.aim_towards_defender
+            REORIENT_PASSER: self.aim_towards_passer,
+            IDLE: self.do_nothing
         }
 
         super(CatchBall, self).__init__(world, robot_controller, states, action_map)
 
     def transition(self):
-        pass
+        print self.state
+
+        angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
+
+        # Open the grabber
+        if self.state == OPEN_GRABBER:
+            if self.bot.catcher == OPENED:
+                self.state = REORIENT_FREESPOT
+
+        # Rotate to face the "freespot" (point at center of our zone)
+        elif self.state == REORIENT_FREESPOT:
+            angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
+            if abs(angle) < self.rotate_margin:
+                self.state = REPOSITION
+
+        # Move to the freespot
+        elif self.state == REPOSITION:
+            # if on freespot
+            displacement = self.bot.get_displacement_to_point(self.freespot_x, self.freespot_y)
+            if displacement < self.displacement_margin:
+                self.state = REORIENT_PASSER
+
+        # Rotate to face our passer, and wait
+        elif self.state == REORIENT_PASSER:
+            angle = self.bot.get_rotation_to_point(self.passer.x, self.passer.y)
+            if abs(angle) < self.rotate_margin:
+                self.state = IDLE
+            else:
+                self.state = REORIENT_PASSER
 
     def aim_towards_freespot(self):
-        pass
+        angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
+        self.rotate(angle)
 
     def move_towards_freespot(self):
-        pass
+        distance = self.bot.get_displacement_to_point(self.freespot_x, self.freespot_y)
+        self.move(distance)
 
-    def aim_towards_defender(self):
-        pass
+    def aim_towards_passer(self):
+        angle = self.bot.get_rotation_to_point(self.passer.x, self.passer.y)
+        self.rotate(angle)
+
 
 class Confuse(Strategy):
     """
