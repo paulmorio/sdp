@@ -29,7 +29,7 @@
 #define ROTARY_SLAVE_ADDRESS 5
 #define ROTARY_COUNT 2
 
-int rotaryMotors[] = {MOTOR_L, MOTOR_R};  // Rotary encoder motor numbers
+int rotaryMotor[] = {MOTOR_L, MOTOR_R};  // Rotary encoder motor numbers
 int rotaryCounter[ROTARY_COUNT] = {0};  // Counters for rotary encoders
 int motorDir[ROTARY_COUNT] = {0};  // Track direction of rotary encoder motors
 
