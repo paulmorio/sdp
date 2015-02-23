@@ -20,7 +20,7 @@ class Arbiter(object):
         :param pitch: Pitch number: 0 (main) 1 (secondary)
         :param colour: Our team's plate colour (blue, yellow)
         :param our_side: Our defender's side as on video feed
-        :param role: Planning role - 'attacker', 'defender', 'dog'
+        :param profile: Planning profile - 'attacker', 'defender', 'dog'
         :param video_src: Source of feed - 0 default for DICE cameras
         :param comm_port: Robot serial port
         :param comms: Enable serial communication
