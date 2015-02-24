@@ -3,7 +3,6 @@
 [a] -> Turn left
 [d] -> Turn right
 
-[g] -> Toggle grabber
 [o] -> Open grabber
 [c] -> Close grabber
 
@@ -14,7 +13,6 @@
 <Left> -> Turn left
 <Right> -> Turn right
 
-[space] -> Shoot
-[v] -> Pass
+[space] -> Kick
 
 <Escape> -> Quit

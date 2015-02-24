@@ -1,29 +1,19 @@
 from serial import Serial
 
-# Command constants
-MOVE_FORWARD = "FWD"
-CRAWL_FORWARD = "CRAWL_F"
-MOVE_BACK = "BACK"
-CRAWL_BACK = "CRAWL_B"
-TURN_LEFT = "TURN_L"
-TURN_RIGHT = "TURN_R"
-GRABBER_TOGGLE = "GRAB"
-GRABBER_OPEN = "O_GRAB"
-GRABBER_CLOSE = "C_GRAB"
-GRABBER_DEFAULT = "C_GRAB"
-SHOOT = "SHOOT"
-PASS = "PASS"
-STOP_DRIVE_MOTORS = "STOP_D"
-STOP_ALL_MOTORS = "STOP_A"
-MOTOR_TEST = "MOTORS"
-READY = "READY"
-COMMAND_TERMINAL = '\n'
-
 
 class Robot(object):
-    """Serial connection setup, IO, and robot actions."""
+    """Serial connection, IO, and robot actions."""
 
-    def __init__(self, port="/dev/ttyACM0", timeout=0.05,
+    # Command constants
+    _DRIVE = "DRIVE"
+    _OPEN_GRABBER = "O_GRAB"
+    _CLOSE_GRABBER = "C_GRAB"
+    _KICK = "KICK"
+    _READY = "READY"
+    _COMM_DELIMITER = ' '
+    _COMM_TERMINAL = '\n'
+
+    def __init__(self, port="/dev/ttyACM0", timeout=0.1,
                  rate=115200, comms=True):
         """
         Create a robot object which provides action methods and opens a serial
@@ -32,24 +22,28 @@ class Robot(object):
         :param port: Default is "/dev/ttyACM0". This changes based on
         platform, etc. The default should correspond to what shows on the DICE
         machines.
+        :type port: String
         :param timeout: Serial read timeout - used for alternating bit protocol.
+        :type timeout: int
         :param rate: Baud rate
-        :param comms: If true then start serial comms.
-        :return: Robot object
+        :type rate: int
+        :param comms: Whether to start serial communications.
+        :type comms: bool
+        :return: A robot object used to initialize the robot and send commands
+        :rtype: Robot
         """
-        self.last_command = None
+        self._last_command = None
         self.ready = False
+        # TODO status flags for movement, kicking, grabbing, etc.
         if comms:
-            self.ack_bit = '0'
-            self.serial = Serial(port, rate, timeout=timeout)
-            self.command(READY)
-            self.ready = True
-
+            self._ack_bit = '0'
+            self._serial = Serial(port, rate, timeout=timeout)
+            self._initialize()
         else:
-            self.serial = None
+            self._serial = None
             self.ready = True
 
-    def command(self, command, arguments=[]):
+    def _command(self, command, arguments=[]):
         """
         Send a command to the robot then wait for acknowledgement. Resend
         the command if no acknowledgement is received within the serial read
@@ -57,31 +51,130 @@ class Robot(object):
 
         :param command: The command to be sent. This should be one of the
         constants defined within this module.
+        :type command: String
         :param arguments: Optional arguments to be appended to the command.
+        :type arguments: list
         """
-        if self.serial is not None:
-            self.last_command = command
+        # Store for resending
+        self._last_command = (command, arguments)
 
-            # Append alternating bit and given arguments
-            self.last_command += ' ' + self.ack_bit
-            for arg in arguments:
-                self.last_command += ' ' + arg
+        # Build the command
+        current_command = command
+        # Append alternating bit
+        current_command += Robot._COMM_DELIMITER + self._ack_bit
+        for arg in arguments:  # Append arguments
+            current_command += Robot._COMM_DELIMITER + arg
+        # Append terminal char
+        current_command += Robot._COMM_TERMINAL
 
-            # Append terminal char, wait for acknowledgement
-            self.serial.write(command + COMMAND_TERMINAL)
+        # Send and wait for ack
+        if self._serial is not None:
+            self._serial.write(current_command)
             self.ack()
         else:
-            print command
+            print current_command
 
-    def close(self):
+    def _initialize(self):
         """
-        Teardown sequence. Stop robot motors, set grabber to default position,
-        then close the serial port
+        Initialize the robot: set the grabber to the default position then wait
+        for acknowledgement before setting the ready flag.
         """
-        if self.serial is not None:
-            self.command(STOP_ALL_MOTORS)
-            self.command(GRABBER_CLOSE)
-            self.serial.close()
+        self.close_grabber()
+        self.ready = True
+
+    def test(self):
+        """
+        Run the robot test sequence: spin a full rotation clockwise then counter
+        clockwise, kick, open grabber, close grabber.
+        """
+        pass  # NYI
+
+    def drive(self, l_dist, r_dist, l_power=100, r_power=100):
+        """
+        Drive the robot for the giving left and right wheel distances at the
+        given powers. There is some loss of precision as the unit of distance
+        is converted into rotary encoder 'ticks'.
+
+        To stop a drive motor you can give a 0 argument for distance or power.
+
+        :param l_dist: Distance travelled by the left wheel in centimetres. A
+        negative value runs the motor in reverse (drive backward).
+        :type l_dist: Float
+        :param r_dist: Distance travelled by the right wheel in centimetres. A
+        negative value runs the motor in reverse (drive backward).
+        :type r_dist: Float
+        :param l_power: Motor power from 0-100 - note that low values may not
+        provide enough torque for movement.
+        :type l_power: int
+        :param r_power: Motor power from 0-100 - low values may not provide
+        enough torque for drive.
+        """
+        self._command(Robot._DRIVE,
+                      [str(l_dist), str(r_dist), str(l_power), str(r_power)])
+
+    def turn(self, degrees, power=100):
+        """
+        Turn the robot at the given motor power. The degrees should be relative
+        to the current orientation of the robot, where the robot is facing 0deg
+        and degrees in [1,180] indicate a rightward turn while degress in
+        [-180,-1] indicate a leftward turn.
+
+        Note that it is possible to e.g. call turn(720) to do two full rightward
+        rotations.
+
+        :param degrees: Degrees to turn from current orientation. Sign indicates
+                        direction (negative -> leftward, positive -> rightward)
+        :type degrees: int
+        :param power: Motor power
+        :type power: int
+        """
+        pass  # NYI
+
+    def open_grabber(self, time=220, power=100):
+        """
+        Run the grabber motor in the opening direction for the given number of
+        milliseconds at the given motor power.
+
+        :param time: Time to run the motor in milliseconds.
+        :type time: int
+        :param power: Motor power from 0-100
+        :type power: int
+        """
+        self._command(Robot._OPEN_GRABBER, [str(time), str(power)])
+
+    def close_grabber(self, time=220, power=100):
+        """
+        Run the grabber motor in the closing direction for the given number of
+        milliseconds at the given motor power.
+
+        :param time: Time to run the motor in milliseconds.
+        :type time: int
+        :param power: Motor power from 0-100
+        :type power: int
+        """
+        self._command(Robot._CLOSE_GRABBER, [str(time), str(power)])
+
+    def kick(self, time=700, power=100):
+        """
+        Run the kicker motor forward for the given number of milliseconds at the
+        given motor speed.
+
+        :param time: Time to run the motor in milliseconds
+        :type time: int
+        :param power: Motor power from 0-100
+        :type power: int
+        """
+        self._command(Robot._KICK, [str(time), str(power)])
+
+    def teardown(self):
+        """
+        Stop robot motors, set grabber to default position, then close the
+        serial port
+        """
+        if self._serial is not None:
+            self.drive(0, 0)  # Stop drive motors
+            self.close_grabber()
+            self._serial.close()
             print "Robot teardown complete. Serial connection is closed."
 
     def ack(self):
@@ -90,14 +183,11 @@ class Robot(object):
         this command if no acknowledgement is received within the serial port
         timeout.
         """
-        ack = self.serial.readline()  # returns empty string on timeout
-        if ack != '' and ack[0] == self.ack_bit:  # Successful ack
-            if self.ack_bit == '1':
-                self.ack_bit = '0'
-            else:
-                self.ack_bit = '1'
+        ack = self._serial.readline()  # returns empty string on timeout
+        if ack != '' and ack[0] == self._ack_bit:  # Successful ack
+            self._ack_bit = '0' if self._ack_bit == '1' else '0'
         else:  # No ack within timeout - resend command
-            self.command(self.last_command)
+            self._command(self._last_command[0], self._last_command[1])
 
 
 class ManualController(object):
@@ -110,8 +200,6 @@ class ManualController(object):
 
     See manual_controls.txt for controls.
     """
-
-    robot = None
 
     def __init__(self, port="/dev/ttyACM0", rate=115200):
         """
@@ -140,20 +228,18 @@ class ManualController(object):
         text.pack()
 
         # Set up key bindings
-        self.root.bind('w', lambda event: self.robot.command(MOVE_FORWARD))
-        self.root.bind('<Up>', lambda event: self.robot.command(CRAWL_FORWARD))
-        self.root.bind('x', lambda event: self.robot.command(MOVE_BACK))
-        self.root.bind('<Down>', lambda event: self.robot.command(CRAWL_BACK))
-        self.root.bind('<Left>', lambda event: self.robot.command(TURN_LEFT))
-        self.root.bind('<Right>', lambda event: self.robot.command(TURN_RIGHT))
-        self.root.bind('a', lambda event: self.robot.command(TURN_LEFT))
-        self.root.bind('d', lambda event: self.robot.command(TURN_RIGHT))
-        self.root.bind('g', lambda event: self.robot.command(GRABBER_TOGGLE))
-        self.root.bind('o', lambda event: self.robot.command(GRABBER_OPEN))
-        self.root.bind('c', lambda event: self.robot.command(GRABBER_CLOSE))
-        self.root.bind('<space>', lambda event: self.robot.command(SHOOT))
-        self.root.bind('v', lambda event: self.robot.command(PASS))
-        self.root.bind('s', lambda event: self.robot.command(STOP_DRIVE_MOTORS))
+        self.root.bind('w', lambda event: self.robot.drive(20, 20))
+        self.root.bind('<Up>', lambda event: self.robot.drive(20, 20, 70, 70))
+        self.root.bind('x', lambda event: self.robot.drive(-20, -20))
+        self.root.bind('<Down>', lambda event: self.robot.drive(-20, -20, 70, 70))
+        self.root.bind('<Left>', lambda event: self.robot.drive(-10, 10, 70, 70))
+        self.root.bind('<Right>', lambda event: self.robot.drive(10, -10, 70, 70))
+        self.root.bind('a', lambda event: self.robot.drive(-10, 10))
+        self.root.bind('d', lambda event: self.robot.drive(10, -10))
+        self.root.bind('o', lambda event: self.robot.open_grabber())
+        self.root.bind('c', lambda event: self.robot.close_grabber())
+        self.root.bind('<space>', lambda event: self.robot.kick())
+        self.root.bind('s', lambda event: self.robot.drive(0, 0))
         self.root.bind('<Escape>', lambda event: self.quit())
 
         # Set window attributes and start
@@ -161,13 +247,12 @@ class ManualController(object):
         self.root.wm_title("Manual Control")
         self.root.wm_attributes("-topmost", 1)
         self.root.mainloop()
-        self.root.protocol('WM_DELETE_WINDOW', self.quit)
 
     def quit(self):
         """
-        Initialise robot teardown then destroy window.
+        Start robot teardown then destroy window.
         """
-        self.robot.close()
+        self.robot.teardown()
         self.root.quit()
 
 

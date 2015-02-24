@@ -18,13 +18,6 @@
 #define MOTOR_K 4
 #define MOTOR_G 5
 
-// Kicker and grabber constants
-#define KICK_POWER 100
-#define KICK_TIME 500
- 
-#define GRAB_POWER 100
-#define GRAB_TIME 220
-
 // Rotary encoder
 #define ROTARY_SLAVE_ADDRESS 5
 #define ROTARY_COUNT 2
@@ -44,11 +37,10 @@ unsigned long kickTimer = 0;
 
 void setup() {
   SDPsetup();
-  comm.addCommand("MOVE", drive);
+  comm.addCommand("DRIVE", drive);
   comm.addCommand("O_GRAB", openGrabber);
   comm.addCommand("C_GRAB", closeGrabber);
   comm.addCommand("KICK", kick);
-  comm.addCommand("READY", isReady);
   comm.setDefaultHandler(invalidCommand);
 }
 
@@ -67,28 +59,19 @@ void loop() {
   comm.readSerial();
 }
 
-void isReady() {
-  /*
-    Set grabber to default position and let the system know
-    that the robot is ready to receive commands
-   */
-  ack(comm.next());
-  closeGrabber();
-}
-
 void drive() {
   /*
    * Run drive motors L and R for given number of 'ticks' at
    * the given motor speeds.
    * Note that I haven't looped this code because we're probably
    * going to add rotary encoders to the kicker and grabber.
-   * ARGS: [ack] [L_ticks] [L_power] [R_ticks] [R_power]
+   * ARGS: [ack] [L_ticks] [R_ticks][L_power] [R_power]
    */
   ack(comm.next());
   
   rotaryCounter[0] = atoi(comm.next());
-  int lPower = atoi(comm.next());
   rotaryCounter[1] = atoi(comm.next());
+  int lPower = atoi(comm.next());
   int rPower = atoi(comm.next());
   
   // Motor L
@@ -123,26 +106,30 @@ void drive() {
 void closeGrabber() {
   /*
    * Close the grabber with the hardcoded time and motor power
-   * ARGS: [ack]
+   * ARGS: [ack] [time] [power]
    */
   ack(comm.next());
+  int time = atoi(comm.next());
+  int power = atoi(comm.next());
   if (grabberOpen && !grabTimer) {
-    motorBackward(MOTOR_G, GRAB_POWER);
+    motorBackward(MOTOR_G, power);
     grabberOpen = false;
-    grabTimer = millis() + GRAB_TIME;
+    grabTimer = millis() + time;
   }
 }
 
 void openGrabber() {
   /*
    * Open the grabber with the hardcoded time and motor power
-   * ARGS: [ack]
+   * ARGS: [ack] [time] [power]
    */
   ack(comm.next());
+  int time = atoi(comm.next());
+  int power = atoi(comm.next());
   if (!grabberOpen && !grabTimer) {
-    motorForward(MOTOR_G, GRAB_POWER);
+    motorForward(MOTOR_G, power);
     grabberOpen = true;
-    grabTimer = millis() + GRAB_TIME;
+    grabTimer = millis() + time;
   }
 }
 
@@ -150,12 +137,14 @@ void kick() {
   /*
    * Run the kicker with the hardcoded time and motor power.
    * Grabber must be open.
-   * ARGS: [ack]
+   * ARGS: [ack] [time] [power]
    */
   ack(comm.next());
+  int time = atoi(comm.next());
+  int power = atoi(comm.next());
   if (grabberOpen && !kickTimer) {
-    motorForward(MOTOR_K, KICK_POWER);
-    kickTimer = millis() + KICK_TIME;
+    motorForward(MOTOR_K, power);
+    kickTimer = millis() + time;
   }
 }
 
