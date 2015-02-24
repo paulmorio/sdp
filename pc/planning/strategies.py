@@ -189,6 +189,53 @@ class GetBall(Strategy):
         self.move(distance)
 
 
+class GetBallReceiver(Strategy):
+    """
+    As above, just for milestone 3
+    """
+    def __init__(self, world, robot_controller):
+        self.ball = world._ball
+        self.bot = world.our_defender
+
+        self.rotate_margin = 0.5  # TODO: tune value
+
+        states = [OPEN_GRABBER, REORIENT, REPOSITION, CLOSE_GRABBER]
+        action_map = {
+            OPEN_GRABBER: self.open_grabber,
+            REORIENT: self.aim_towards_ball,
+            REPOSITION: self.move_towards_ball,
+            CLOSE_GRABBER: self.close_grabber
+        }
+
+        super(GetBallReceiver, self).__init__(world, robot_controller, states, action_map)
+
+    def transition(self):
+        print self.state
+        angle = self.bot.get_rotation_to_point(self.ball.x, self.ball.y)
+
+        if self.state == OPEN_GRABBER:
+            if self.bot.catcher == OPENED:
+                self.state = REORIENT
+
+        elif self.state == REORIENT:
+            if abs(angle) < self.rotate_margin:
+                self.state = REPOSITION
+
+        elif self.state == REPOSITION:
+            if self.bot.can_catch_ball(self.ball):
+                self.state = CLOSE_GRABBER
+            else:
+                self.reset()
+
+    def aim_towards_ball(self):
+        angle = self.bot.get_rotation_to_point(self.ball.x, self.ball.y)
+        self.rotate(angle)
+
+    def move_towards_ball(self):
+        distance = self.bot.get_displacement_to_point(self.ball.x, self.ball.y)
+        self.move(distance)
+
+
 class CatchBall(Strategy):
     """
     The lazy, no-communication method:

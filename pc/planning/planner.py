@@ -34,7 +34,7 @@ class Planner(object):
             self._strategies = {
                 NO_BALL: Idle(self._world, self._robot_controller),
                 BALL_OURATTACKER: CatchBall(self._world, self._robot_controller),
-                BALL_OURDEFENDER: GetBall(self._world, self._robot_controller),
+                BALL_OURDEFENDER: GetBallReceiver(self._world, self._robot_controller),
                 BALL_THEIRATTACKER: CatchBall(self._world, self._robot_controller),
                 BALL_THEIRDEFENDER: CatchBall(self._world, self._robot_controller),
                 POSSESSION: Idle(self._world, self._robot_controller)
@@ -143,7 +143,7 @@ class Planner(object):
                     self._state = BALL_OURDEFENDER
 
                 # Get the ball
-                elif isinstance(self._strategy, GetBall):
+                elif isinstance(self._strategy, GetBallReceiver):
                     # Got possession of the ball - now prepare to idle
                     self._state = POSSESSION
 
