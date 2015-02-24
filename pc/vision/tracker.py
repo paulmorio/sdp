@@ -39,7 +39,7 @@ class Tracker(object):
             hsv_frame_mask = cv2.inRange(frame_hsv, adjustments['hsv_min'], adjustments['hsv_max'])
 
             # Create a RGB mask
-            rgb_frame_mask = cv2.inRange(frame_hsv, adjustments['rgb_min'], adjustments['rgb_max'])
+            rgb_frame_mask = cv2.inRange(frame, adjustments['rgb_min'], adjustments['rgb_max'])
 
             # Use HSV and RGB mask to create the resultant mask
             frame_mask = cv2.bitwise_and(hsv_frame_mask, hsv_frame_mask, mask=rgb_frame_mask)

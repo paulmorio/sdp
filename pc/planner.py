@@ -109,15 +109,15 @@ class Planner():
         or on some time factor, or some amount to turn.
         """
         if direction == 'turn-right':
-            self.robot_controller.command(TURN_RIGHT)
+            #self.robot_controller.command(TURN_RIGHT)
             self.bot.action = 'turn-right'
             print "ROTATE: >>>"
         elif direction == 'turn-left':
-            self.robot_controller.command(TURN_LEFT)
+            #self.robot_controller.command(TURN_LEFT)
             self.bot.action = 'turn-left'
             print "ROTATE: <<<"
         elif direction == 'none':  # This code should never execute
-            self.robot_controller.command(STOP_DRIVE_MOTORS)
+            #self.robot_controller.command(STOP_DRIVE_MOTORS)
             self.bot.action = 'idle'
         else:
             print "ERROR in get_direction_to_rotate"
@@ -236,20 +236,20 @@ class Planner():
                 return 'opponentAttackerHasBall'
 
     def bot_stop(self):
-        self.robot_controller.command(STOP_DRIVE_MOTORS)
+        #self.robot_controller.command(STOP_DRIVE_MOTORS)
         self.action = "idle"
         print "MOVE: STOPPED!"
 
     def bot_open_grabber(self):
         if not self.bot.catcher == "open":
-            self.robot_controller.command(GRABBER_OPEN)
+            #self.robot_controller.command(GRABBER_OPEN)
             self.bot.catcher = "open"
             print "GRABBER: OPEN"
 
     def bot_close_grabber(self):
         if not self.bot.catcher == "closed":
             self.state = 'hasBall'
-            self.robot_controller.command(GRABBER_CLOSE)
+            #self.robot_controller.command(GRABBER_CLOSE)
             self.bot.catcher = "closed"
             print "GRABBER: CLOSE"
 
@@ -359,7 +359,7 @@ class Planner():
 
                                 if abs(self.bot.y - self.world.our_goal.y) > 30:
                                     self.action = "move-forward"
-                                    self.robot_controller.command(MOVE_FORWARD)
+                                    #self.robot_controller.command(MOVE_FORWARD)
 
                                 else:
                                     self.bot_stop()
@@ -552,7 +552,7 @@ class Planner():
                             # [ACTIVE] IF IDLE && OUTSIDE OF GRAB-RANGE && BALL INSIDE ZONE
                             elif (self.action == "idle" and not inside_grabber and self.ball_inside_zone()):
                                 self.action = "crawl-forward"
-                                self.robot_controller.command(CRAWL_FORWARD)
+                                #self.robot_controller.command(CRAWL_FORWARD)
 
                                 print "CRAWL: ^^^"
 
@@ -658,16 +658,20 @@ class Planner():
                             if self.final_countdown == 0:
                                 self.bot_open_grabber()
                                 if self.shoot_target=="attackerzone":
-                                    self.robot_controller.command(PASS)
+                                    #self.robot_controller.command(PASS)
+                                    pass
                                 else:
-                                    self.robot_controller.command(SHOOT)
+                                    #self.robot_controller.command(SHOOT)
+                                    pass
                                 self.final_countdown = -1
 
                                 # IF DEFENDER AND TRYING TO SHOOT INTO ATTACKER ZONE:
                                 if self.shoot_target=="attackerzone":
-                                    self.robot_controller.command(PASS)
+                                    #self.robot_controller.command(PASS)
+                                    pass
                                 else:
-                                    self.robot_controller.command(SHOOT)
+                                    #self.robot_controller.command(SHOOT)
+                                    pass
 
                                 self.state = "noBall"
 
@@ -730,7 +734,7 @@ class Planner():
             # [ACTIVE] IF STILL TURNING
             if self.action == "turn-right" or self.action == "turn-left":
                 self.action = "idle"
-                self.robot_controller.command(STOP_DRIVE_MOTORS)
+                #self.robot_controller.command(STOP_DRIVE_MOTORS)
 
                 print "ROTATE: _ _ _"
 
@@ -741,7 +745,7 @@ class Planner():
                 # need to add a delay here?
                 # possible alternatives
                 sleep(0.5)
-                self.robot_controller.command(PASS)
+                #self.robot_controller.command(PASS)
                 print "PASS"
 
             # [PASSIVE] IF PASSING THE BALL && STILL HAS THE BALL
@@ -772,7 +776,7 @@ class Planner():
                 print "CRAWL: ^^^  &&  GRABBER: OPEN"
                 self.action = "crawl-forward"
                 self.bot_open_grabber()
-                self.robot_controller.command(CRAWL_FORWARD)
+                #self.robot_controller.command(CRAWL_FORWARD)
 
             # IF ALREADY MOVING FORWARD && OUTSIDE OF GRAB-RANGE
             elif self.action == "crawl-forward" and not inside_grabber:
@@ -849,14 +853,14 @@ class Planner():
             # [ACTIVE] IF STILL TURNING
             if self.action == "turn-right" or self.action == "turn-left":
                 self.action = "idle"
-                self.robot_controller.command(STOP_DRIVE_MOTORS)
+                #self.robot_controller.command(STOP_DRIVE_MOTORS)
 
                 print "ROTATE: _ _ _"
 
             # [ACTIVE] IF IDLE && NOT CLOSE TO POINT
             if self.action == "idle":
                 self.action = "move-forward"
-                self.robot_controller.command(MOVE_FORWARD)
+                #self.robot_controller.command(MOVE_FORWARD)
 
                 print "MOVE: ^^^"
 
@@ -867,7 +871,7 @@ class Planner():
             # [ACTIVE] IF MOVING FORWARD && CLOSE TO POINT
             elif self.action == "crawl-forward" and self.bot_at_point(idle_point) == "close":
                 self.action = "idle"
-                self.robot_controller.command(STOP_DRIVE_MOTORS)
+                #self.robot_controller.command(STOP_DRIVE_MOTORS)
 
                 print "MOVE: _ _ _"
 
@@ -901,7 +905,7 @@ class Planner():
                     # [ACTIVE] IF STILL TURNING
                     if self.action == "turn-right" or self.action == "turn-left":
                         self.action = "idle"
-                        self.robot_controller.command(STOP_DRIVE_MOTORS)
+                        #self.robot_controller.command(STOP_DRIVE_MOTORS)
 
                         print "ROTATE: _ _ _"
 
@@ -944,9 +948,9 @@ class Planner():
         bot_x = self.bot.x
         if bot_x > target_x + 25:
             self.action = "crawl-forward"
-            self.robot_controller.command(CRAWL_FORWARD)
+            #self.robot_controller.command(CRAWL_FORWARD)
         elif bot_x < target_x + -25:
-            self.robot_controller.command(CRAWL_BACK)
+            #self.robot_controller.command(CRAWL_BACK)
             self.action = "crawl-back"
 
     def defender_block(self):
@@ -974,7 +978,7 @@ class Planner():
                 # need to add a delay here?
                 # possible alternatives
                 sleep(0.5)
-                self.robot_controller.command(SHOOT)
+                #self.robot_controller.command(SHOOT)
                 print "SHOOT"
 
         else:
