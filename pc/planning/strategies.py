@@ -58,48 +58,8 @@ class Strategy(object):
         Dummy action for strategies - usually used when in final state.
         :return: None
         """
+        print "Doing nothing."
         return None
-
-    ###################################################################
-    def open_grabber(self):
-        """
-        Open the grabber, and set the bot's catcher status to open
-        """
-        if not self._bot.catcher == OPENED:
-            self._robot_controller.command(OPEN_GRABBER)
-            self._bot.catcher = OPENED
-            #print "GRABBER: OPEN"
-
-    def close_grabber(self):
-        """
-        Close the grabber, and set the bot's catcher status to closed
-        """
-        if not self._bot.catcher == CLOSED:
-            self._robot_controller.command(CLOSE_GRABBER)
-            self._bot.catcher = CLOSED
-            #print "GRABBER: CLOSED"
-
-    def rotate(self, angle):
-        """
-        ROTATE THE ROBOT angle RADIANS
-        """
-        #self._robot_controller.command(ROTATE, angle)
-        #print "Rotating "+str(angle)+" radians."
-        pass
-
-    def move(self, distance):
-        """
-        MOVE THE ROBOT distance CM
-        """
-        #self._robot_controller.command(MOVE, distance)
-        #print "Moving "+str(distance)+"cm."
-        pass
-
-    def pass_ball(self):
-        """
-        Pass the ball: shoot with low strength?
-        """
-        self._robot_controller.command(PASS)
 
 
 class Idle(Strategy):
@@ -147,15 +107,16 @@ class GetBall(Strategy):
     def __init__(self, world, robot_controller):
         self.ball = world._ball
         self.bot = world.our_attacker
+        self._robot_controller = robot_controller
 
         self.rotate_margin = 0.5  # TODO: tune value
 
         states = [OPEN_GRABBER, REORIENT, REPOSITION, CLOSE_GRABBER]
         action_map = {
-            OPEN_GRABBER: self.open_grabber,
+            OPEN_GRABBER: self._robot_controller.open_grabber,
             REORIENT: self.aim_towards_ball,
             REPOSITION: self.move_towards_ball,
-            CLOSE_GRABBER: self.close_grabber
+            CLOSE_GRABBER: self._robot_controller.close_grabber
         }
 
         super(GetBall, self).__init__(world, robot_controller, states, action_map)
@@ -165,7 +126,7 @@ class GetBall(Strategy):
         angle = self.bot.get_rotation_to_point(self.ball.x, self.ball.y)
 
         if self.state == OPEN_GRABBER:
-            if self.bot.catcher == OPENED:
+            if self._robot_controller.grabber_open:
                 self.state = REORIENT
 
         elif self.state == REORIENT:
@@ -180,11 +141,11 @@ class GetBall(Strategy):
 
     def aim_towards_ball(self):
         angle = self.bot.get_rotation_to_point(self.ball.x, self.ball.y)
-        self.rotate(angle)
+        self._robot_controller.turn(angle)
 
     def move_towards_ball(self):
         distance = self.bot.get_displacement_to_point(self.ball.x, self.ball.y)
-        self.move(distance)
+        self._robot_controller.drive(distance, distance)
 
 
 class GetBallReceiver(Strategy):
@@ -194,15 +155,16 @@ class GetBallReceiver(Strategy):
     def __init__(self, world, robot_controller):
         self.ball = world._ball
         self.bot = world.our_defender
+        self._robot_controller = robot_controller
 
         self.rotate_margin = 0.5  # TODO: tune value
 
         states = [OPEN_GRABBER, REORIENT, REPOSITION, CLOSE_GRABBER]
         action_map = {
-            OPEN_GRABBER: self.open_grabber,
+            OPEN_GRABBER: self._robot_controller.open_grabber,
             REORIENT: self.aim_towards_ball,
             REPOSITION: self.move_towards_ball,
-            CLOSE_GRABBER: self.close_grabber
+            CLOSE_GRABBER: self._robot_controller.close_grabber
         }
 
         super(GetBallReceiver, self).__init__(world, robot_controller, states, action_map)
@@ -212,7 +174,7 @@ class GetBallReceiver(Strategy):
         angle = self.bot.get_rotation_to_point(self.ball.x, self.ball.y)
 
         if self.state == OPEN_GRABBER:
-            if self.bot.catcher == OPENED:
+            if self._robot_controller.grabber_open:
                 self.state = REORIENT
 
         elif self.state == REORIENT:
@@ -227,11 +189,11 @@ class GetBallReceiver(Strategy):
 
     def aim_towards_ball(self):
         angle = self.bot.get_rotation_to_point(self.ball.x, self.ball.y)
-        self.rotate(angle)
+        self._robot_controller.turn(angle)
 
     def move_towards_ball(self):
         distance = self.bot.get_displacement_to_point(self.ball.x, self.ball.y)
-        self.move(distance)
+        self._robot_controller.drive(distance, distance)
 
 
 class CatchBall(Strategy):
@@ -242,6 +204,7 @@ class CatchBall(Strategy):
     def __init__(self, world, robot_controller):
         self.bot = world.our_defender
         self.passer = world.our_attacker
+        self._robot_controller = robot_controller
 
         x, y = world.pitch.zones[self.bot.zone].center()
 
@@ -253,7 +216,7 @@ class CatchBall(Strategy):
 
         states = [OPEN_GRABBER, REORIENT_FREESPOT, REPOSITION, REORIENT_PASSER, IDLE]
         action_map = {
-            OPEN_GRABBER: self.open_grabber,
+            OPEN_GRABBER: self._robot_controller.open_grabber,
             REORIENT_FREESPOT: self.aim_towards_freespot,
             REPOSITION: self.move_towards_freespot,
             REORIENT_PASSER: self.aim_towards_passer,
@@ -269,7 +232,7 @@ class CatchBall(Strategy):
 
         # Open the grabber
         if self.state == OPEN_GRABBER:
-            if self.bot.catcher == OPENED:
+            if self._robot_controller.grabber_open:
                 self.state = REORIENT_FREESPOT
 
         # Rotate to face the "freespot" (point at center of our zone)
@@ -295,15 +258,15 @@ class CatchBall(Strategy):
 
     def aim_towards_freespot(self):
         angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
-        self.rotate(angle)
+        self._robot_controller.turn(angle)
 
     def move_towards_freespot(self):
         distance = self.bot.get_displacement_to_point(self.freespot_x, self.freespot_y)
-        self.move(distance)
+        self._robot_controller(distance, distance)
 
     def aim_towards_passer(self):
         angle = self.bot.get_rotation_to_point(self.passer.x, self.passer.y)
-        self.rotate(angle)
+        self._robot_controller.tunr(angle)
 
 
 class Confuse(Strategy):
@@ -311,9 +274,9 @@ class Confuse(Strategy):
     The ball is in the enemy attacker's zone. Basically there's nothing we can do here.
     """
     def __init__(self, world, robot_controller):
-        states = [OPEN_GRABBER]
+        states = [NONE]
         action_map = {
-            OPEN_GRABBER: self.open_grabber
+            NONE: self.do_nothing
         }
 
         super(Confuse, self).__init__(world, robot_controller, states, action_map)
@@ -321,14 +284,15 @@ class Confuse(Strategy):
     def transition(self):
         pass
 
+
 class Intercept(Strategy):
     """
     The ball is inside the enemy defender's zone
     """
     def __init__(self, world, robot_controller):
-        states = [OPEN_GRABBER]
+        states = [NONE]
         action_map = {
-            OPEN_GRABBER: self.open_grabber
+            NONE: self.do_nothing
         }
 
         super(Intercept, self).__init__(world, robot_controller, states, action_map)
@@ -341,7 +305,7 @@ class ShootBall(Strategy):
     def __init__(self, world, robot_controller):
         states = [NONE]
         action_map = {
-            NONE: self.dummy
+            NONE: self.do_nothing
         }
 
         super(ShootBall, self).__init__(world, robot_controller, states, action_map)
@@ -349,15 +313,12 @@ class ShootBall(Strategy):
     def transition(self):
         pass
 
-    def dummy(self):
-        print "I'm a dummy!"
-
 
 class Sleep(Strategy):
     def __init__(self, world, robot_controller):
         states = [NONE]
         action_map = {
-            NONE: self.dummy
+            NONE: self.do_nothing
         }
 
         super(Sleep, self).__init__(world, robot_controller, states, action_map)
@@ -365,15 +326,13 @@ class Sleep(Strategy):
     def transition(self):
         pass
 
-    def dummy(self):
-        print "I'm a dummy!"
-
 
 class PassBall(Strategy):
     def __init__(self, world, robot_controller):
-
         self.bot = world.our_attacker
         self.world = world
+        self._robot_controller = robot_controller
+
 
         (self.freespot_x, self.freespot_y) = self.calc_freespot()
 
@@ -385,8 +344,8 @@ class PassBall(Strategy):
             REORIENT_FREESPOT: self.rotate_to_freespot,
             REPOSITION: self.move_to_freespot,
             REORIENT_DEFENDER: self.rotate_to_defender,
-            OPEN_GRABBER: self.open_grabber,
-            PASS: self.pass_ball
+            OPEN_GRABBER: self._robot_controller.open_grabber,
+            PASS: self._robot_controller.kick
         }
 
         super(PassBall, self).__init__(world, robot_controller, states, action_map)
@@ -410,6 +369,8 @@ class PassBall(Strategy):
             print "freespot_y: "+str(self.freespot_y)
             print "dy: "+str(abs(self.bot.y - self.freespot_y) < self.distance_margin)
 
+            
+
             if abs(self.bot.y - self.freespot_y) < self.distance_margin:
                 self.state = REORIENT_DEFENDER
 
@@ -426,20 +387,20 @@ class PassBall(Strategy):
             angle = self.bot.get_rotation_to_point(self.world.our_defender.x, self.world.our_defender.y)
             print "\nPASSED WITH MARGIN\nangle: "+str(angle)+" radians from target"
 
-            if self.bot.catcher == OPENED:
+            if self._robot_controller.grabber_open:
                 self.state = PASS
 
     def rotate_to_freespot(self):
         angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
-        self.rotate(angle)
+        self._robot_controller.turn(angle)
 
     def move_to_freespot(self):
         distance = self.bot.get_displacement_to_point(self.freespot_x, self.freespot_y)
-        self.move(distance)
+        self._robot_controller.driver(distance, distance)
 
     def rotate_to_defender(self):
         angle = self.bot.get_rotation_to_point(self.world.our_defender.x, self.world.our_defender.y)
-        self.rotate(angle)
+        self._robot_controller.turn(angle)
 
     def calc_freespot(self):
         (our_center_x, our_center_y) = self.world.pitch.zones[self.bot.zone].center()

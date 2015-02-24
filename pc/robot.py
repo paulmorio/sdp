@@ -115,19 +115,19 @@ class Robot(object):
         self._command(Robot._DRIVE,
                       [str(l_dist), str(r_dist), str(l_power), str(r_power)])
 
-    def turn(self, degrees, power=100):
+    def turn(self, radians, power=100):
         """
-        Turn the robot at the given motor power. The degrees should be relative
-        to the current orientation of the robot, where the robot is facing 0deg
-        and degrees in [1,180] indicate a rightward turn while degress in
-        [-180,-1] indicate a leftward turn.
+        Turn the robot at the given motor power. The radians should be relative
+        to the current orientation of the robot, where the robot is facing 0rad
+        and radians in [~0,pi] indicate a rightward turn while radians in
+        [-pi,-~0] indicate a leftward turn.
 
-        Note that it is possible to e.g. call turn(720) to do two full rightward
+        Note that it is possible to e.g. call turn(4pi) to do two full rightward
         rotations.
 
-        :param degrees: Degrees to turn from current orientation. Sign indicates
+        :param radians: Radians to turn from current orientation. Sign indicates
                         direction (negative -> leftward, positive -> rightward)
-        :type degrees: int
+        :type radians: int
         :param power: Motor power
         :type power: int
         """
