@@ -73,14 +73,30 @@ class World(object):
         if (self._our_side == 'left' and
                 not(self.our_defender.x < self.their_attacker.x
                     < self.our_attacker.x < self.their_defender.x)):
-            pass
-            #print "WARNING: The sides are probably wrong!"
+            print "WARNING: The sides are probably wrong!"
 
         if (self._our_side == 'right' and
                 not(self.our_defender.x > self.their_attacker.x
                     > self.our_attacker.x > self.their_defender.x)):
-            pass
-            #print "WARNING: The sides are probably wrong!"
+            print "WARNING: The sides are probably wrong!"
+
+    def ball_in_area(self, robots):
+        """
+        Return True if the ball is in the given robots' area
+        :param robots: list of robot models corresponding to the queried zones
+        """
+        for robot in robots:
+            if self.pitch.zones[robot.zone].isInside(self.ball.x, self.ball.y):
+                return True
+        return False
+
+    def ball_in_play(self):
+        """
+        Return True if the ball is in play (the ball is in one of the four
+        margins.
+        :return boolean: True if ball is in play, else False.
+        """
+        return self.ball_in_area(self._robots)
 
 
 class WorldUpdater:
