@@ -25,4 +25,5 @@ PASS = 'pass'
 OPENED = "open"
 CLOSED = "closed"
 
-NONE = "no state!"
+NONE = "no_state"
+

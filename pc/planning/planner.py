@@ -12,16 +12,21 @@ class Planner(object):
         :param profile: Planning profile.
         """
         self._world = world
-        assert (profile in ['attacker', 'receiver'])
+        assert (profile in ['passer', 'receiver'])
+
+        # In passing mode, we're "our attacker"
+        # Yes, this makes absolutely no sense
         self._profile = profile
-        if profile == "attacker":
+        if profile == 'passer':
             self._our_robot = self._world.our_attacker
+
+        # In receiving mode, we're "our defender"
         elif profile == "receiver":
             self._our_robot = self._world.our_defender
         self._robot_controller = robot_controller
 
         # Strategy dictionaries return a strategy given a state.
-        if self._profile == 'attacker':  # MS2+
+        if self._profile == 'passer':  # MS2+
             self._strategies = {
                 NO_BALL: Idle(self._world, self._robot_controller),
                 BALL_OURATTACKER: GetBall(self._world, self._robot_controller),
@@ -37,7 +42,7 @@ class Planner(object):
                 BALL_OURDEFENDER: GetBallReceiver(self._world, self._robot_controller),
                 BALL_THEIRATTACKER: CatchBall(self._world, self._robot_controller),
                 BALL_THEIRDEFENDER: CatchBall(self._world, self._robot_controller),
-                POSSESSION: Idle(self._world, self._robot_controller)
+                POSSESSION: Sleep(self._world, self._robot_controller)
             }
         # Choose initial strategy
         self._state = NO_BALL
@@ -47,8 +52,8 @@ class Planner(object):
     def plan(self):
         """Update planner state before commanding the robot."""
         # Run the appropriate transition function
-        if self._profile == 'attacker':
-            self.attacker_transition()
+        if self._profile == 'passer':
+            self.passer_transition()
         elif self._profile == 'receiver':
             self.receiver_transition()
 
@@ -72,14 +77,13 @@ class Planner(object):
                 self._strategy.reset()
             self._strategy = new_strategy
 
-    def attacker_transition(self):
+    def passer_transition(self):
         """
-        For the attacker profile.
+        For the passer profile.
         Update the planner state and strategy given the current state of the
         world model.
         """
         # For mil3: make this the get ball + pass logic
-
 
         # If the ball is not in play
         if not self._world.ball_in_play():
@@ -144,11 +148,11 @@ class Planner(object):
 
                 # Get the ball
                 elif isinstance(self._strategy, GetBallReceiver):
-                    # Got possession of the ball - now prepare to idle
+                    # Got possession of the ball - now prepare to sleep
                     self._state = POSSESSION
 
-                # Have the ball, now idle
-                elif isinstance(self._strategy, Idle):
+                # Have the ball, now sleep
+                elif isinstance(self._strategy, Sleep):
                     pass
 
         # If ball is in play but unreachable (outwith our margin)

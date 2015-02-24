@@ -102,8 +102,6 @@ class Strategy(object):
         self._robot_controller.command(PASS)
 
 
-
-
 class Idle(Strategy):
     """
     The idle strategy is typically the initial strategy and should be returned
@@ -338,6 +336,7 @@ class Intercept(Strategy):
     def transition(self):
         pass
 
+
 class ShootBall(Strategy):
     def __init__(self, world, robot_controller):
         states = [NONE]
@@ -346,6 +345,22 @@ class ShootBall(Strategy):
         }
 
         super(ShootBall, self).__init__(world, robot_controller, states, action_map)
+
+    def transition(self):
+        pass
+
+    def dummy(self):
+        print "I'm a dummy!"
+
+
+class Sleep(Strategy):
+    def __init__(self, world, robot_controller):
+        states = [NONE]
+        action_map = {
+            NONE: self.dummy
+        }
+
+        super(Sleep, self).__init__(world, robot_controller, states, action_map)
 
     def transition(self):
         pass
@@ -414,8 +429,6 @@ class PassBall(Strategy):
             if self.bot.catcher == OPENED:
                 self.state = PASS
 
-
-
     def rotate_to_freespot(self):
         angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
         self.rotate(angle)
@@ -439,6 +452,6 @@ class PassBall(Strategy):
 
         freespot_x = int(our_center_x)
 
-        return (freespot_x, freespot_y)
+        return freespot_x, freespot_y
 
 
