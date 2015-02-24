@@ -1,4 +1,5 @@
 from serial import Serial
+import threading
 
 
 class Robot(object):
@@ -22,7 +23,7 @@ class Robot(object):
         :param port: Default is "/dev/ttyACM0". This changes based on
         platform, etc. The default should correspond to what shows on the DICE
         machines.
-        :type port: String
+        :type port: str
         :param timeout: Serial read timeout - used for alternating bit protocol.
         :type timeout: int
         :param rate: Baud rate
@@ -33,8 +34,10 @@ class Robot(object):
         :rtype: Robot
         """
         self._last_command = None
-        self.ready = False
-        # TODO status flags for movement, kicking, grabbing, etc.
+        self.ready = False  # True if ready to receive a command
+        self.is_moving = False  # True if performing a movement task
+        self.is_kicking = False  # True if performing a kick
+        self.is_grabbing = False  # True if opening or closing grabber
         if comms:
             self._ack_bit = '0'
             self._serial = Serial(port, rate, timeout=timeout)
@@ -51,9 +54,9 @@ class Robot(object):
 
         :param command: The command to be sent. This should be one of the
         constants defined within this module.
-        :type command: String
+        :type command: str
         :param arguments: Optional arguments to be appended to the command.
-        :type arguments: list
+        :type arguments: list of str
         """
         # Store for resending
         self._last_command = (command, arguments)
@@ -204,8 +207,11 @@ class ManualController(object):
     def __init__(self, port="/dev/ttyACM0", rate=115200):
         """
         :param port: Serial port to be used. Default is fine for DICE
+        :type port: str
         :param rate: Baudrate. Default is 115200
-        :return: ManualController object.
+        :type rate: int
+        :return: A manualcontroller with an initialised robot object
+        :rtype: ManualController
         """
         self.robot = Robot(port=port, rate=rate)
         self.root = None
