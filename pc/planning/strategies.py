@@ -87,7 +87,7 @@ class Idle(Strategy):
         self.middle_x = int(x)
         self.middle_y = int(y)
 
-        self.angle = 0
+        self.angle_to_face = 0
 
         states = [REORIENT, WAIT_REORIENT, REPOSITION, WAIT_REPOSITION, IDLE]
         action_map = {
@@ -102,16 +102,19 @@ class Idle(Strategy):
 
     def transition(self):
 
-        real_angle = self.bot.get_rotation_to_point(self.middle_x, self.middle_y)
+        bot_angle = self.bot.angle
+        angle_to_target = self.bot.get_rotation_to_point(self.middle_x, self.middle_y)
 
         if self.state == REORIENT:
-            self.angle = real_angle
+            self.angle_to_face = bot_angle + angle_to_target
             self.state == WAIT_REORIENT
 
         if self.state == WAIT_REORIENT:
-            if abs(self.angle) < ROTATE_MARGIN:
-                if self.compare_angles(self.angle, real_angle):
+            if abs(self.angle_to_face - self.bot.angle) < ROTATE_MARGIN:
+                if self.compare_angles(angle_to_target, 0.0):
                     self.state = REPOSITION
+                else:
+                    self.reset()
 
         elif self.state == REPOSITION:
             displacement = self.bot.get_displacement_to_point(self.middle_x, self.middle_y)
@@ -148,7 +151,7 @@ class GetBall(Strategy):
         self.ball = world.ball
         self._robot_controller = robot_controller
 
-        self.angle = 0
+        self.angle_to_face = 0
 
         states = [OPEN_GRABBER, WAIT_O_GRAB, REORIENT, WAIT_REORIENT, REPOSITION, WAIT_REPOSITION, CLOSE_GRABBER, WAIT_C_GRAB]
         action_map = {
@@ -166,7 +169,8 @@ class GetBall(Strategy):
 
     def transition(self):
 
-        real_angle = self.bot.get_rotation_to_point(self.ball.x, self.ball.y)
+        bot_angle = self.bot.angle
+        angle_to_target = self.bot.get_rotation_to_point(self.ball.x, self.ball.y)
 
         if self.state == OPEN_GRABBER:
             self.state = WAIT_O_GRAB
@@ -176,12 +180,12 @@ class GetBall(Strategy):
                 self.state = REORIENT
 
         elif self.state == REORIENT:
-            self.angle = real_angle
+            self.angle_to_face = bot_angle + angle_to_target
             self.state == WAIT_REORIENT
 
         elif self.state == WAIT_REORIENT:
-            if abs(self.angle) < ROTATE_MARGIN:
-                if self.compare_angles(self.angle, real_angle):
+            if abs(self.angle_to_face - self.bot.angle) < ROTATE_MARGIN:
+                if self.compare_angles(angle_to_target, 0.0):
                     self.state = REPOSITION
                 else:
                     self.reset()
@@ -225,7 +229,7 @@ class CatchBall(Strategy):
         self.freespot_x = int(x)
         self.freespot_y = int(y)
 
-        self.angle = 0
+        self.angle_to_face = 0
 
         states = [OPEN_GRABBER, WAIT_O_GRAB, REORIENT_FREESPOT, WAIT_REORIENT_FREESPOT, REPOSITION, WAIT_REPOSITION, REORIENT_PASSER, WAIT_REORIENT_PASSER, IDLE]
         action_map = {
@@ -244,8 +248,9 @@ class CatchBall(Strategy):
 
     def transition(self):
 
-        real_freespot_angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
-        real_passer_angle = self.bot.get_rotation_to_point(self.passer.x, self.passer.y)
+        bot_angle = self.bot.angle
+        angle_to_freespot = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
+        angle_to_passer = self.bot.get_rotation_to_point(self.passer, self.passer)
 
         # Open the grabber
         if self.state == OPEN_GRABBER:
@@ -257,12 +262,12 @@ class CatchBall(Strategy):
 
         # Rotate to face the "freespot" (point at center of our zone)
         elif self.state == REORIENT_FREESPOT:
-            self.angle = real_freespot_angle
+            self.angle_to_face = bot_angle + angle_to_freespot
             self.state == WAIT_REORIENT_FREESPOT
 
         elif self.state == WAIT_REORIENT_FREESPOT:
-            if abs(self.angle) < ROTATE_MARGIN:
-                if self.compare_angles(self.angle, real_freespot_angle):
+            if abs(self.angle_to_face - self.bot.angle) < ROTATE_MARGIN:
+                if self.compare_angles(angle_to_freespot, 0):
                     self.state = REPOSITION
                 else:
                     self.reset()
@@ -279,12 +284,12 @@ class CatchBall(Strategy):
 
         # Rotate to face our passer, and wait
         elif self.state == REORIENT_PASSER:
-            self.angle = real_passer_angle
+            self.angle_to_face = self.bot.angle + angle_to_passer
             self.state == WAIT_REORIENT_PASSER
 
         elif self.state == WAIT_REORIENT_PASSER:
-            if abs(self.angle) < ROTATE_MARGIN:
-                if self.compare_angles(self.angle, real_passer_angle):
+            if abs(self.angle_to_face - self.bot.angle) < ROTATE_MARGIN:
+                if self.compare_angles(angle_to_passer, 0.0):
                     self.state = IDLE
                 else:
                     self.reset()
