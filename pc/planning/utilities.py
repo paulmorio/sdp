@@ -22,6 +22,11 @@ PASS = 'pass'
 SHOOT = 'shoot'
 FACE_GOAL = 'face_goal'
 
+WAIT_O_GRAB = 'wait_for_grabber_open'
+WAIT_C_GRAB = 'wait_for_grabber_closed'
+WAIT_REORIENT = 'wait_for_reorient'
+WAIT_REPOSITION = 'wait_for_reposition'
+
 # Catcher state constants
 OPENED = "open"
 CLOSED = "closed"

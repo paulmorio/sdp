@@ -135,9 +135,13 @@ class GetBall(Strategy):
         states = [OPEN_GRABBER, REORIENT, REPOSITION, CLOSE_GRABBER]
         action_map = {
             OPEN_GRABBER: self._robot_controller.open_grabber,
+            WAIT_O_GRAB: self.do_nothing,
             REORIENT: self.aim_towards_ball,
+            WAIT_REORIENT: self.do_nothing,
             REPOSITION: self.move_towards_ball,
-            CLOSE_GRABBER: self._robot_controller.close_grabber
+            WAIT_REPOSITION: self.do_nothing,
+            CLOSE_GRABBER: self._robot_controller.close_grabber,
+            WAIT_C_GRAB: self.do_nothing
         }
 
         super(GetBall, self).__init__(world, robot_controller, states, action_map)
@@ -147,18 +151,28 @@ class GetBall(Strategy):
         angle = self.bot.get_rotation_to_point(self.ball.x, self.ball.y)
 
         if self.state == OPEN_GRABBER:
-            if self._robot_controller.open_grabber:
-                self.state = REORIENT
+            self.state = WAIT_O_GRAB
+
+        elif self.state == WAIT_O_GRAB and self._robot_controller.open_grabber:
+            self.state = REORIENT
 
         elif self.state == REORIENT:
-            if abs(angle) < ROTATE_MARGIN:
-                self.state = REPOSITION
+            self.state == WAIT_REORIENT
+
+        elif self.state == WAIT_REORIENT and abs(angle) < ROTATE_MARGIN:
+            self.state = REPOSITION
 
         elif self.state == REPOSITION:
-            if self.bot.can_catch_ball(self.ball):
-                self.state = CLOSE_GRABBER
-            else:
+            self.state == WAIT_REPOSITION
+
+        elif self.state == WAIT_REPOSITION and self.bot.can_catch_ball(self.ball):
+            self.state = CLOSE_GRABBER
+
+        elif self.state == CLOSE_GRABBER:
+            if not self.bot.can_catch_ball(self.ball):
                 self.reset()
+            else:
+                self.state == WAIT_C_GRAB
 
     def aim_towards_ball(self):
         angle = self.bot.get_rotation_to_point(self.ball.x, self.ball.y)
