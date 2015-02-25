@@ -190,7 +190,7 @@ class GetBall(Strategy):
                 if self.compare_angles(angle_to_target, 0.0):
                     self.state = REPOSITION
                 else:
-                    self.reset()
+                    self.state = REORIENT
 
         elif self.state == REPOSITION:
             self.state == WAIT_REPOSITION
@@ -249,7 +249,6 @@ class CatchBall(Strategy):
         super(CatchBall, self).__init__(world, robot_controller, states, action_map)
 
     def transition(self):
-        print "CatchBall:" + self.state
 
         bot_angle = self.bot.angle
         angle_to_freespot = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
@@ -273,7 +272,7 @@ class CatchBall(Strategy):
                 if self.compare_angles(angle_to_freespot, 0):
                     self.state = REPOSITION
                 else:
-                    self.reset()
+                    self.state = REORIENT_FREESPOT
 
         # Move to the freespot
         elif self.state == REPOSITION:
@@ -295,7 +294,7 @@ class CatchBall(Strategy):
                 if self.compare_angles(angle_to_passer, 0.0):
                     self.state = IDLE
                 else:
-                    self.reset()
+                    self.REORIENT_FREESPOT
 
     def aim_towards_freespot(self):
         angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
