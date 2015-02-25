@@ -70,7 +70,7 @@ class Idle(Strategy):
     """
 
     def __init__(self, world, robot_controller):
-        x, y = self._world.pitch.zones[self._bot.zone].center()
+        x, y = world.pitch.zones[self._bot.zone].center()
 
         self.middle_x = int(x)
         self.middle_y = int(y)

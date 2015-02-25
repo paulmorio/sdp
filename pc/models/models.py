@@ -273,13 +273,13 @@ class Robot(PitchObject):
         delta_y = y - self.y
         displacement = hypot(delta_x, delta_y)
 
-        #TODO: CONVERT displacement FROM PIXELS TO CM
+        displacement *= 0.4
 
         return displacement
 
     def get_direction_to_point(self, x, y):
         """
-        This method returns the displacement and angle to coordinate x, y.
+        This method returns the displacement (in cm) and angle to coordinate x, y.
         """
         return (self.get_displacement_to_point(x, y),
                 self.get_rotation_to_point(x, y))
