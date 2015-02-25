@@ -113,8 +113,6 @@ class Idle(Strategy):
             if abs(self.angle) < ROTATE_MARGIN:
                 if self.compare_angles(self.angle, real_angle):
                     self.state = REPOSITION
-                else:
-                    self.reset()
 
         elif self.state == REPOSITION:
             displacement = self.bot.get_displacement_to_point(self.middle_x, self.middle_y)
@@ -249,7 +247,8 @@ class CatchBall(Strategy):
     def transition(self):
         print "CatchBall:" + self.state
 
-        real_angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
+        real_freespot_angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
+        real_passer_angle = self.bot.get_rotation_to_point(self.passer, self.passer)
 
         # Open the grabber
         if self.state == OPEN_GRABBER:
@@ -261,12 +260,12 @@ class CatchBall(Strategy):
 
         # Rotate to face the "freespot" (point at center of our zone)
         elif self.state == REORIENT_FREESPOT:
-            self.angle = real_angle
+            self.angle = real_freespot_angle
             self.state == WAIT_REORIENT_FREESPOT
 
         elif self.state == WAIT_REORIENT_FREESPOT:
             if abs(self.angle) < ROTATE_MARGIN:
-                if self.compare_angles(self.angle, real_angle):
+                if self.compare_angles(self.angle, real_freespot_angle):
                     self.state = REPOSITION
                 else:
                     self.reset()
@@ -280,17 +279,15 @@ class CatchBall(Strategy):
             displacement = self.bot.get_displacement_to_point(self.freespot_x, self.freespot_y)
             if displacement < DISPLACEMENT_MARGIN:
                 self.state = REORIENT_PASSER
-            else:
-                self.reset()
 
         # Rotate to face our passer, and wait
         elif self.state == REORIENT_PASSER:
-            self.angle = real_angle
+            self.angle = real_passer_angle
             self.state == WAIT_REORIENT_PASSER
 
         elif self.staete == WAIT_REORIENT_PASSER:
             if abs(self.angle) < ROTATE_MARGIN:
-                if self.compare_angles(self.angle, real_angle):
+                if self.compare_angles(self.angle, real_passer_angle):
                     self.state = IDLE
                 else:
                     self.reset()
@@ -305,7 +302,7 @@ class CatchBall(Strategy):
 
     def aim_towards_passer(self):
         angle = self.bot.get_rotation_to_point(self.passer.x, self.passer.y)
-        self._robot_controller.tunr(angle)
+        self._robot_controller.turn(angle)
 
 
 class Confuse(Strategy):
