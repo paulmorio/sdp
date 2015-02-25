@@ -29,5 +29,3 @@ CLOSED = "closed"
 # Margin constants
 ROTATE_MARGIN = 0.17  # in radians
 DISPLACEMENT_MARGIN = 5  # in centimetres
-
-
