@@ -90,9 +90,9 @@ class Idle(Strategy):
         angle = self._bot.get_rotation_to_point(self.middle_x, self.middle_y)
 
         if self.state == REORIENT:
-            #if self._robot_controller.open_grabber:
-            if abs(angle) < ROTATE_MARGIN:
-                self.state = REPOSITION
+            if self._robot_controller.open_grabber:
+                if abs(angle) < ROTATE_MARGIN:
+                    self.state = REPOSITION
 
         elif self.state == REPOSITION:
             displacement = self._bot.get_displacement_to_point(self.middle_x, self.middle_y)
@@ -144,8 +144,8 @@ class GetBall(Strategy):
         angle = self._bot.get_rotation_to_point(self.ball.x, self.ball.y)
 
         if self.state == OPEN_GRABBER:
-            #if self._robot_controller.open_grabber:
-            self.state = REORIENT
+            if self._robot_controller.open_grabber:
+                self.state = REORIENT
 
         elif self.state == REORIENT:
             if abs(angle) < ROTATE_MARGIN:
@@ -196,8 +196,8 @@ class CatchBall(Strategy):
 
         # Open the grabber
         if self.state == OPEN_GRABBER:
-            #if self._robot_controller.grabber_open:
-            self.state = REORIENT_FREESPOT
+            if self._robot_controller.grabber_open:
+                self.state = REORIENT_FREESPOT
 
         # Rotate to face the "freespot" (point at center of our zone)
         elif self.state == REORIENT_FREESPOT:
@@ -298,9 +298,9 @@ class ShootBall(Strategy):
         angle = self._bot.get_rotation_to_point(self.middle_x, self.middle_y)
 
         if self.state == REORIENT:
-            #if self._robot_controller.open_grabber:
-            if abs(angle) < ROTATE_MARGIN:
-                self.state = REPOSITION
+            if self._robot_controller.open_grabber:
+                if abs(angle) < ROTATE_MARGIN:
+                    self.state = REPOSITION
 
         elif self.state == REPOSITION:
             displacement = self._bot.get_displacement_to_point(self.middle_x, self.middle_y)
