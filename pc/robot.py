@@ -1,11 +1,12 @@
 from serial import Serial
-import threading
 
 
 class Robot(object):
-    """Serial connection, IO, and robot actions."""
+    """
+    Serial connection, IO, and robot actions.
+    """
 
-    # Command constants
+    # Command string constants
     _DRIVE = "DRIVE"
     _OPEN_GRABBER = "O_GRAB"
     _CLOSE_GRABBER = "C_GRAB"
@@ -142,8 +143,8 @@ class Robot(object):
         :param power: Motor power from 0-100
         :type power: int
         """
-        self.grabber_open = True
         self._command(Robot._OPEN_GRABBER, [str(time), str(power)])
+        self.grabber_open = True
 
     def close_grabber(self, time=220, power=100):
         """
@@ -155,8 +156,8 @@ class Robot(object):
         :param power: Motor power from 0-100
         :type power: int
         """
-        self.grabber_open = False
         self._command(Robot._CLOSE_GRABBER, [str(time), str(power)])
+        self.grabber_open = False
 
     def kick(self, time=700, power=100):
         """
@@ -186,10 +187,14 @@ class Robot(object):
         Wait for the robot to acknowledge the most recent command. Resend
         this command if no acknowledgement is received within the serial port
         timeout.
+
+        The acknowledgement includes an alternating bit as well as some status
+        bits as follows: [is_moving] [is_grabbing]
         """
-        ack = self._serial.readline()  # returns empty string on timeout
-        if ack != '' and ack[0] == self._ack_bit:  # Successful ack
-            self._ack_bit = '0' if self._ack_bit == '1' else '0'
+        if self._serial.inWaiting() > 0:
+            ack = self._serial.readline()  # returns empty string on timeout
+            if ack[0] == self._ack_bit:  # Successful ack
+                self._ack_bit = '0' if self._ack_bit == '1' else '0'
         else:  # No ack within timeout - resend command
             self._command(self._last_command[0], self._last_command[1])
 

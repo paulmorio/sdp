@@ -75,7 +75,7 @@ class Strategy(object):
 class Idle(Strategy):
     """
     The idle strategy is typically the initial strategy and should be returned
-    to if the ball is unreachable. This strategy has the robot return to its
+    to if the ball is not visible. This strategy has the robot return to its
     initial position.
     """
 
