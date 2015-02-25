@@ -23,6 +23,7 @@ class Planner(object):
         # In receiving mode, we're "our defender"
         elif profile == "receiver":
             self._our_robot = self._world.our_defender
+        
         self._robot_controller = robot_controller
 
         # Strategy dictionaries return a strategy given a state.

@@ -71,7 +71,7 @@ class Idle(Strategy):
 
     def __init__(self, world, robot_controller):
 
-        states = [REPOSITION, REORIENT, IDLE]
+        states = [REORIENT, REPOSITION, IDLE]
         action_map = {
             REPOSITION: self.move_to_origin,
             REORIENT: self.face_pitch_center,
@@ -81,23 +81,47 @@ class Idle(Strategy):
         super(Idle, self).__init__(world, robot_controller, states, action_map)
 
     def transition(self):
-        pass
+        print self.state
+
+        self.rotate_margin = 0.5  # TODO: tune value
+        self.displacement_margin = 30  # TODO: tune value
+
+        x, y = world.pitch.zones[self.bot.zone].center()
+
+        self.middle_x = int(x)
+        self.middle_y = int(y)
+
+        angle = self.bot.get_rotation_to_point(self.middle_x, self.middle_y)
+
+        if self.state == REORIENT:
+            #if self._robot_controller.open_grabber:
+            if abs(angle) < self.rotate_margin:            
+                self.state = REPOSITION
+
+        elif self.state == REPOSITION:
+            displacement = self.bot.get_displacement_to_point(self.freespot_x, self.freespot_y)
+            if displacement < self.displacement_margin:
+                self.state = IDLE
+
+        elif self.state == IDLE:
+            self.reset()
 
     # Actions
-    def move_to_origin(self):
-        """
-        Move to the robot's origin. Alter the strategy state when necessary.
-        :return: An action to be performed by the robot.
-        """
-        pass
-
     def face_pitch_center(self):
         """
         Face the center of the pitch. Alter the strategy state when necessary.
         :return: An action to be performed by the robot.
         """
-        pass
+        angle = self.bot.get_rotation_to_point(self.middle_x, self.middle_y)
+        self._robot_controller.turn(angle)
 
+    def move_to_origin(self):
+        """
+        Move to the robot's origin. Alter the strategy state when necessary.
+        :return: An action to be performed by the robot.
+        """
+        distance = self.bot.get_displacement_to_point(self.middle_x, self.middle_y)
+        self._robot_controller.drive(distance, distance)
 
 class GetBall(Strategy):
     """
@@ -126,8 +150,8 @@ class GetBall(Strategy):
         angle = self.bot.get_rotation_to_point(self.ball.x, self.ball.y)
 
         if self.state == OPEN_GRABBER:
-            if self._robot_controller.grabber_open:
-                self.state = REORIENT
+            #if self._robot_controller.open_grabber:
+            self.state = REORIENT
 
         elif self.state == REORIENT:
             if abs(angle) < self.rotate_margin:
@@ -174,8 +198,8 @@ class GetBallReceiver(Strategy):
         angle = self.bot.get_rotation_to_point(self.ball.x, self.ball.y)
 
         if self.state == OPEN_GRABBER:
-            if self._robot_controller.grabber_open:
-                self.state = REORIENT
+            #if self._robot_controller.grabber_open:
+            self.state = REORIENT
 
         elif self.state == REORIENT:
             if abs(angle) < self.rotate_margin:
@@ -232,8 +256,8 @@ class CatchBall(Strategy):
 
         # Open the grabber
         if self.state == OPEN_GRABBER:
-            if self._robot_controller.grabber_open:
-                self.state = REORIENT_FREESPOT
+            #if self._robot_controller.grabber_open:
+            self.state = REORIENT_FREESPOT
 
         # Rotate to face the "freespot" (point at center of our zone)
         elif self.state == REORIENT_FREESPOT:
@@ -300,8 +324,11 @@ class Intercept(Strategy):
     def transition(self):
         pass
 
-
+# NOT DONE
 class ShootBall(Strategy):
+    """
+    Assuming the ball is in possession shoot towards the goal.
+    """
     def __init__(self, world, robot_controller):
         states = [NONE]
         action_map = {
@@ -313,7 +340,7 @@ class ShootBall(Strategy):
     def transition(self):
         pass
 
-
+# NOT DONE
 class Sleep(Strategy):
     def __init__(self, world, robot_controller):
         states = [NONE]
