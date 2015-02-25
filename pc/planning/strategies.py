@@ -476,7 +476,10 @@ class PassBall(Strategy):
 
         elif self.state == WAIT_REORIENT:
             if abs(self.angle) < ROTATE_MARGIN:
-                self.state = REPOSITION
+                if self.compare_angles(self.angle, real_realspot_angle):
+                    self.state = REPOSITION
+                else:
+                    self.reset()
 
         elif self.state == REPOSITION:
 
@@ -507,19 +510,20 @@ class PassBall(Strategy):
 
         elif self.state == WAIT_REORIENT_DEFENDER:
             if abs(self.angle) < ROTATE_MARGIN:
-                self.state = OPEN_GRABBER
+                if self.compare_angles(self.angle, real_defender_angle):
+                    self.state = OPEN_GRABBER
+                else:
+                    self.reset()
 
-        if self.state == OPEN_GRABBER:
-
-            # take snapshot of angle to defender
-            self.angle = real_defender_angle
-            print "\nPASSED WITH MARGIN\nangle: "+str(self.angle)+" radians from target"
-
+        elif self.state == OPEN_GRABBER:
             self.state = WAIT_O_GRAB
 
-        if self.state == WAIT_O_GRAB:
+        elif self.state == WAIT_O_GRAB:
             if self._robot_controller.grabber_open:
                 self.state = PASS
+
+        elif self.state == PASS:
+            print "\nPASSED BALL WITH MARGIN\nangle: "+str(real_defender_angle)+" radians from target"
 
     def rotate_to_freespot(self):
         angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
