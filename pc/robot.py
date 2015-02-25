@@ -1,4 +1,5 @@
 from serial import Serial
+import math
 
 
 class Robot(object):
@@ -14,6 +15,13 @@ class Robot(object):
     _READY = "READY"
     _COMM_DELIMITER = ' '
     _COMM_TERMINAL = '\n'
+
+    # Robot constants
+    _ROTARY_SENSOR_RESOLUTION = 3.0  # Degrees
+    _WHEEL_DIAM_CM = 8.16 * math.pi
+    _TICK_DIST_CM = math.pi * _WHEEL_DIAM_CM * _ROTARY_SENSOR_RESOLUTION / 360
+    _WHEELBASE_DIAM_CM = 10.93
+    _WHEELBASE_CIRC_CM = _WHEELBASE_DIAM_CM * math.pi
 
     def __init__(self, port="/dev/ttyACM0", timeout=0.1,
                  rate=115200, comms=True):
@@ -69,10 +77,10 @@ class Robot(object):
             current_command += Robot._COMM_DELIMITER + arg
         # Append terminal char
         current_command += Robot._COMM_TERMINAL
-
         # Send and wait for ack
         if self._serial is not None:
             self._serial.write(current_command)
+            self._serial.flush()
             self.ack()
         else:
             print current_command
@@ -112,28 +120,31 @@ class Robot(object):
         :param r_power: Motor power from 0-100 - low values may not provide
         enough torque for drive.
         """
+        # Currently rounding down strictly as too little is better than too much
+        cm_to_ticks = lambda cm: int(cm / Robot._TICK_DIST_CM)
+        l_dist = str(cm_to_ticks(l_dist))
+        r_dist = str(cm_to_ticks(r_dist))
         self._command(Robot._DRIVE,
-                      [str(l_dist), str(r_dist), str(l_power), str(r_power)])
+                      [l_dist, r_dist, str(l_power), str(r_power)])
 
     def turn(self, radians, power=100):
         """
         Turn the robot at the given motor power. The radians should be relative
-        to the current orientation of the robot, where the robot is facing 0rad
-        and radians in [~0,pi] indicate a rightward turn while radians in
-        [-pi,-~0] indicate a leftward turn.
-
-        Note that it is possible to e.g. call turn(4pi) to do two full rightward
-        rotations.
+        to the current orientation of the robot, where the robot is facing 0 rad
+        and radians in (0,inf) indicate a rightward turn while radians in
+        (-inf,-0) indicate a leftward turn.
 
         :param radians: Radians to turn from current orientation. Sign indicates
                         direction (negative -> leftward, positive -> rightward)
-        :type radians: int
+        :type radians: float
         :param power: Motor power
         :type power: int
         """
-        pass  # NYI
+        rad_to_cm = lambda rad: Robot._WHEELBASE_CIRC_CM * rad / (2 * math.pi)
+        wheel_dist = rad_to_cm(radians)
+        self.drive(wheel_dist, -wheel_dist, power, power)
 
-    def open_grabber(self, time=220, power=100):
+    def open_grabber(self, time=700, power=100):
         """
         Run the grabber motor in the opening direction for the given number of
         milliseconds at the given motor power.
@@ -146,7 +157,7 @@ class Robot(object):
         self._command(Robot._OPEN_GRABBER, [str(time), str(power)])
         self.grabber_open = True
 
-    def close_grabber(self, time=220, power=100):
+    def close_grabber(self, time=700, power=100):
         """
         Run the grabber motor in the closing direction for the given number of
         milliseconds at the given motor power.
@@ -179,6 +190,7 @@ class Robot(object):
         if self._serial is not None:
             self.drive(0, 0)  # Stop drive motors
             self.close_grabber()
+            self._serial.flush()
             self._serial.close()
             print "Robot teardown complete. Serial connection is closed."
 
@@ -191,10 +203,9 @@ class Robot(object):
         The acknowledgement includes an alternating bit as well as some status
         bits as follows: [is_moving] [is_grabbing]
         """
-        if self._serial.inWaiting() > 0:
-            ack = self._serial.readline()  # returns empty string on timeout
-            if ack[0] == self._ack_bit:  # Successful ack
-                self._ack_bit = '0' if self._ack_bit == '1' else '0'
+        ack = self._serial.readline()  # returns empty string on timeout
+        if ack != '' and ack[0] == self._ack_bit:  # Successful ack
+            self._ack_bit = '0' if self._ack_bit == '1' else '0'
         else:  # No ack within timeout - resend command
             self._command(self._last_command[0], self._last_command[1])
 
@@ -244,10 +255,10 @@ class ManualController(object):
         self.root.bind('<Up>', lambda event: self.robot.drive(20, 20, 70, 70))
         self.root.bind('x', lambda event: self.robot.drive(-20, -20))
         self.root.bind('<Down>', lambda event: self.robot.drive(-20, -20, 70, 70))
-        self.root.bind('<Left>', lambda event: self.robot.drive(-10, 10, 70, 70))
-        self.root.bind('<Right>', lambda event: self.robot.drive(10, -10, 70, 70))
-        self.root.bind('a', lambda event: self.robot.drive(-10, 10))
-        self.root.bind('d', lambda event: self.robot.drive(10, -10))
+        self.root.bind('<Left>', lambda event: self.robot.turn(-math.pi))
+        self.root.bind('<Right>', lambda event: self.robot.turn(math.pi))
+        self.root.bind('a', lambda event: self.robot.turn(-math.pi))
+        self.root.bind('d', lambda event: self.robot.turn(math.pi))
         self.root.bind('o', lambda event: self.robot.open_grabber())
         self.root.bind('c', lambda event: self.robot.close_grabber())
         self.root.bind('<space>', lambda event: self.robot.kick())
