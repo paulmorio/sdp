@@ -46,6 +46,7 @@ class Robot(object):
         else:
             self._serial = None
             self.ready = True
+            self._ack_bit = '0'
 
     def _command(self, command, arguments=[]):
         """
