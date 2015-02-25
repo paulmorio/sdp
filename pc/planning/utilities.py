@@ -26,6 +26,8 @@ WAIT_O_GRAB = 'wait_for_grabber_open'
 WAIT_C_GRAB = 'wait_for_grabber_closed'
 WAIT_REORIENT = 'wait_for_reorient'
 WAIT_REPOSITION = 'wait_for_reposition'
+WAIT_REORIENT_FREESPOT = 'wait_for_reorient_freespot'
+WAIT_REORIENT_PASSER = 'wait_for_reorient_passer'
 
 # Catcher state constants
 OPENED = "open"
@@ -34,5 +36,7 @@ CLOSED = "closed"
 # Margin constants
 ROTATE_MARGIN = 0.17  # in radians
 DISPLACEMENT_MARGIN = 5  # in centimetres
-
 GRAB_AREA_MARGIN = 10  # in centimetres
+
+# Threshold constants
+ANGLE_THRESH = 0.2  # in radians
