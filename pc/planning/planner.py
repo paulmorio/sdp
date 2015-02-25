@@ -29,13 +29,13 @@ class Planner(object):
                 BALL_OUR_D_ZONE: CatchBall(self._world, self._robot_controller),
                 BALL_THEIR_A_ZONE: Confuse(self._world, self._robot_controller),
                 BALL_THEIR_D_ZONE: Intercept(self._world, self._robot_controller),
-                POSSESSION: ShootBall(self._world, self._robot_controller)
+                POSSESSION: PassBall(self._world, self._robot_controller)
             }
         elif self._profile == 'receiver':  # MS3
             self._strategies = {
                 NO_BALL: Idle(self._world, self._robot_controller),
-                BALL_OUR_A_ZONE: CatchBall(self._world, self._robot_controller),
-                BALL_OUR_D_ZONE: GetBall(self._world, self._robot_controller),
+                BALL_OUR_A_ZONE: GetBall(self._world, self._robot_controller),
+                BALL_OUR_D_ZONE: CatchBall(self._world, self._robot_controller),
                 BALL_THEIR_A_ZONE: CatchBall(self._world, self._robot_controller),
                 BALL_THEIR_D_ZONE: CatchBall(self._world, self._robot_controller),
                 POSSESSION: Sleep(self._world, self._robot_controller)
@@ -54,6 +54,8 @@ class Planner(object):
             self.receiver_transition()
 
         self._strategy.transition()  # Update strategy state
+
+        #print self._strategy
 
         plan = self._strategy.get_action()
         if plan is not None:

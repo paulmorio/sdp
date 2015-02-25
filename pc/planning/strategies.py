@@ -58,7 +58,7 @@ class Strategy(object):
         Dummy action for strategies - usually used when in final state.
         :return: None
         """
-        print "Doing nothing."
+
         return None
 
     def compare_angles(self, angle_1, angle_2):
@@ -89,7 +89,7 @@ class Idle(Strategy):
 
         self.angle_to_face = 0
 
-        states = [REORIENT, REPOSITION, IDLE]
+        states = [REORIENT, WAIT_REORIENT, REPOSITION, WAIT_REPOSITION, IDLE]
         action_map = {
             REORIENT: self.face_pitch_center,
             WAIT_REORIENT: self.do_nothing,
@@ -101,7 +101,6 @@ class Idle(Strategy):
         super(Idle, self).__init__(world, robot_controller, states, action_map)
 
     def transition(self):
-        print "Idle: " + self.state
 
         bot_angle = self.bot.angle
         angle_to_target = self.bot.get_rotation_to_point(self.middle_x, self.middle_y)
@@ -154,7 +153,7 @@ class GetBall(Strategy):
 
         self.angle_to_face = 0
 
-        states = [OPEN_GRABBER, REORIENT, REPOSITION, CLOSE_GRABBER]
+        states = [OPEN_GRABBER, WAIT_O_GRAB, REORIENT, WAIT_REORIENT, REPOSITION, WAIT_REPOSITION, CLOSE_GRABBER, WAIT_C_GRAB]
         action_map = {
             OPEN_GRABBER: self._robot_controller.open_grabber,
             WAIT_O_GRAB: self.do_nothing,
@@ -169,7 +168,6 @@ class GetBall(Strategy):
         super(GetBall, self).__init__(world, robot_controller, states, action_map)
 
     def transition(self):
-        print "GetBall: " + self.state
 
         bot_angle = self.bot.angle
         angle_to_target = self.bot.get_rotation_to_point(self.ball.x, self.ball.y)
@@ -233,7 +231,7 @@ class CatchBall(Strategy):
 
         self.angle_to_face = 0
 
-        states = [OPEN_GRABBER, REORIENT_FREESPOT, REPOSITION, REORIENT_PASSER, IDLE]
+        states = [OPEN_GRABBER, WAIT_O_GRAB, REORIENT_FREESPOT, WAIT_REORIENT_FREESPOT, REPOSITION, WAIT_REPOSITION, REORIENT_PASSER, WAIT_REORIENT_PASSER, IDLE]
         action_map = {
             OPEN_GRABBER: self._robot_controller.open_grabber,
             WAIT_O_GRAB: self.do_nothing,
@@ -371,7 +369,6 @@ class ShootBall(Strategy):
         super(ShootBall, self).__init__(world, robot_controller, states, action_map)
 
     def transition(self):
-        print "ShootBall: " + self.state
 
         # Pitch Center
         angle = self.bot.get_rotation_to_point(self.middle_x, self.middle_y)
@@ -438,9 +435,10 @@ class PassBall(Strategy):
 
         self.angle = 0
         self.freespot_x, self.freespot_y = (0, 0)
+        self.defender_x, self.defender_y = (0, 0)
         self.snap_bot_y = 0
 
-        states = [REORIENT_FREESPOT, REPOSITION, REORIENT_DEFENDER, OPEN_GRABBER, PASS]
+        states = [REORIENT_FREESPOT, WAIT_REORIENT, REPOSITION, WAIT_REPOSITION, REORIENT_DEFENDER, WAIT_REORIENT_DEFENDER, OPEN_GRABBER, WAIT_O_GRAB, PASS]
         action_map = {
             REORIENT_FREESPOT: self.rotate_to_freespot,
             WAIT_REORIENT: self.do_nothing,
@@ -459,15 +457,16 @@ class PassBall(Strategy):
 
         #real freespot and angle values
         (real_freespot_x, real_freespot_y) = self.calc_freespot()
+        (real_defender_x, real_defender_y) = (self._world.our_defender.x, self._world.our_defender.y)
         real_realspot_angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
         real_defender_angle = self.bot.get_rotation_to_point(self._world.our_defender.x, self._world.our_defender.y)
         real_bot_y = self.bot.y
 
-        print "PassBall: " + self.state
+
 
         if self.state == REORIENT_FREESPOT:
-            # take snapshot of angle
-            self.angle = real_realspot_angle
+            # take snapshot of freespot cords
+            (self.freespot_x, self.freespot_y) = (real_freespot_x, real_freespot_y)
 
             print "\nROTATE TO FREESPOT\nangle: "+str(self.angle)
             print "margin: "+str(ROTATE_MARGIN)
@@ -476,6 +475,9 @@ class PassBall(Strategy):
             self.state = WAIT_REORIENT
 
         elif self.state == WAIT_REORIENT:
+            self.angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
+            print "Rotating to Freespot: "+str(self.angle)
+
             if abs(self.angle) < ROTATE_MARGIN:
                 if self.compare_angles(self.angle, real_realspot_angle):
                     self.state = REPOSITION
@@ -495,13 +497,14 @@ class PassBall(Strategy):
             self.state = WAIT_REPOSITION
 
         elif self.state == WAIT_REPOSITION:
-            if abs(self.snap_bot_y - self.freespot_y) < ROTATE_MARGIN:
+            print "Repositioning to Freespot: "+str(abs(real_bot_y - self.freespot_y))
+            if abs(real_bot_y - self.freespot_y) < DISPLACEMENT_MARGIN:
                 self.state = REORIENT_DEFENDER
 
         elif self.state == REORIENT_DEFENDER:
 
-            # take snaphot of angle to defender
-            self.angle = real_defender_angle
+            # take snaphot of defender cords
+            (self.defender_x, self.defender_y) = (real_defender_x, real_defender_y)
 
             print "\nROTATE TO DEFENDER\nangle: "+str(self.angle)
             print "margin: "+str(ROTATE_MARGIN)
@@ -510,6 +513,9 @@ class PassBall(Strategy):
             self.state = WAIT_REORIENT_DEFENDER
 
         elif self.state == WAIT_REORIENT_DEFENDER:
+            self.angle = self.bot.get_rotation_to_point(self.defender_x, self.defender_y)
+            print "Rotating: "+str(self.angle)
+
             if abs(self.angle) < ROTATE_MARGIN:
                 if self.compare_angles(self.angle, real_defender_angle):
                     self.state = OPEN_GRABBER
@@ -532,7 +538,7 @@ class PassBall(Strategy):
 
     def move_to_freespot(self):
         distance = self.bot.get_displacement_to_point(self.freespot_x, self.freespot_y)
-        self._robot_controller.driver(distance, distance)
+        self._robot_controller.drive(distance, distance)
 
     def rotate_to_defender(self):
         angle = self.bot.get_rotation_to_point(self._world.our_defender.x, self._world.our_defender.y)
@@ -543,9 +549,9 @@ class PassBall(Strategy):
         (their_center_x, their_center_y) = self._world.pitch.zones[self._world.their_attacker.zone].center()
 
         if self._world.their_attacker.y > their_center_y:
-            freespot_y = (2.0/10) * self._world.pitch.height
+            freespot_y = (2.5/10) * self._world.pitch.height
         else:
-            freespot_y = (8.0/10) * self._world.pitch.height
+            freespot_y = (7.5/10) * self._world.pitch.height
 
         freespot_x = int(our_center_x)
 
