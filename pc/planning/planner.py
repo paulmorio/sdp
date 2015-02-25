@@ -34,7 +34,7 @@ class Planner(object):
                 BALL_OUR_D_ZONE: CatchBall(self._world, self._robot_controller),
                 BALL_THEIR_A_ZONE: Confuse(self._world, self._robot_controller),
                 BALL_THEIR_D_ZONE: Intercept(self._world, self._robot_controller),
-                POSSESSION: PassBall(self._world, self._robot_controller)
+                POSSESSION: ShootBall(self._world, self._robot_controller)
             }
         elif self._profile == 'receiver':  # MS3
             self._strategies = {

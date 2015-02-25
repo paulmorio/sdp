@@ -324,21 +324,78 @@ class Intercept(Strategy):
     def transition(self):
         pass
 
-# NOT DONE
 class ShootBall(Strategy):
     """
     Assuming the ball is in possession shoot towards the goal.
     """
     def __init__(self, world, robot_controller):
-        states = [NONE]
+        states = [REORIENT, REPOSITION, FACE_GOAL, SHOOT]
         action_map = {
-            NONE: self.do_nothing
+            REORIENT: self.face_pitch_center,
+            REPOSITION: self.move_to_origin,
+            FACE_GOAL: self.face_goal,
+            SHOOT: self._robot_controller.kick
         }
 
         super(ShootBall, self).__init__(world, robot_controller, states, action_map)
 
     def transition(self):
-        pass
+        print self.state
+
+        self.rotate_margin = 0.5  # TODO: tune value
+        self.displacement_margin = 30  # TODO: tune value
+
+        # Pitch Center
+        x, y = world.pitch.zones[self.bot.zone].center()
+        self.middle_x = int(x)
+        self.middle_y = int(y)
+        angle = self.bot.get_rotation_to_point(self.middle_x, self.middle_y)
+
+        # Goal
+        x, y = world.their_goal.x, world.their_goal.y
+        self.goal_x = int(x)
+        self.goal_y = int(y)
+        angle_goal = self.bot.get_rotation_to_point(self.goal_x, self.goal_y)
+
+        if self.state == REORIENT:
+            #if self._robot_controller.open_grabber:
+            if abs(angle) < self.rotate_margin:            
+                self.state = REPOSITION
+
+        elif self.state == REPOSITION:
+            displacement = self.bot.get_displacement_to_point(self.freespot_x, self.freespot_y)
+            if displacement < self.displacement_margin:
+                self.state = FACE_GOAL
+
+        elif self.state == FACE_GOAL:
+            if abs(angle_goal) < self.rotate_margin:            
+                self.state = SHOOT
+
+    # Actions
+    def face_pitch_center(self):
+        """
+        Face the center of the pitch. Alter the strategy state when necessary.
+        :return: An action to be performed by the robot.
+        """
+        angle = self.bot.get_rotation_to_point(self.middle_x, self.middle_y)
+        self._robot_controller.turn(angle)
+
+    def face_goal(self):
+        """
+        Face the goal. Alter the strategy state when necessary.
+        :return: An action to be performed by the robot.
+        """
+        angle_goal = self.bot.get_rotation_to_point(self.goal_x, self.goal_y)
+        self._robot_controller.turn(angle_goal)
+
+    def move_to_origin(self):
+        """
+        Move to the robot's origin. Alter the strategy state when necessary.
+        :return: An action to be performed by the robot.
+        """
+        distance = self.bot.get_displacement_to_point(self.middle_x, self.middle_y)
+        self._robot_controller.drive(distance, distance)
+
 
 # NOT DONE
 class Sleep(Strategy):
