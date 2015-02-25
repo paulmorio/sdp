@@ -17,13 +17,8 @@ class Planner(object):
         # In passing mode, we're "our attacker"
         # Yes, this makes absolutely no sense
         self._profile = profile
-        if profile == 'passer':
-            self._our_robot = self._world.our_attacker
+        self._our_robot = self._world.our_attacker
 
-        # In receiving mode, we're "our defender"
-        elif profile == "receiver":
-            self._our_robot = self._world.our_defender
-        
         self._robot_controller = robot_controller
 
         # Strategy dictionaries return a strategy given a state.
@@ -40,7 +35,7 @@ class Planner(object):
             self._strategies = {
                 NO_BALL: Idle(self._world, self._robot_controller),
                 BALL_OUR_A_ZONE: CatchBall(self._world, self._robot_controller),
-                BALL_OUR_D_ZONE: GetBallReceiver(self._world, self._robot_controller),
+                BALL_OUR_D_ZONE: GetBall(self._world, self._robot_controller),
                 BALL_THEIR_A_ZONE: CatchBall(self._world, self._robot_controller),
                 BALL_THEIR_D_ZONE: CatchBall(self._world, self._robot_controller),
                 POSSESSION: Sleep(self._world, self._robot_controller)
@@ -137,18 +132,18 @@ class Planner(object):
         elif self._world.ball_in_area([self._our_robot]):
 
             # Ball has just become reachable
-            if self._state == BALL_OUR_A_ZONE or self._state == BALL_THEIR_A_ZONE or self._state == BALL_THEIR_D_ZONE or self._state == NO_BALL:
-                self._state = BALL_OUR_D_ZONE
+            if self._state == BALL_OUR_D_ZONE or self._state == BALL_THEIR_A_ZONE or self._state == BALL_THEIR_D_ZONE or self._state == NO_BALL:
+                self._state = BALL_OUR_A_ZONE
 
             # Check for strategy final state
             if self._strategy.final_state():
                 # Catch/intercept ball
                 if isinstance(self._strategy, CatchBall):
                     # Caught the ball - now prepare to get possession of it
-                    self._state = BALL_OUR_D_ZONE
+                    self._state = BALL_OUR_A_ZONE
 
                 # Get the ball
-                elif isinstance(self._strategy, GetBallReceiver):
+                elif isinstance(self._strategy, GetBall):
                     # Got possession of the ball - now prepare to sleep
                     self._state = POSSESSION
 
@@ -157,8 +152,8 @@ class Planner(object):
                     pass
 
         # If ball is in play but unreachable (outwith our margin)
-        elif self._world.ball_in_area([self._world.our_attacker]):
-            self._state = BALL_OUR_A_ZONE
+        elif self._world.ball_in_area([self._world.our_defender]):
+            self._state = BALL_OUR_D_ZONE
         elif self._world.ball_in_area([self._world.their_attacker]):
             self._state = BALL_THEIR_A_ZONE
         elif self._world.ball_in_area([self._world.their_defender]):

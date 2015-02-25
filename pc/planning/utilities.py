@@ -19,10 +19,15 @@ OPEN_GRABBER = 'open_grabber'
 CLOSE_GRABBER = 'close_grabber'
 ROTATE = 'rotate'
 PASS = 'pass'
+SHOOT = 'shoot'
+FACE_GOAL = 'face_goal'
 
-## Catcher state constants
+# Catcher state constants
 OPENED = "open"
 CLOSED = "closed"
 
+# Margin constants
+ROTATE_MARGIN = 0.17  # in radians
+DISPLACEMENT_MARGIN = 5  # in centimetres
 
 
