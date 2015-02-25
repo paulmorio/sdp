@@ -165,7 +165,7 @@ class GetBall(Strategy):
         self._robot_controller.turn(angle)
 
     def move_towards_ball(self):
-        distance = self.bot.get_displacement_to_point(self.ball.x, self.ball.y)
+        distance = self.bot.get_displacement_to_point(self.ball.x, self.ball.y) - GRAB_AREA_MARGIN
         self._robot_controller.drive(distance, distance)
 
 
