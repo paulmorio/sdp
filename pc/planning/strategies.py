@@ -365,9 +365,6 @@ class PassBall(Strategy):
 
         self.freespot_x, self.freespot_y = self.calc_freespot()
 
-        self.rotate_margin = 0.10
-        self.distance_margin = 40
-
         states = [REORIENT_FREESPOT, REPOSITION, REORIENT_DEFENDER, OPEN_GRABBER, PASS]
         action_map = {
             REORIENT_FREESPOT: self.rotate_to_freespot,
@@ -387,27 +384,27 @@ class PassBall(Strategy):
         if self.state == REORIENT_FREESPOT:
             angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
             print "\nROTATE TO FREESPOT\nangle: "+str(angle)
-            print "margin: "+str(self.rotate_margin)
-            print "d/rotate: "+str(abs(angle < self.rotate_margin))
+            print "margin: "+str(ROTATE_MARGIN)
+            print "d/rotate: "+str(abs(angle < ROTATE_MARGIN))
 
-            if abs(angle) < self.rotate_margin:
+            if abs(angle) < ROTATE_MARGIN:
                 self.state = REPOSITION
 
         elif self.state == REPOSITION:
             print "\nMOVE\nour_y: "+str(self.bot.y)
             print "freespot_y: "+str(self.freespot_y)
-            print "dy: "+str(abs(self.bot.y - self.freespot_y) < self.distance_margin)
+            print "dy: "+str(abs(self.bot.y - self.freespot_y) < ROTATE_MARGIN)
 
-            if abs(self.bot.y - self.freespot_y) < self.distance_margin:
+            if abs(self.bot.y - self.freespot_y) < ROTATE_MARGIN:
                 self.state = REORIENT_DEFENDER
 
         elif self.state == REORIENT_DEFENDER:
             angle = self.bot.get_rotation_to_point(self._world.our_defender.x, self._world.our_defender.y)
             print "\nROTATE TO DEFENDER\nangle: "+str(angle)
-            print "margin: "+str(self.rotate_margin)
-            print "d/rotate: "+str(abs(angle < self.rotate_margin))
+            print "margin: "+str(ROTATE_MARGIN)
+            print "d/rotate: "+str(abs(angle < ROTATE_MARGIN))
 
-            if abs(angle) < self.rotate_margin:
+            if abs(angle) < ROTATE_MARGIN:
                 self.state = OPEN_GRABBER
 
         if self.state == OPEN_GRABBER:
