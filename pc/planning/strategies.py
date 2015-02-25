@@ -377,54 +377,88 @@ class PassBall(Strategy):
         self.bot = world.our_attacker
         self._robot_controller = robot_controller
 
-        self.freespot_x, self.freespot_y = self.calc_freespot()
+
+        self.angle = 0
+        self.freespot_x, self.freespot_y = (0, 0)
+        self.snap_bot_y = 0
 
         states = [REORIENT_FREESPOT, REPOSITION, REORIENT_DEFENDER, OPEN_GRABBER, PASS]
         action_map = {
             REORIENT_FREESPOT: self.rotate_to_freespot,
+            WAIT_REORIENT: self.do_nothing,
             REPOSITION: self.move_to_freespot,
+            WAIT_REPOSITION: self.do_nothing,
             REORIENT_DEFENDER: self.rotate_to_defender,
+            WAIT_REORIENT_DEFENDER: self.do_nothing,
             OPEN_GRABBER: self._robot_controller.open_grabber,
+            WAIT_O_GRAB: self.do_nothing,
             PASS: self._robot_controller.kick
         }
 
         super(PassBall, self).__init__(world, robot_controller, states, action_map)
 
     def transition(self):
-        (self.freespot_x, self.freespot_y) = self.calc_freespot()
 
-        print self.state
+        #real freespot and angle values
+        (real_freespot_x, real_freespot_y) = self.calc_freespot()
+        real_realspot_angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
+        real_defender_angle = self.bot.get_rotation_to_point(self._world.our_defender.x, self._world.our_defender.y)
+        real_bot_y = self.bot.y
 
         if self.state == REORIENT_FREESPOT:
-            angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
-            print "\nROTATE TO FREESPOT\nangle: "+str(angle)
-            print "margin: "+str(ROTATE_MARGIN)
-            print "d/rotate: "+str(abs(angle < ROTATE_MARGIN))
+            # take snapshot of angle
+            self.angle = real_realspot_angle
 
-            if abs(angle) < ROTATE_MARGIN:
+            print "\nROTATE TO FREESPOT\nangle: "+str(self.angle)
+            print "margin: "+str(ROTATE_MARGIN)
+            print "d/rotate: "+str(abs(self.angle < ROTATE_MARGIN))
+
+            self.state = WAIT_REORIENT
+
+        elif self.state == WAIT_REORIENT:
+            if abs(self.angle) < ROTATE_MARGIN:
                 self.state = REPOSITION
 
         elif self.state == REPOSITION:
+
+            # take snapshot of freespot and robot
+            (self.freespot_x, self.freespot_y) = (real_freespot_x, real_freespot_y)
+            self.snap_bot_y = real_bot_y
+
             print "\nMOVE\nour_y: "+str(self.bot.y)
             print "freespot_y: "+str(self.freespot_y)
-            print "dy: "+str(abs(self.bot.y - self.freespot_y) < ROTATE_MARGIN)
+            print "dy: "+str(abs(self.snap_bot_y - self.freespot_y) < ROTATE_MARGIN)
 
-            if abs(self.bot.y - self.freespot_y) < ROTATE_MARGIN:
+            self.state = WAIT_REPOSITION
+
+        elif self.state == WAIT_REPOSITION:
+            if abs(self.snap_bot_y - self.freespot_y) < ROTATE_MARGIN:
                 self.state = REORIENT_DEFENDER
 
         elif self.state == REORIENT_DEFENDER:
-            angle = self.bot.get_rotation_to_point(self._world.our_defender.x, self._world.our_defender.y)
-            print "\nROTATE TO DEFENDER\nangle: "+str(angle)
-            print "margin: "+str(ROTATE_MARGIN)
-            print "d/rotate: "+str(abs(angle < ROTATE_MARGIN))
 
-            if abs(angle) < ROTATE_MARGIN:
+            # take snaphot of angle to defender
+            self.angle = real_defender_angle
+
+            print "\nROTATE TO DEFENDER\nangle: "+str(self.angle)
+            print "margin: "+str(ROTATE_MARGIN)
+            print "d/rotate: "+str(abs(self.angle < ROTATE_MARGIN))
+
+            self.state = WAIT_REORIENT_DEFENDER
+
+        elif self.state == WAIT_REORIENT_DEFENDER:
+            if abs(self.angle) < ROTATE_MARGIN:
                 self.state = OPEN_GRABBER
 
         if self.state == OPEN_GRABBER:
-            angle = self.bot.get_rotation_to_point(self._world.our_defender.x, self._world.our_defender.y)
-            print "\nPASSED WITH MARGIN\nangle: "+str(angle)+" radians from target"
 
+            # take snapshot of angle to defender
+            self.angle = real_defender_angle
+            print "\nPASSED WITH MARGIN\nangle: "+str(self.angle)+" radians from target"
+
+            self.state = WAIT_O_GRAB
+
+        if self.state == WAIT_O_GRAB:
             if self._robot_controller.grabber_open:
                 self.state = PASS
 
