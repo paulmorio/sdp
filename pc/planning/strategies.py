@@ -70,7 +70,9 @@ class Idle(Strategy):
     """
 
     def __init__(self, world, robot_controller):
-        x, y = world.pitch.zones[self._bot.zone].center()
+        self.bot = world.our_attacker
+
+        x, y = world.pitch.zones[self.bot.zone].center()
 
         self.middle_x = int(x)
         self.middle_y = int(y)
@@ -87,7 +89,7 @@ class Idle(Strategy):
     def transition(self):
         print self.state
 
-        angle = self._bot.get_rotation_to_point(self.middle_x, self.middle_y)
+        angle = self.bot.get_rotation_to_point(self.middle_x, self.middle_y)
 
         if self.state == REORIENT:
             if self._robot_controller.open_grabber:
@@ -95,7 +97,7 @@ class Idle(Strategy):
                     self.state = REPOSITION
 
         elif self.state == REPOSITION:
-            displacement = self._bot.get_displacement_to_point(self.middle_x, self.middle_y)
+            displacement = self.bot.get_displacement_to_point(self.middle_x, self.middle_y)
             if displacement < DISPLACEMENT_MARGIN:
                 self.state = IDLE
 
@@ -108,7 +110,7 @@ class Idle(Strategy):
         Face the center of the pitch. Alter the strategy state when necessary.
         :return: An action to be performed by the robot.
         """
-        angle = self._bot.get_rotation_to_point(self.middle_x, self.middle_y)
+        angle = self.bot.get_rotation_to_point(self.middle_x, self.middle_y)
         self._robot_controller.turn(angle)
 
     def move_to_origin(self):
@@ -116,7 +118,7 @@ class Idle(Strategy):
         Move to the robot's origin. Alter the strategy state when necessary.
         :return: An action to be performed by the robot.
         """
-        distance = self._bot.get_displacement_to_point(self.middle_x, self.middle_y)
+        distance = self.bot.get_displacement_to_point(self.middle_x, self.middle_y)
         self._robot_controller.drive(distance, distance)
 
 
@@ -126,6 +128,7 @@ class GetBall(Strategy):
     first open the grabber, aim towards ball, move towards it, and grab it
     """
     def __init__(self, world, robot_controller):
+        self.bot = world.our_attacker
         self.ball = world.ball
         self._robot_controller = robot_controller
 
@@ -141,7 +144,7 @@ class GetBall(Strategy):
 
     def transition(self):
         print self.state
-        angle = self._bot.get_rotation_to_point(self.ball.x, self.ball.y)
+        angle = self.bot.get_rotation_to_point(self.ball.x, self.ball.y)
 
         if self.state == OPEN_GRABBER:
             if self._robot_controller.open_grabber:
@@ -152,17 +155,17 @@ class GetBall(Strategy):
                 self.state = REPOSITION
 
         elif self.state == REPOSITION:
-            if self._bot.can_catch_ball(self.ball):
+            if self.bot.can_catch_ball(self.ball):
                 self.state = CLOSE_GRABBER
             else:
                 self.reset()
 
     def aim_towards_ball(self):
-        angle = self._bot.get_rotation_to_point(self.ball.x, self.ball.y)
+        angle = self.bot.get_rotation_to_point(self.ball.x, self.ball.y)
         self._robot_controller.turn(angle)
 
     def move_towards_ball(self):
-        distance = self._bot.get_displacement_to_point(self.ball.x, self.ball.y)
+        distance = self.bot.get_displacement_to_point(self.ball.x, self.ball.y)
         self._robot_controller.drive(distance, distance)
 
 
@@ -172,10 +175,11 @@ class CatchBall(Strategy):
     Sit in the middle of our zone, with the grabber open, facing our teammate
     """
     def __init__(self, world, robot_controller):
+        self.bot = world.our_attacker
         self.passer = world.our_defender
         self._robot_controller = robot_controller
 
-        x, y = world.pitch.zones[self._bot.zone].center()
+        x, y = world.pitch.zones[self.bot.zone].center()
 
         self.freespot_x = int(x)
         self.freespot_y = int(y)
@@ -201,35 +205,35 @@ class CatchBall(Strategy):
 
         # Rotate to face the "freespot" (point at center of our zone)
         elif self.state == REORIENT_FREESPOT:
-            angle = self._bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
+            angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
             if abs(angle) < ROTATE_MARGIN:
                 self.state = REPOSITION
 
         # Move to the freespot
         elif self.state == REPOSITION:
             # if on freespot
-            displacement = self._bot.get_displacement_to_point(self.freespot_x, self.freespot_y)
+            displacement = self.bot.get_displacement_to_point(self.freespot_x, self.freespot_y)
             if displacement < DISPLACEMENT_MARGIN:
                 self.state = REORIENT_PASSER
 
         # Rotate to face our passer, and wait
         elif self.state == REORIENT_PASSER:
-            angle = self._bot.get_rotation_to_point(self.passer.x, self.passer.y)
+            angle = self.bot.get_rotation_to_point(self.passer.x, self.passer.y)
             if abs(angle) < ROTATE_MARGIN:
                 self.state = IDLE
             else:
                 self.state = REORIENT_PASSER
 
     def aim_towards_freespot(self):
-        angle = self._bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
+        angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
         self._robot_controller.turn(angle)
 
     def move_towards_freespot(self):
-        distance = self._bot.get_displacement_to_point(self.freespot_x, self.freespot_y)
+        distance = self.bot.get_displacement_to_point(self.freespot_x, self.freespot_y)
         self._robot_controller(distance, distance)
 
     def aim_towards_passer(self):
-        angle = self._bot.get_rotation_to_point(self.passer.x, self.passer.y)
+        angle = self.bot.get_rotation_to_point(self.passer.x, self.passer.y)
         self._robot_controller.tunr(angle)
 
 
@@ -270,7 +274,10 @@ class ShootBall(Strategy):
     Assuming the ball is in possession shoot towards the goal.
     """
     def __init__(self, world, robot_controller):
-        x, y = world.pitch.zones[self._bot.zone].center()
+        self.bot = world.our_attacker
+        self._robot_controller = robot_controller
+
+        x, y = world.pitch.zones[self.bot.zone].center()
         self.middle_x = int(x)
         self.middle_y = int(y)
 
@@ -279,7 +286,7 @@ class ShootBall(Strategy):
         self.goal_x = int(x)
         self.goal_y = int(y)
 
-        self.angle_goal = self._bot.get_rotation_to_point(self.goal_x, self.goal_y)
+        self.angle_goal = self.bot.get_rotation_to_point(self.goal_x, self.goal_y)
 
         states = [REORIENT, REPOSITION, FACE_GOAL, SHOOT]
         action_map = {
@@ -295,7 +302,7 @@ class ShootBall(Strategy):
         print self.state
 
         # Pitch Center
-        angle = self._bot.get_rotation_to_point(self.middle_x, self.middle_y)
+        angle = self.bot.get_rotation_to_point(self.middle_x, self.middle_y)
 
         if self.state == REORIENT:
             if self._robot_controller.open_grabber:
@@ -303,7 +310,7 @@ class ShootBall(Strategy):
                     self.state = REPOSITION
 
         elif self.state == REPOSITION:
-            displacement = self._bot.get_displacement_to_point(self.middle_x, self.middle_y)
+            displacement = self.bot.get_displacement_to_point(self.middle_x, self.middle_y)
             if displacement < DISPLACEMENT_MARGIN:
                 self.state = FACE_GOAL
 
@@ -317,7 +324,7 @@ class ShootBall(Strategy):
         Face the center of the pitch. Alter the strategy state when necessary.
         :return: An action to be performed by the robot.
         """
-        angle = self._bot.get_rotation_to_point(self.middle_x, self.middle_y)
+        angle = self.bot.get_rotation_to_point(self.middle_x, self.middle_y)
         self._robot_controller.turn(angle)
 
     def face_goal(self):
@@ -325,7 +332,7 @@ class ShootBall(Strategy):
         Face the goal. Alter the strategy state when necessary.
         :return: An action to be performed by the robot.
         """
-        angle_goal = self._bot.get_rotation_to_point(self.goal_x, self.goal_y)
+        angle_goal = self.bot.get_rotation_to_point(self.goal_x, self.goal_y)
         self._robot_controller.turn(angle_goal)
 
     def move_to_origin(self):
@@ -333,7 +340,7 @@ class ShootBall(Strategy):
         Move to the robot's origin. Alter the strategy state when necessary.
         :return: An action to be performed by the robot.
         """
-        distance = self._bot.get_displacement_to_point(self.middle_x, self.middle_y)
+        distance = self.bot.get_displacement_to_point(self.middle_x, self.middle_y)
         self._robot_controller.drive(distance, distance)
 
 
@@ -352,9 +359,11 @@ class Sleep(Strategy):
 
 class PassBall(Strategy):
     def __init__(self, world, robot_controller):
+        self._world = world
+        self.bot = world.our_attacker
         self._robot_controller = robot_controller
 
-        (self.freespot_x, self.freespot_y) = self.calc_freespot()
+        self.freespot_x, self.freespot_y = self.calc_freespot()
 
         self.rotate_margin = 0.10
         self.distance_margin = 40
@@ -376,7 +385,7 @@ class PassBall(Strategy):
         print self.state
 
         if self.state == REORIENT_FREESPOT:
-            angle = self._bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
+            angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
             print "\nROTATE TO FREESPOT\nangle: "+str(angle)
             print "margin: "+str(self.rotate_margin)
             print "d/rotate: "+str(abs(angle < self.rotate_margin))
@@ -385,15 +394,15 @@ class PassBall(Strategy):
                 self.state = REPOSITION
 
         elif self.state == REPOSITION:
-            print "\nMOVE\nour_y: "+str(self._bot.y)
+            print "\nMOVE\nour_y: "+str(self.bot.y)
             print "freespot_y: "+str(self.freespot_y)
-            print "dy: "+str(abs(self._bot.y - self.freespot_y) < self.distance_margin)
+            print "dy: "+str(abs(self.bot.y - self.freespot_y) < self.distance_margin)
 
-            if abs(self._bot.y - self.freespot_y) < self.distance_margin:
+            if abs(self.bot.y - self.freespot_y) < self.distance_margin:
                 self.state = REORIENT_DEFENDER
 
         elif self.state == REORIENT_DEFENDER:
-            angle = self._bot.get_rotation_to_point(self._world.our_defender.x, self._world.our_defender.y)
+            angle = self.bot.get_rotation_to_point(self._world.our_defender.x, self._world.our_defender.y)
             print "\nROTATE TO DEFENDER\nangle: "+str(angle)
             print "margin: "+str(self.rotate_margin)
             print "d/rotate: "+str(abs(angle < self.rotate_margin))
@@ -402,26 +411,26 @@ class PassBall(Strategy):
                 self.state = OPEN_GRABBER
 
         if self.state == OPEN_GRABBER:
-            angle = self._bot.get_rotation_to_point(self._world.our_defender.x, self._world.our_defender.y)
+            angle = self.bot.get_rotation_to_point(self._world.our_defender.x, self._world.our_defender.y)
             print "\nPASSED WITH MARGIN\nangle: "+str(angle)+" radians from target"
 
             if self._robot_controller.grabber_open:
                 self.state = PASS
 
     def rotate_to_freespot(self):
-        angle = self._bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
+        angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
         self._robot_controller.turn(angle)
 
     def move_to_freespot(self):
-        distance = self._bot.get_displacement_to_point(self.freespot_x, self.freespot_y)
+        distance = self.bot.get_displacement_to_point(self.freespot_x, self.freespot_y)
         self._robot_controller.driver(distance, distance)
 
     def rotate_to_defender(self):
-        angle = self._bot.get_rotation_to_point(self._world.our_defender.x, self._world.our_defender.y)
+        angle = self.bot.get_rotation_to_point(self._world.our_defender.x, self._world.our_defender.y)
         self._robot_controller.turn(angle)
 
     def calc_freespot(self):
-        (our_center_x, our_center_y) = self._world.pitch.zones[self._bot.zone].center()
+        (our_center_x, our_center_y) = self._world.pitch.zones[self.bot.zone].center()
         (their_center_x, their_center_y) = self._world.pitch.zones[self._world.their_attacker.zone].center()
 
         if self._world.their_attacker.y > their_center_y:
