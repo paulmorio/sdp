@@ -35,10 +35,7 @@ class Robot(object):
         """
         self._last_command = None
         self.ready = False  # True if ready to receive a command
-        self.is_moving = False  # True if performing a movement task
-        self.is_kicking = False  # True if performing a kick
-        self.is_grabbing = False  # True if opening or closing grabber
-        self.grabber_open = False  # TODO: implement
+        self.grabber_open = False
         if comms:
             self._ack_bit = '0'
             self._serial = Serial(port, rate, timeout=timeout)
@@ -145,7 +142,6 @@ class Robot(object):
         :param power: Motor power from 0-100
         :type power: int
         """
-        # TODO: REPLACE THIS WITH PROPER IMPLEMENTATION
         self.grabber_open = True
         self._command(Robot._OPEN_GRABBER, [str(time), str(power)])
 
@@ -159,7 +155,6 @@ class Robot(object):
         :param power: Motor power from 0-100
         :type power: int
         """
-        # TODO: REPLACE THIS WITH PROPER IMPLEMENTATION
         self.grabber_open = False
         self._command(Robot._CLOSE_GRABBER, [str(time), str(power)])
 
