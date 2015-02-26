@@ -30,8 +30,8 @@ class World(object):
             {'width': 30, 'height': 25, 'front_offset': 10}  # In pixels???
         self.our_attacker.catcher_area = \
             {'width': 30, 'height': 25, 'front_offset': 10}
-        self.grabbers = {'our defender': self.our_defender.catcher_area,
-                         'our attacker': self.our_attacker.catcher_area}
+        self.grabbers = {'our_defender': self.our_defender.catcher_area,
+                         'our_attacker': self.our_attacker.catcher_area}
 
     @property
     def our_attacker(self):

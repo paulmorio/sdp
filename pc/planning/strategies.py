@@ -250,7 +250,7 @@ class CatchBall(Strategy):
 
         bot_angle = self.bot.angle
         angle_to_freespot = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
-        angle_to_passer = self.bot.get_rotation_to_point(self.passer, self.passer)
+        angle_to_passer = self.bot.get_rotation_to_point(self.passer.x, self.passer.y)
 
         # Open the grabber
         if self.state == OPEN_GRABBER:
