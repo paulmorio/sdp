@@ -140,8 +140,7 @@ class Robot(object):
         :param power: Motor power
         :type power: int
         """
-        rad_to_cm = lambda rad: Robot._WHEELBASE_CIRC_CM * rad / (2 * math.pi)
-        wheel_dist = rad_to_cm(radians)
+        wheel_dist = Robot._WHEELBASE_CIRC_CM * radians / (2 * math.pi)
         self.drive(wheel_dist, -wheel_dist, power, power)
 
     def open_grabber(self, time=700, power=100):
