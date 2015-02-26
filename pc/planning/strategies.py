@@ -113,15 +113,15 @@ class Idle(Strategy):
             if abs(self.angle_to_face - self.bot.angle) < ROTATE_MARGIN:
                 if self.compare_angles(angle_to_target, 0.0):
                     self.state = REPOSITION
-                else:
-                    self.reset()
+                # else:
+                #     self.reset()
 
         elif self.state == REPOSITION:
             displacement = self.bot.get_displacement_to_point(self.middle_x, self.middle_y)
             if displacement < DISPLACEMENT_MARGIN:
                 self.state = IDLE
-            else:
-                self.reset()
+            # else:
+            #     self.reset()
 
     # Actions
     def face_pitch_center(self):
@@ -181,29 +181,29 @@ class GetBall(Strategy):
 
         elif self.state == REORIENT:
             self.angle_to_face = bot_angle + angle_to_target
-            self.state == WAIT_REORIENT
+            self.state = WAIT_REORIENT
 
         elif self.state == WAIT_REORIENT:
             if abs(self.angle_to_face - self.bot.angle) < ROTATE_MARGIN:
                 if self.compare_angles(angle_to_target, 0.0):
                     self.state = REPOSITION
-                else:
-                    self.state = REORIENT
+                # else:
+                #     self.state = REORIENT
 
         elif self.state == REPOSITION:
-            self.state == WAIT_REPOSITION
+            self.state = WAIT_REPOSITION
 
         elif self.state == WAIT_REPOSITION:
             if self.bot.can_catch_ball(self.ball):
                 self.state = CLOSE_GRABBER
-            else:
-                self.reset()
+            # else:
+            #     self.reset()
 
         elif self.state == CLOSE_GRABBER:
-            if not self.bot.can_catch_ball(self.ball):
-                self.reset()
-            else:
-                self.state == WAIT_C_GRAB
+            if self.bot.can_catch_ball(self.ball):
+                self.state = WAIT_C_GRAB
+            # else:
+            #     self.reset()
 
     def aim_towards_ball(self):
         angle = self.bot.get_rotation_to_point(self.ball.x, self.ball.y)
@@ -263,18 +263,18 @@ class CatchBall(Strategy):
         # Rotate to face the "freespot" (point at center of our zone)
         elif self.state == REORIENT_FREESPOT:
             self.angle_to_face = bot_angle + angle_to_freespot
-            self.state == WAIT_REORIENT_FREESPOT
+            self.state = WAIT_REORIENT_FREESPOT
 
         elif self.state == WAIT_REORIENT_FREESPOT:
             if abs(self.angle_to_face - self.bot.angle) < ROTATE_MARGIN:
                 if self.compare_angles(angle_to_freespot, 0):
                     self.state = REPOSITION
-                else:
-                    self.state = REORIENT_FREESPOT
+                # else:
+                #     self.state = REORIENT_FREESPOT
 
         # Move to the freespot
         elif self.state == REPOSITION:
-            self.state == WAIT_REPOSITION
+            self.state = WAIT_REPOSITION
 
         elif self.state == WAIT_REPOSITION:
             # if on freespot
@@ -285,14 +285,14 @@ class CatchBall(Strategy):
         # Rotate to face our passer, and wait
         elif self.state == REORIENT_PASSER:
             self.angle_to_face = self.bot.angle + angle_to_passer
-            self.state == WAIT_REORIENT_PASSER
+            self.state = WAIT_REORIENT_PASSER
 
         elif self.state == WAIT_REORIENT_PASSER:
             if abs(self.angle_to_face - self.bot.angle) < ROTATE_MARGIN:
                 if self.compare_angles(angle_to_passer, 0.0):
                     self.state = IDLE
-                else:
-                    self.REORIENT_FREESPOT
+                # else:
+                #     self.REORIENT_FREESPOT
 
     def aim_towards_freespot(self):
         angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
@@ -432,11 +432,10 @@ class PassBall(Strategy):
         self.bot = world.our_attacker
         self._robot_controller = robot_controller
 
-
-        self.angle = 0
-        self.freespot_x, self.freespot_y = (0, 0)
-        self.defender_x, self.defender_y = (0, 0)
-        self.snap_bot_y = 0
+        self.freespot_x, self.freespot_y = self.calc_freespot()
+        self.defender_x, self.defender_y = (self._world.our_defender.x, self._world.our_defender.y)
+        self.snap_bot_y = self.bot.y
+        self.angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
 
         states = [REORIENT_FREESPOT, WAIT_REORIENT, REPOSITION, WAIT_REPOSITION, REORIENT_DEFENDER, WAIT_REORIENT_DEFENDER, OPEN_GRABBER, WAIT_O_GRAB, PASS]
         action_map = {
@@ -454,7 +453,7 @@ class PassBall(Strategy):
         super(PassBall, self).__init__(world, robot_controller, states, action_map)
 
     def transition(self):
-        print self.state
+        #print self.state
         #real freespot and angle values
         (real_freespot_x, real_freespot_y) = self.calc_freespot()
         (real_defender_x, real_defender_y) = (self._world.our_defender.x, self._world.our_defender.y)
@@ -466,11 +465,18 @@ class PassBall(Strategy):
 
         if self.state == REORIENT_FREESPOT:
             # take snapshot of freespot cords
+            print "\n1"
             (self.freespot_x, self.freespot_y) = (real_freespot_x, real_freespot_y)
+            print "freespot: ("+str(self.freespot_x)+", "+str(self.freespot_y)+")"
+            print "robot: ("+str(self.bot.x)+", "+str(self.bot.y)+")"
 
-            print "\nROTATE TO FREESPOT\nangle: "+str(self.angle)
+            print "\nROTATE TO FREESPOT\nangle: "+str(self.angle*180/pi)+"deg"
             print "margin: "+str(ROTATE_MARGIN)
             print "d/rotate: "+str(abs(self.angle < ROTATE_MARGIN))
+
+            #todo: FIND OUT WHY THE F* THIS FIXES THE PROBLEM -> ie. why "REORIENT_FREESPOT: self.rotate_to_freespot" does NOT trigger self.rotate_to_freespot()
+            angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
+            self._robot_controller.turn(angle)
 
             self.state = WAIT_REORIENT
 
@@ -478,7 +484,7 @@ class PassBall(Strategy):
             self.angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
             #print "Rotating to Freespot: "+str(self.angle)
 
-            if (abs(self.angle) % (2*pi)) < ROTATE_MARGIN:
+            if abs(self.angle) < ROTATE_MARGIN:
                 if self.compare_angles(self.angle, real_realspot_angle):
                     self.state = REPOSITION
                 # else:
@@ -506,7 +512,7 @@ class PassBall(Strategy):
             # take snaphot of defender cords
             (self.defender_x, self.defender_y) = (real_defender_x, real_defender_y)
 
-            print "\nROTATE TO DEFENDER\nangle: "+str(self.angle)
+            print "\nROTATE TO DEFENDER\nangle: "+str(self.angle*180/pi)+"deg"
             print "margin: "+str(ROTATE_MARGIN)
             print "d/rotate: "+str(abs(self.angle < ROTATE_MARGIN))
 
@@ -516,13 +522,14 @@ class PassBall(Strategy):
             self.angle = self.bot.get_rotation_to_point(self.defender_x, self.defender_y)
             #print "Rotating: "+str(self.angle)
 
-            if (abs(self.angle) % (2*pi)) < ROTATE_MARGIN:
+            if abs(self.angle) < ROTATE_MARGIN:
                 if self.compare_angles(self.angle, real_defender_angle):
                     self.state = OPEN_GRABBER
                 # else:
                 #     self.reset()
 
         elif self.state == OPEN_GRABBER:
+            #todo: FIGURE OUT WHY KICK DOES NOT WORK NICELY BEYOND THIS POINT.
             self.state = WAIT_O_GRAB
 
         elif self.state == WAIT_O_GRAB:
@@ -530,7 +537,8 @@ class PassBall(Strategy):
                 self.state = PASS
 
         elif self.state == PASS:
-            print "\nPASSED BALL WITH MARGIN\nangle: "+str(real_defender_angle)+" radians from target"
+            print "\n--------------PASSED BALL WITH MARGIN\nangle: "+str(real_defender_angle)+" radians from target"
+            self.state = IDLE
 
     def rotate_to_freespot(self):
         angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)

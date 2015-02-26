@@ -56,9 +56,7 @@ class Planner(object):
             self.receiver_transition()
 
         self._strategy.transition()  # Update strategy state
-
-        print self._strategy
-
+        #print self._state
         # Get action from strategy then call if not None
         plan = self._strategy.get_action()
         if plan is not None:
@@ -133,8 +131,6 @@ class Planner(object):
         world model.
         """
         # For mil3: make this the pass accepting + get ball logic
-
-        print self._state
 
         # If the ball is not in play
         if not self._world.ball_in_play():
