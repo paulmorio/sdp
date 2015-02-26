@@ -16,7 +16,6 @@ class World(object):
         self._our_side = our_side
         self._their_side = 'left' if our_side == 'right' else 'right'
         self._ball = Ball(0, 0, 0, 0)
-
         self._robots = [
             Robot(0, 0, 0, 0, 0), Robot(1, 0, 0, 0, 0),
             Robot(2, 0, 0, 0, 0), Robot(3, 0, 0, 0, 0)
@@ -25,6 +24,7 @@ class World(object):
             Goal(0, 0, self._pitch.height/2.0, 0),  # Leftmost, facing angle 0
             Goal(3, self._pitch.width, self._pitch.height/2.0, pi)  # Rightmost
         ]
+
         # Grabber areas - TODO should be adjusted once the robot is finalised
         self.our_defender.catcher_area = \
             {'width': 30, 'height': 25, 'front_offset': 10}  # In pixels???

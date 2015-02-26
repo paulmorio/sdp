@@ -111,11 +111,9 @@ void closeGrabber() {
   ack(comm.next());
   int time = atoi(comm.next());
   int power = atoi(comm.next());
-  if (grabberOpen && !grabTimer) {
-    motorBackward(MOTOR_G, power);
-    grabberOpen = false;
-    grabTimer = millis() + time;
-  }
+  motorBackward(MOTOR_G, power);
+  grabberOpen = false;
+  grabTimer = millis() + time;
 }
 
 void openGrabber() {
@@ -126,11 +124,9 @@ void openGrabber() {
   ack(comm.next());
   int time = atoi(comm.next());
   int power = atoi(comm.next());
-  if (!grabberOpen && !grabTimer) {
-    motorForward(MOTOR_G, power);
-    grabberOpen = true;
-    grabTimer = millis() + time;
-  }
+  motorForward(MOTOR_G, power);
+  grabberOpen = true;
+  grabTimer = millis() + time;
 }
 
 void kick() {
