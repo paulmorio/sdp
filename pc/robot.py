@@ -17,13 +17,13 @@ class Robot(object):
     _COMM_TERMINAL = '\n'
 
     # Robot constants
-    _ROTARY_SENSOR_RESOLUTION = 3.0  # Degrees
+    _ROTARY_SENSOR_RESOLUTION = 9
     _WHEEL_DIAM_CM = 8.16 * math.pi
     _TICK_DIST_CM = math.pi * _WHEEL_DIAM_CM * _ROTARY_SENSOR_RESOLUTION / 360
     _WHEELBASE_DIAM_CM = 10.93
     _WHEELBASE_CIRC_CM = _WHEELBASE_DIAM_CM * math.pi
 
-    def __init__(self, port="/dev/ttyACM0", timeout=0.1,
+    def __init__(self, port="/dev/ttyACM0", timeout=0.05,
                  rate=115200, comms=True):
         """
         Create a robot object which provides action methods and opens a serial

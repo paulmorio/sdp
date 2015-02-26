@@ -7,7 +7,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 class World(object):
     """
-    This class describes the environment
+    Describe the pitch environment.
     """
 
     def __init__(self, our_side, pitch_num):
@@ -16,14 +16,22 @@ class World(object):
         self._our_side = our_side
         self._their_side = 'left' if our_side == 'right' else 'right'
         self._ball = Ball(0, 0, 0, 0)
-        self._robots = []
-        self._robots.append(Robot(0, 0, 0, 0, 0))
-        self._robots.append(Robot(1, 0, 0, 0, 0))
-        self._robots.append(Robot(2, 0, 0, 0, 0))
-        self._robots.append(Robot(3, 0, 0, 0, 0))
-        self._goals = []
-        self._goals.append(Goal(0, 0, self._pitch.height/2.0, 0))  # Leftmost goal, facing towards angle 0
-        self._goals.append(Goal(3, self._pitch.width, self._pitch.height/2.0, pi))  # Rightmost goal, facing towards andle pi
+
+        self._robots = [
+            Robot(0, 0, 0, 0, 0), Robot(1, 0, 0, 0, 0),
+            Robot(2, 0, 0, 0, 0), Robot(3, 0, 0, 0, 0)
+        ]
+        self._goals = [
+            Goal(0, 0, self._pitch.height/2.0, 0),  # Leftmost, facing angle 0
+            Goal(3, self._pitch.width, self._pitch.height/2.0, pi)  # Rightmost
+        ]
+        # Grabber areas - TODO should be adjusted once the robot is finalised
+        self.our_defender.catcher_area = \
+            {'width': 30, 'height': 25, 'front_offset': 10}  # In pixels???
+        self.our_attacker.catcher_area = \
+            {'width': 30, 'height': 25, 'front_offset': 10}
+        self.grabbers = {'our defender': self.our_defender.catcher_area,
+                         'our attacker': self.our_attacker.catcher_area}
 
     @property
     def our_attacker(self):
@@ -133,12 +141,4 @@ class WorldUpdater:
         model_positions, regular_positions = self.vision.locate(frame)
         model_positions = self.postprocessing.analyze(model_positions)
         self.world.update_positions(model_positions)
-        self.world.our_defender.catcher_area = \
-            {'width': 30, 'height': 25, 'front_offset': 10}
-        self.world.our_attacker.catcher_area = \
-            {'width': 30, 'height': 25, 'front_offset': 10}
-        grabbers = {
-            'our_defender': self.world.our_defender.catcher_area,
-            'our_attacker': self.world.our_attacker.catcher_area
-        }
-        return model_positions, regular_positions, grabbers
+        return model_positions, regular_positions
