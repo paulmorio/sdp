@@ -8,14 +8,14 @@ class Planner(object):
         """
         Create a planner object.
         :param world: World model object from pc.models.worldmodel.
+        :type world: World
         :param robot_controller: Robot control object from pc.robot
+        :type robot_controller: Robot
         :param profile: Planning profile.
+        :type profile: str
         """
-        self._world = world
         assert (profile in ['passer', 'receiver'])
-
-        # In passing mode, we're "our attacker"
-        # Yes, this makes absolutely no sense
+        self._world = world
         self._profile = profile
         self._our_robot = self._world.our_attacker
 
@@ -46,7 +46,9 @@ class Planner(object):
         self.update_strategy()
 
     def plan(self):
-        """Update planner state before commanding the robot."""
+        """
+        Update planner state before commanding the robot.
+        """
         # Run the appropriate transition function
         if self._profile == 'passer':
             self.passer_transition()
@@ -55,8 +57,7 @@ class Planner(object):
 
         self._strategy.transition()  # Update strategy state
 
-        #print self._strategy
-
+        # Get action from strategy then call if not None
         plan = self._strategy.get_action()
         if plan is not None:
             plan()
@@ -67,7 +68,7 @@ class Planner(object):
         If you wish to switch to a 'fresh' copy of the current
         strategy then you must explicitly call its reset method.
         """
-        # If new strategy is actually new.
+        # If new strategy is not the same as the old.
         new_strategy = self._strategies[self._state]
         if new_strategy is not self._strategy:
             if self._strategy is not None:
@@ -76,15 +77,24 @@ class Planner(object):
 
     def passer_transition(self):
         """
-        For the passer profile.
         Update the planner state and strategy given the current state of the
         world model.
+
+        For the passer profile.
         """
         # For mil3: make this the get ball + pass logic
 
         # If the ball is not in play
         if not self._world.ball_in_play():
             self._state = NO_BALL
+
+        # If ball is in play but not in our margin
+        elif self._world.ball_in_area([self._world.our_defender]):
+            self._state = BALL_OUR_D_ZONE
+        elif self._world.ball_in_area([self._world.their_attacker]):
+            self._state = BALL_THEIR_A_ZONE
+        elif self._world.ball_in_area([self._world.their_defender]):
+            self._state = BALL_THEIR_D_ZONE
 
         # If ball is in our margin
         elif self._world.ball_in_area([self._our_robot]):
@@ -98,6 +108,8 @@ class Planner(object):
 
             # Check for strategy final state
             if self._strategy.final_state():
+
+                # Successfully grabbed ball
                 if isinstance(self._strategy, GetBall):
                     self._state = POSSESSION
 
@@ -106,13 +118,7 @@ class Planner(object):
                     self._state = BALL_OUR_A_ZONE
                     pass
 
-        # If ball is in play but unreachable (outwith our margin)
-        elif self._world.ball_in_area([self._world.our_defender]):
-            self._state = BALL_OUR_D_ZONE
-        elif self._world.ball_in_area([self._world.their_attacker]):
-            self._state = BALL_THEIR_A_ZONE
-        elif self._world.ball_in_area([self._world.their_defender]):
-            self._state = BALL_THEIR_D_ZONE
+
 
         self.update_strategy()
 

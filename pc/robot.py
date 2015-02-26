@@ -17,9 +17,9 @@ class Robot(object):
     _COMM_TERMINAL = '\n'
 
     # Robot constants
-    _ROTARY_SENSOR_RESOLUTION = 9
-    _WHEEL_DIAM_CM = 8.16 * math.pi
-    _TICK_DIST_CM = math.pi * _WHEEL_DIAM_CM * _ROTARY_SENSOR_RESOLUTION / 360
+    _ROTARY_SENSOR_RESOLUTION = 3.0
+    _WHEEL_DIAM_CM = 8.16
+    _TICK_DIST_CM = math.pi * _WHEEL_DIAM_CM * _ROTARY_SENSOR_RESOLUTION / 360.0
     _WHEELBASE_DIAM_CM = 10.93
     _WHEELBASE_CIRC_CM = _WHEELBASE_DIAM_CM * math.pi
 
@@ -143,7 +143,7 @@ class Robot(object):
         wheel_dist = Robot._WHEELBASE_CIRC_CM * radians / (2 * math.pi)
         self.drive(wheel_dist, -wheel_dist, power, power)
 
-    def open_grabber(self, time=700, power=100):
+    def open_grabber(self, time=1000, power=100):
         """
         Run the grabber motor in the opening direction for the given number of
         milliseconds at the given motor power.
@@ -156,7 +156,7 @@ class Robot(object):
         self._command(Robot._OPEN_GRABBER, [str(time), str(power)])
         self.grabber_open = True
 
-    def close_grabber(self, time=700, power=100):
+    def close_grabber(self, time=1400, power=100):
         """
         Run the grabber motor in the closing direction for the given number of
         milliseconds at the given motor power.

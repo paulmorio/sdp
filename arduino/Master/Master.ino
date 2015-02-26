@@ -70,7 +70,7 @@ void drive() {
   ack(comm.next());
   
   rotaryCounter[0] = atoi(comm.next());
-  rotaryCounter[1] = atoi(comm.next());
+  rotaryCounter[1] = atoi(comm.next());  // Sensor is mounted backward
   int lPower = atoi(comm.next());
   int rPower = atoi(comm.next());
   
