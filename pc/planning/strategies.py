@@ -1,5 +1,5 @@
 from utilities import *
-
+from math import pi
 
 class Strategy(object):
     """
@@ -454,7 +454,7 @@ class PassBall(Strategy):
         super(PassBall, self).__init__(world, robot_controller, states, action_map)
 
     def transition(self):
-
+        print self.state
         #real freespot and angle values
         (real_freespot_x, real_freespot_y) = self.calc_freespot()
         (real_defender_x, real_defender_y) = (self._world.our_defender.x, self._world.our_defender.y)
@@ -476,13 +476,13 @@ class PassBall(Strategy):
 
         elif self.state == WAIT_REORIENT:
             self.angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
-            print "Rotating to Freespot: "+str(self.angle)
+            #print "Rotating to Freespot: "+str(self.angle)
 
-            if abs(self.angle) < ROTATE_MARGIN:
+            if (abs(self.angle) % (2*pi)) < ROTATE_MARGIN:
                 if self.compare_angles(self.angle, real_realspot_angle):
                     self.state = REPOSITION
-                else:
-                    self.reset()
+                # else:
+                #     self.reset()
 
         elif self.state == REPOSITION:
 
@@ -497,7 +497,7 @@ class PassBall(Strategy):
             self.state = WAIT_REPOSITION
 
         elif self.state == WAIT_REPOSITION:
-            print "Repositioning to Freespot: "+str(abs(real_bot_y - self.freespot_y))
+            #print "Repositioning to Freespot: "+str(abs(real_bot_y - self.freespot_y))
             if abs(real_bot_y - self.freespot_y) < DISPLACEMENT_MARGIN:
                 self.state = REORIENT_DEFENDER
 
@@ -514,13 +514,13 @@ class PassBall(Strategy):
 
         elif self.state == WAIT_REORIENT_DEFENDER:
             self.angle = self.bot.get_rotation_to_point(self.defender_x, self.defender_y)
-            print "Rotating: "+str(self.angle)
+            #print "Rotating: "+str(self.angle)
 
-            if abs(self.angle) < ROTATE_MARGIN:
+            if (abs(self.angle) % (2*pi)) < ROTATE_MARGIN:
                 if self.compare_angles(self.angle, real_defender_angle):
                     self.state = OPEN_GRABBER
-                else:
-                    self.reset()
+                # else:
+                #     self.reset()
 
         elif self.state == OPEN_GRABBER:
             self.state = WAIT_O_GRAB

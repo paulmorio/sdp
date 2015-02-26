@@ -57,6 +57,8 @@ class Planner(object):
 
         self._strategy.transition()  # Update strategy state
 
+        print self._strategy
+
         # Get action from strategy then call if not None
         plan = self._strategy.get_action()
         if plan is not None:

@@ -82,6 +82,7 @@ class Robot(object):
             self._serial.write(current_command)
             self._serial.flush()
             self.ack()
+            print current_command
         else:
             print current_command
 
