@@ -1,6 +1,7 @@
 from utilities import *
 from math import pi
 
+
 class Strategy(object):
     """
     A base class on which other strategies should be built. Sets up the
@@ -92,9 +93,9 @@ class Idle(Strategy):
         states = [REORIENT, WAIT_REORIENT, REPOSITION, WAIT_REPOSITION, IDLE]
         action_map = {
             REORIENT: self.face_pitch_center,
-            WAIT_REORIENT: self.do_nothing,
+            WAIT_REORIENT: self._robot_controller.get_status,
             REPOSITION: self.move_to_origin,
-            WAIT_REPOSITION: self.do_nothing,
+            WAIT_REPOSITION: self._robot_controller.get_status,
             IDLE: self.do_nothing()
         }
 
@@ -110,11 +111,11 @@ class Idle(Strategy):
             self.state == WAIT_REORIENT
 
         if self.state == WAIT_REORIENT:
-            if abs(self.angle_to_face - self.bot.angle) < ROTATE_MARGIN:
+            if not self._robot_controller.is_moving:
                 if self.compare_angles(angle_to_target, 0.0):
                     self.state = REPOSITION
-                # else:
-                #     self.reset()
+                else:
+                    self.state = REORIENT
 
         elif self.state == REPOSITION:
             displacement = self.bot.get_displacement_to_point(self.middle_x, self.middle_y)
