@@ -72,6 +72,9 @@ class Strategy(object):
             return True
         return False
 
+    def get_status(self):
+        return self._robot_controller.get_status
+
 
 class Idle(Strategy):
     """
@@ -93,10 +96,10 @@ class Idle(Strategy):
         states = [REORIENT, WAIT_REORIENT, REPOSITION, WAIT_REPOSITION, IDLE]
         action_map = {
             REORIENT: self.face_pitch_center,
-            WAIT_REORIENT: self._robot_controller.get_status,
+            WAIT_REORIENT: self.get_status,
             REPOSITION: self.move_to_origin,
-            WAIT_REPOSITION: self._robot_controller.get_status,
-            IDLE: self.do_nothing()
+            WAIT_REPOSITION: self.get_status,
+            IDLE: self.do_nothing
         }
 
         super(Idle, self).__init__(world, robot_controller, states, action_map)
