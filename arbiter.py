@@ -105,6 +105,10 @@ class Arbiter(object):
 
 
 if __name__ == '__main__':
+    # Set capture card settings
+    import subprocess
+    subprocess.call(['./v4lctl.sh'])
+    # Parse args
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument(
