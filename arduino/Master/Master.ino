@@ -30,9 +30,11 @@ int motorDir[ROTARY_COUNT] = {0};  // Track direction of rotary encoder motors
 SerialCommand comm;
 
 // Grabber/kicker states, timers
-boolean grabberOpen = false;
+boolean grabberOpen = true;  // Assume open on startup
+boolean isMoving = false;
+boolean isKicking = false;
+boolean isGrabbing = false;
 unsigned long grabTimer = 0;
-boolean kickerReady = true;
 unsigned long kickTimer = 0;
 
 void setup() {
@@ -41,20 +43,12 @@ void setup() {
   comm.addCommand("O_GRAB", openGrabber);
   comm.addCommand("C_GRAB", closeGrabber);
   comm.addCommand("KICK", kick);
+  comm.addCommand("STATUS", ack);
   comm.setDefaultHandler(invalidCommand);
 }
 
 void loop() {
-  // Check kicker and grabber timers
-  unsigned long time = millis();
-  if (grabTimer && time >= grabTimer) {
-    grabTimer = 0;
-    motorStop(MOTOR_G);
-  }
-  if (kickTimer && time >= kickTimer) {
-    kickTimer = 0;
-    motorStop(MOTOR_K);
-  }
+  checkTimers();
   checkRotaryMotors();
   comm.readSerial();
 }
@@ -65,10 +59,8 @@ void drive() {
    * the given motor speeds.
    * Note that I haven't looped this code because we're probably
    * going to add rotary encoders to the kicker and grabber.
-   * ARGS: [ack] [L_ticks] [R_ticks][L_power] [R_power]
-   */
-  ack(comm.next());
-  
+   * ARGS: [L_ticks] [R_ticks][L_power] [R_power] [ack]
+   */  
   rotaryCounter[0] = atoi(comm.next());
   rotaryCounter[1] = atoi(comm.next());  // Sensor is mounted backward
   int lPower = atoi(comm.next());
@@ -76,57 +68,60 @@ void drive() {
   
   // Motor L
   if (rotaryCounter[0] < 0) {
+    isMoving = true;
     motorDir[0] = -1;  // Bwd
     motorBackward(MOTOR_L, lPower);
   } 
   else if (rotaryCounter[0] > 0) {
+    isMoving = true;
     motorDir[0] = 1;  // Fwd
     motorForward(MOTOR_L, lPower);
   } 
   else { 
-    motorDir[0] = 0;  // stopped
-    motorStop(MOTOR_L);
+    motorDir[0] = 0;  // stop on next test
   }
   
   // Motor R 
   if (rotaryCounter[1] < 0) {
+    isMoving = true;
     motorDir[1] = -1;
     motorBackward(MOTOR_R, rPower);
   } 
   else if (rotaryCounter[1] > 0) {
+    isMoving = true;
     motorDir[1] = 1;
     motorForward(MOTOR_R, rPower);
   } 
   else {
     motorDir[1] = 0;
-    motorStop(MOTOR_R);
   }
+  ack();
 }
 
 void closeGrabber() {
   /*
    * Close the grabber with the hardcoded time and motor power
-   * ARGS: [ack] [time] [power]
+   * ARGS: [time] [power] [ack]
    */
-  ack(comm.next());
   int time = atoi(comm.next());
   int power = atoi(comm.next());
   motorBackward(MOTOR_G, power);
-  grabberOpen = false;
   grabTimer = millis() + time;
+  isGrabbing = true;
+  ack();
 }
 
 void openGrabber() {
   /*
    * Open the grabber with the hardcoded time and motor power
-   * ARGS: [ack] [time] [power]
+   * ARGS: [time] [power] [ack]
    */
-  ack(comm.next());
   int time = atoi(comm.next());
   int power = atoi(comm.next());
   motorForward(MOTOR_G, power);
-  grabberOpen = true;
   grabTimer = millis() + time;
+  isGrabbing = true;
+  ack();
 }
 
 void kick() {
@@ -135,12 +130,26 @@ void kick() {
    * Grabber must be open.
    * ARGS: [ack] [time] [power]
    */
-  ack(comm.next());
   int time = atoi(comm.next());
   int power = atoi(comm.next());
-  if (grabberOpen && !kickTimer) {
-    motorForward(MOTOR_K, power);
-    kickTimer = millis() + time;
+  motorForward(MOTOR_K, power);
+  kickTimer = millis() + time;
+  ack();
+}
+
+void checkTimers() {
+  /* Check kicker and grabber timers */
+  unsigned long time = millis();
+  if (grabTimer && time >= grabTimer) {  // Grab timer test
+    motorStop(MOTOR_G);
+    grabTimer = 0;
+    grabberOpen = !grabberOpen;
+    isGrabbing = false;
+  }
+  if (kickTimer && time >= kickTimer) {  // Kick timer test
+    kickTimer = 0;
+    isKicking = false;
+    motorStop(MOTOR_K);
   }
 }
 
@@ -157,10 +166,20 @@ void checkRotaryMotors() {
       motorDir[i] = 0;
     }
   }
+  if (motorDir[0] == 0 && motorDir[1] == 0) isMoving = false;
 }
 
-void ack(String ack_bit) {
-  Serial.println(ack_bit);
+void ack() {
+  char ack_bit = comm.next()[0];
+  Serial.print(ack_bit);
+  if (grabberOpen) Serial.print(1);
+  else Serial.print(0);
+  if (isGrabbing) Serial.print(1);
+  else Serial.print(0);
+  if (isMoving) Serial.print(1);
+  else Serial.print(0);
+  if (isKicking) Serial.println(1);
+  else Serial.println(0);
   Serial.flush();
 }
 

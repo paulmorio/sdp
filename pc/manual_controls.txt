@@ -8,6 +8,8 @@
 
 [s] -> Stop motors
 
+[p] -> Update status (get feedback)
+
 <Up> -> Crawl forward
 <Down> -> Crawl backward
 <Left> -> Turn left

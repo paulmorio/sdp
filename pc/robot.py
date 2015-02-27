@@ -13,6 +13,7 @@ class Robot(object):
     _CLOSE_GRABBER = "C_GRAB"
     _KICK = "KICK"
     _READY = "READY"
+    _STATUS = "STATUS"
     _COMM_DELIMITER = ' '
     _COMM_TERMINAL = '\n'
 
@@ -44,7 +45,11 @@ class Robot(object):
         """
         self._last_command = None
         self.ready = False  # True if ready to receive a command
-        self.grabber_open = False
+        self.grabber_open = True  # True if the grabber is open
+        self.is_grabbing = False  # True if the grabber motor is running
+        self.is_moving = False  # True if the drive motors are running
+        self.is_kicking = False  # True if the kicker motor is running
+
         if comms:
             self._ack_bit = '0'
             self._serial = Serial(port, rate, timeout=timeout)
@@ -54,7 +59,7 @@ class Robot(object):
             self.ready = True
             self._ack_bit = '0'
 
-    def _command(self, command, arguments=[]):
+    def _command(self, command, arguments=None):
         """
         Send a command to the robot then wait for acknowledgement. Resend
         the command if no acknowledgement is received within the serial read
@@ -66,23 +71,21 @@ class Robot(object):
         :param arguments: Optional arguments to be appended to the command.
         :type arguments: list of str
         """
-        # Store for resending
-        self._last_command = (command, arguments)
+        self._last_command = (command, arguments)  # Store for resending
 
         # Build the command
         current_command = command
-        # Append alternating bit
-        current_command += Robot._COMM_DELIMITER + self._ack_bit
-        for arg in arguments:  # Append arguments
-            current_command += Robot._COMM_DELIMITER + arg
-        # Append terminal char
-        current_command += Robot._COMM_TERMINAL
+        if arguments is not None:  # Append arguments
+            for arg in arguments:
+                current_command += Robot._COMM_DELIMITER + arg
+        current_command += Robot._COMM_DELIMITER + self._ack_bit  # Ack bit
+        current_command += Robot._COMM_TERMINAL  # Append terminal char
+
         # Send and wait for ack
         if self._serial is not None:
             self._serial.write(current_command)
             self._serial.flush()
             self.ack()
-            print current_command
         else:
             print current_command
 
@@ -92,14 +95,9 @@ class Robot(object):
         for acknowledgement before setting the ready flag.
         """
         self.close_grabber()
+        while self.grabber_open:
+            self.get_status()
         self.ready = True
-
-    def test(self):
-        """
-        Run the robot test sequence: spin a full rotation clockwise then counter
-        clockwise, kick, open grabber, close grabber.
-        """
-        pass  # NYI
 
     def drive(self, l_dist, r_dist, l_power=100, r_power=100):
         """
@@ -155,7 +153,6 @@ class Robot(object):
         :type power: int
         """
         self._command(Robot._OPEN_GRABBER, [str(time), str(power)])
-        self.grabber_open = True
 
     def close_grabber(self, time=1400, power=100):
         """
@@ -168,7 +165,6 @@ class Robot(object):
         :type power: int
         """
         self._command(Robot._CLOSE_GRABBER, [str(time), str(power)])
-        self.grabber_open = False
 
     def kick(self, time=700, power=100):
         """
@@ -181,6 +177,13 @@ class Robot(object):
         :type power: int
         """
         self._command(Robot._KICK, [str(time), str(power)])
+
+    def get_status(self):
+        """
+        Update the status bits. This is a dummy command with the sole purpose of
+        getting an acknowledge with the attached status bits.
+        """
+        self._command(Robot._STATUS)
 
     def teardown(self):
         """
@@ -200,12 +203,17 @@ class Robot(object):
         this command if no acknowledgement is received within the serial port
         timeout.
 
-        The acknowledgement includes an alternating bit as well as some status
-        bits as follows: [is_moving] [is_grabbing]
+        The acknowledge packet is of the following format:
+        [ack_bit][grabber_open][is_grabbing][is_moving][is_kicking]
         """
         ack = self._serial.readline()  # returns empty string on timeout
-        if ack != '' and ack[0] == self._ack_bit:  # Successful ack
-            self._ack_bit = '0' if self._ack_bit == '1' else '0'
+        if len(ack) == 7 and ack[0] == self._ack_bit:  # Successful ack
+            self._ack_bit = '0' if self._ack_bit == '1' else '0'  # Flip
+            self.grabber_open = ack[1] == '1'
+            self.is_grabbing = ack[2] == '1'
+            self.is_moving = ack[3] == '1'
+            self.is_kicking = ack[4] == '1'
+
         else:  # No ack within timeout - resend command
             self._command(self._last_command[0], self._last_command[1])
 
@@ -264,6 +272,7 @@ class ManualController(object):
         self.root.bind('<space>', lambda event: self.robot.kick())
         self.root.bind('s', lambda event: self.robot.drive(0, 0))
         self.root.bind('<Escape>', lambda event: self.quit())
+        self.root.bind('p', lambda event: self.robot.get_status())
 
         # Set window attributes and start
         self.root.geometry('400x400')
