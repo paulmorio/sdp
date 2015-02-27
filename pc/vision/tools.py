@@ -61,11 +61,14 @@ def get_radial_data(pitch=0, filename=PATH+'/calibrations/undistort.txt'):
 def get_colors(pitch=0, filename=PATH+'/calibrations/calibrations.json'):
     """
     Get colours from the JSON calibration file.
-    Converts all
+    Converts all TODO ??
     """
     json_content = get_json(filename)
     pitch_name = 'PITCH0' if pitch == 0 else 'PITCH1'
-    current = json_content[pitch_name]
+    if pitch_name in json_content:
+        current = json_content[pitch_name]
+    else:
+        current = json_content['default']
 
     # convert mins and maxes into np.array
     for key in current:
