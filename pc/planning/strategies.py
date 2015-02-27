@@ -489,10 +489,13 @@ class PassBall(Strategy):
             #print "Rotating to Freespot: "+str(self.angle)
 
             if abs(self.angle) < ROTATE_MARGIN:
+                self._robot_controller.get_status()
+
                 if self.compare_angles(self.angle, real_realspot_angle):
                     self.state = REPOSITION
-                # else:
-                #     self.reset()
+                elif not self._robot_controller.is_moving:
+                    print "<RETRY>"
+                    self.reset()
 
         elif self.state == REPOSITION:
 
@@ -523,14 +526,17 @@ class PassBall(Strategy):
             self.state = WAIT_REORIENT_DEFENDER
 
         elif self.state == WAIT_REORIENT_DEFENDER:
+            self._robot_controller.get_status()
+
             self.angle = self.bot.get_rotation_to_point(self.defender_x, self.defender_y)
             #print "Rotating: "+str(self.angle)
 
             if abs(self.angle) < ROTATE_MARGIN:
                 if self.compare_angles(self.angle, real_defender_angle):
                     self.state = OPEN_GRABBER
-                # else:
-                #     self.reset()
+                elif not self._robot_controller.is_moving:
+                    print "<RETRY>"
+                    self.reset()
 
         elif self.state == OPEN_GRABBER:
             #todo: FIGURE OUT WHY KICK DOES NOT WORK NICELY BEYOND THIS POINT.
