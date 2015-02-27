@@ -67,8 +67,7 @@ class World(object):
 
     def update_positions(self, pos_dict):
         """
-            This method will update the positions of the pitch objects
-            that it gets passed by the vision system
+        Update the positions of the pitch objects in the world state.
         """
         self.our_attacker.vector = pos_dict['our_attacker']
         self.their_attacker.vector = pos_dict['their_attacker']
@@ -90,8 +89,9 @@ class World(object):
 
     def ball_in_area(self, robots):
         """
-        Return True if the ball is in the given robots' area
-        :param robots: list of robot models corresponding to the queried zones
+        Whether or not the ball is in the same area as one of the listed robots
+        :param list robots: robots whose areas are to be queried.
+        :type robots: Robot list
         """
         for robot in robots:
             if self.pitch.zones[robot.zone].isInside(self.ball.x, self.ball.y):
@@ -115,11 +115,16 @@ class WorldUpdater:
 
     def __init__(self, pitch, colour, our_side, world, vision):
         """
-        Params:
-            [int] pitch       0 - main pitch, 1 - secondary pitch
-            [string] colour   our team  colour - 'blue' or 'yellow'
-            [string] our_side the side we're on - 'left' or 'right'
-
+        :param pitch: which pitch - 0: main pitch; 1: second pitch.
+        :type pitch: int
+        :param colour: Team colour: 'blue' or 'yellow'
+        :type colour: str
+        :param our_side: Which side our defender is on. 'left' or 'right'
+        :type our_side: str
+        :param world: the world object to be updated
+        :type world: World
+        :param vision: The vision object used to update the world
+        :type vision: Vision
         """
         assert pitch in [0, 1]
         assert colour in ['yellow', 'blue']
@@ -136,6 +141,10 @@ class WorldUpdater:
         """
         Read a frame and update the world model appropriately.
         Returns the object positions for drawing on the UI feed.
+
+        :param frame: A new frame to be processed by vision
+        :type frame: np.array
+        :return: New model positions and regular positions for drawing.
         """
         # Find object positions, return for gui drawing
         model_positions, regular_positions = self.vision.locate(frame)
