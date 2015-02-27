@@ -64,13 +64,8 @@ def get_colors(pitch=0, filename=PATH+'/calibrations/calibrations.json'):
     Converts all
     """
     json_content = get_json(filename)
-    machine_name = socket.gethostname().split('.')[0]
     pitch_name = 'PITCH0' if pitch == 0 else 'PITCH1'
-
-    if machine_name in json_content:
-        current = json_content[machine_name][pitch_name]
-    else:
-        current = json_content['default'][pitch_name]
+    current = json_content[pitch_name]
 
     # convert mins and maxes into np.array
     for key in current:
@@ -89,7 +84,6 @@ def get_colors(pitch=0, filename=PATH+'/calibrations/calibrations.json'):
 
 def save_colors(pitch, colors, filename=PATH+'/calibrations/calibrations.json'):
     json_content = get_json(filename)
-    machine_name = socket.gethostname().split('.')[0]
     pitch_name = 'PITCH0' if pitch == 0 else 'PITCH1'
 
     # convert np.arrays into lists
@@ -104,11 +98,11 @@ def save_colors(pitch, colors, filename=PATH+'/calibrations/calibrations.json'):
         if 'rgb_max' in key_dict:
             key_dict['rgb_max'] = list(key_dict['rgb_max'])
 
-    if machine_name in json_content:
-        json_content[machine_name][pitch_name].update(colors)
+    if pitch_name in json_content:
+        json_content[pitch_name].update(colors)
     else:
-        json_content[machine_name] = json_content['default']
-        json_content[machine_name][pitch_name].update(colors)
+        json_content[pitch_name] = json_content['default']
+        json_content[pitch_name].update(colors)
 
     write_json(filename, json_content)
 
