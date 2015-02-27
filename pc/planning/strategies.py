@@ -441,8 +441,9 @@ class PassBall(Strategy):
         self.snap_bot_y = self.bot.y
         self.angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
 
-        states = [REORIENT_FREESPOT, WAIT_REORIENT, REPOSITION, WAIT_REPOSITION, REORIENT_DEFENDER, WAIT_REORIENT_DEFENDER, OPEN_GRABBER, WAIT_O_GRAB, PASS]
+        states = [INIT_VARS, REORIENT_FREESPOT, WAIT_REORIENT, REPOSITION, WAIT_REPOSITION, REORIENT_DEFENDER, WAIT_REORIENT_DEFENDER, OPEN_GRABBER, WAIT_O_GRAB, PASS]
         action_map = {
+            INIT_VARS: self.do_nothing(),
             REORIENT_FREESPOT: self.rotate_to_freespot,
             WAIT_REORIENT: self.do_nothing,
             REPOSITION: self.move_to_freespot,
@@ -466,21 +467,20 @@ class PassBall(Strategy):
         real_bot_y = self.bot.y
 
 
+        if self.state == INIT_VARS:
+            (self.freespot_x, self.freespot_y) = (real_freespot_x, real_freespot_y)
+            self.state = REORIENT_FREESPOT
 
-        if self.state == REORIENT_FREESPOT:
+        elif self.state == REORIENT_FREESPOT:
             # take snapshot of freespot cords
             print "\n1"
-            (self.freespot_x, self.freespot_y) = (real_freespot_x, real_freespot_y)
+
             print "freespot: ("+str(self.freespot_x)+", "+str(self.freespot_y)+")"
             print "robot: ("+str(self.bot.x)+", "+str(self.bot.y)+")"
 
             print "\nROTATE TO FREESPOT\nangle: "+str(self.angle*180/pi)+"deg"
             print "margin: "+str(ROTATE_MARGIN)
             print "d/rotate: "+str(abs(self.angle < ROTATE_MARGIN))
-
-            #todo: FIND OUT WHY THE F* THIS FIXES THE PROBLEM -> ie. why "REORIENT_FREESPOT: self.rotate_to_freespot" does NOT trigger self.rotate_to_freespot()
-            angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
-            self._robot_controller.turn(angle)
 
             self.state = WAIT_REORIENT
 

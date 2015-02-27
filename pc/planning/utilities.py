@@ -12,6 +12,7 @@ REPOSITION = 'reposition'
 REORIENT = 'reorient'
 IDLE = 'idle'
 NONE = "no_state"
+INIT_VARS = "init_variables"
 REORIENT_FREESPOT = "reorient_freespot"
 REORIENT_DEFENDER = "reorient_defender"
 REORIENT_PASSER = "reorient_passer"
