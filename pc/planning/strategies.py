@@ -134,17 +134,13 @@ class GetBall(Strategy):
     def grab_test(self):
         """
         Have the robot do a half-turn and then check if the ball is still in
-        the grabber
+        the grabber.
         """
         if not self.robot_ctl.is_moving:
-            if tested:
-                if self.robot_mdl.can_catch_ball(self.ball):
-                    self.state = POSSESSION
-                else:
-                    self.state = INIT
+            if self.robot_mdl.can_catch_ball(self.ball):
+                self.state = POSSESSION
             else:
-                self.robot_ctl.turn(math.pi)
-                tested = True
+                self.state = INIT
         else:
             self.robot_ctl.update_state()
 
@@ -155,5 +151,5 @@ class PassBall(Strategy):
     Intended use is when the ball is in our possession.
     """
     def __init__(self, world, robot_ctl):
-        _STATE_MAP = {}
+        _STATE_MAP = {INIT: self.do_nothing()}
         super(PassBall, self).__init__(world, robot_ctl, _STATE_MAP)
