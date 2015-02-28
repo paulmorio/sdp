@@ -108,12 +108,11 @@ class GetBall(Strategy):
         """
         if not self.robot_ctl.is_moving:
             if self.robot_mdl.can_catch_ball(self.ball):
-                self.robot_ctl.stop()
                 self.state = BALL_IN_GRABBER_AREA
             else:
                 dist = self.robot_mdl.get_displacement_to_point(self.ball.x,
                                                                 self.ball.y)
-                self.robot_ctl.move(dist)
+                self.robot_ctl.move(px_to_cm(dist))
         else:
             self.robot_ctl.update_state()
 
