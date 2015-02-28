@@ -62,3 +62,10 @@ class Camera(object):
 
     def release(self):
         self.capture.release()
+
+
+# Capture image and save to file if run from main (pitch 0 only)
+if __name__ == '__main__':
+    cam = Camera(0)
+    frame = cam.get_frame()
+    cv2.imwrite('test.png', frame)
