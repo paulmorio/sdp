@@ -63,7 +63,7 @@ class Planner(object):
             if self._strategy is not None:
                 self._strategy.reset()  
                 
-        self._strategy = new_strategy
+            self._strategy = new_strategy
 
     def attacker_transition(self):
         """
