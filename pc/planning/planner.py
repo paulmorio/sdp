@@ -23,7 +23,7 @@ class Planner(object):
         # Strategy dictionaries return a strategy given a state.
         if self._profile == 'ms3':
             self._strat_map = {
-                BALL_UNREACHABLE: None,
+                BALL_UNREACHABLE: Idle(),
                 BALL_OUR_ZONE: GetBall(self._world, self._robot_ctl),
                 POSSESSION: PassBall(self._world, self._robot_ctl)
             }
@@ -38,9 +38,8 @@ class Planner(object):
         Update the planner and strategy states before acting.
         """
         self.ms3_transition()
-        if self._strategy is not None:
-            self._strategy.transition()
-            self._strategy.act()
+        self._strategy.transition()
+        self._strategy.act()
 
     def update_strategy(self):
         """
@@ -71,7 +70,7 @@ class Planner(object):
 
             # Ball was unreachable on the previous frame but is now reachable
             if self._state == BALL_UNREACHABLE:
-                self._state = BALL_REACHABLE
+                self._state = BALL_OUR_ZONE
 
             # Check for strategy final state
             elif self._strategy.final_state():
@@ -82,6 +81,6 @@ class Planner(object):
 
                 # Had ball and have kicked
                 elif isinstance(self._strategy, PassBall):
-                    self._state = BALL_OUR_A_ZONE
+                    self._state = BALL_OUR_ZONE
 
         self.update_strategy()
