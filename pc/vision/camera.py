@@ -31,6 +31,9 @@ class Camera(object):
 
         # Cache previous frame in case of feed disruption
         self.current_frame = None
+        # Throw away some frames, the first few are usually corrupt
+        for i in range(0,10):
+            status, self.current_frame = self.capture.read()
 
     def get_frame(self):
         """
