@@ -25,14 +25,6 @@ class World(object):
             Goal(3, self._pitch.width, self._pitch.height/2.0, pi)  # Rightmost
         ]
 
-        # Grabber areas - TODO should be adjusted once the robot is finalised
-        self.our_defender.catcher_area = \
-            {'width': 30, 'height': 25, 'front_offset': 10}  # In pixels???
-        self.our_attacker.catcher_area = \
-            {'width': 30, 'height': 25, 'front_offset': 10}
-        self.grabbers = {'our_defender': self.our_defender.catcher_area,
-                         'our_attacker': self.our_attacker.catcher_area}
-
     @property
     def our_attacker(self):
         return self._robots[2] if self._our_side == 'left' else self._robots[1]
@@ -149,5 +141,15 @@ class WorldUpdater:
         # Find object positions, return for gui drawing
         model_positions, regular_positions = self.vision.locate(frame)
         model_positions = self.postprocessing.analyze(model_positions)
+
+        # These are really hacked together -- TODO
+        # Grabber areas - TODO should be adjusted once the robot is finalised
+        self.world.our_defender.catcher_area = \
+            {'width': 30, 'height': 25, 'front_offset': 10}  # In pixels???
+        self.world.our_attacker.catcher_area = \
+            {'width': 30, 'height': 25, 'front_offset': 10}
+        grabbers = {'our_defender': self.world.our_defender.catcher_area,
+                    'our_attacker': self.world.our_attacker.catcher_area}
+
         self.world.update_positions(model_positions)
-        return model_positions, regular_positions
+        return model_positions, regular_positions, grabbers

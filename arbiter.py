@@ -80,7 +80,7 @@ class Arbiter(object):
                 frame = self.camera.get_frame()
 
                 # Find object positions, update world model
-                model_positions, regular_positions = \
+                model_positions, regular_positions, grabbers = \
                     self.world_updater.update_world(frame)
 
                 # Act on the updated world model
@@ -92,7 +92,7 @@ class Arbiter(object):
                 # Draw GUIs
                 self.calibration_gui.show(frame, key=key)
                 self.gui.draw(frame, model_positions, regular_positions,
-                              self.world.grabbers, fps, self.colour, self.side)
+                              grabbers, fps, self.colour, self.side)
 
                 counter += 1
                 key = cv2.waitKey(1) & 0xFF  # Capture keypress
