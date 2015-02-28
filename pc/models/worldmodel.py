@@ -4,7 +4,6 @@ import warnings
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-
 class World(object):
     """
     Describe the pitch environment.

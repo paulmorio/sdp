@@ -16,6 +16,17 @@ TESTING_GRAB = 'grab_test'
 ROTATE_MARGIN = 0.13  # in radians
 DISPLACEMENT_MARGIN = 20  # in centimetres
 GRAB_AREA_MARGIN = 10  # in centimetres
+MARGIN_WIDTH_CM = 38.4
+MARGIN_WIDTH_PX = 91.0
+CM_PX_RATIO = MARGIN_WIDTH_CM / MARGIN_WIDTH_PX
 
 # Threshold constants
 ANGLE_THRESH = 0.2  # in radians
+
+
+def px_to_cm(px):
+    """
+    :param px: Pixels
+    :return: Centimetre representation of the given pixels
+    """
+    return px * CM_PX_RATIO

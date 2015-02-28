@@ -16,7 +16,6 @@ GOAL_WIDTH = 140
 GOAL_LENGTH = 1
 GOAL_HEIGHT = 10
 
-
 class Coordinate(object):
 
     def __init__(self, x, y):
