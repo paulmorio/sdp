@@ -38,7 +38,7 @@ class Planner(object):
         Update the planner and strategy states before acting.
         """
         self.ms3_transition()
-        self._strategy.transition()
+        # self._strategy.transition() No longer needed right? 
         self._strategy.act()
 
     def update_strategy(self):
@@ -51,6 +51,7 @@ class Planner(object):
         if new_strategy is not self._strategy:
             if self._strategy is not None:
                 self._strategy.reset()  
+
             self._strategy = new_strategy
 
     def ms3_transition(self):
