@@ -18,7 +18,7 @@ class Robot(object):
     _COMM_TERMINAL = '\n'
 
     # Robot constants
-    _ROTARY_SENSOR_RESOLUTION = 3.0
+    _ROTARY_SENSOR_RESOLUTION = 2.0
     _WHEEL_DIAM_CM = 8.16
     _TICK_DIST_CM = math.pi * _WHEEL_DIAM_CM * _ROTARY_SENSOR_RESOLUTION / 360.0
     _WHEELBASE_DIAM_CM = 10.93
