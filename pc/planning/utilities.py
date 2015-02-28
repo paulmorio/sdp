@@ -1,10 +1,13 @@
-# Top-level planner state constants
+# Planner and strategy state constants
 BALL_UNREACHABLE = 'ball_unreachable'
 BALL_OUR_ZONE = 'ball_our_zone'
 POSSESSION = 'possession'
 
-# Strategy state constants
 IDLE = 'idle'
+GRABBER_CLOSED = 'grabber_closed'
+GRABBER_OPEN = 'grabber_open'
+FACING_BALL = 'facing_ball'
+BALL_IN_GRABBER_AREA = 'ball_in_grabber_area'
 
 
 # Margin constants
