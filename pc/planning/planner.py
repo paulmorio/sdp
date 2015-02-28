@@ -99,14 +99,14 @@ class Planner(object):
         # If ball is in our margin
         elif self._world.ball_in_area([self._our_robot]):
 
-            # # Ball has just become reachable
-            # if self._our_robot.can_catch_ball(self._world.ball):
-            #     self._state = POSSESSION
-            # elif self._state == BALL_OUR_D_ZONE or \
-            #         self._state == BALL_THEIR_A_ZONE or \
-            #         self._state == BALL_THEIR_D_ZONE or \
-            #         self._state == NO_BALL:
-            #     self._state = BALL_OUR_A_ZONE
+            # Ball has just become reachable
+            if self._our_robot.can_catch_ball(self._world.ball):
+                self._state = POSSESSION
+            elif self._state == BALL_OUR_D_ZONE or \
+                    self._state == BALL_THEIR_A_ZONE or \
+                    self._state == BALL_THEIR_D_ZONE or \
+                    self._state == NO_BALL:
+                self._state = BALL_OUR_A_ZONE
 
             # Check for strategy final state
             if self._strategy.final_state():

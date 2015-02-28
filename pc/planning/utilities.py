@@ -37,7 +37,7 @@ OPENED = "open"
 CLOSED = "closed"
 
 # Margin constants
-ROTATE_MARGIN = 0.17  # in radians
+ROTATE_MARGIN = 0.3  # in radians
 DISPLACEMENT_MARGIN = 20  # in centimetres
 GRAB_AREA_MARGIN = 10  # in centimetres
 

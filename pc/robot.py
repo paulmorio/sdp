@@ -18,7 +18,7 @@ class Robot(object):
     _COMM_TERMINAL = '\n'
 
     # Robot constants
-    _ROTARY_SENSOR_RESOLUTION = 3.0
+    _ROTARY_SENSOR_RESOLUTION = 2.0
     _WHEEL_DIAM_CM = 8.16
     _TICK_DIST_CM = math.pi * _WHEEL_DIAM_CM * _ROTARY_SENSOR_RESOLUTION / 360.0
     _WHEELBASE_DIAM_CM = 10.93
@@ -126,7 +126,7 @@ class Robot(object):
         self._command(Robot._DRIVE,
                       [l_dist, r_dist, str(l_power), str(r_power)])
 
-    def turn(self, radians, power=100):
+    def turn(self, radians, power=80):
         """
         Turn the robot at the given motor power. The radians should be relative
         to the current orientation of the robot, where the robot is facing 0 rad

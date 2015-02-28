@@ -172,7 +172,7 @@ class GetBall(Strategy):
         super(GetBall, self).__init__(world, robot_controller, states, action_map)
 
     def transition(self):
-
+        #todo: all states have to be thoroughly double-checked.
         bot_angle = self.bot.angle
         angle_to_target = self.bot.get_rotation_to_point(self.ball.x, self.ball.y)
 
@@ -184,13 +184,17 @@ class GetBall(Strategy):
                 self.state = REORIENT
 
         elif self.state == REORIENT:
-            self.angle_to_face = bot_angle + angle_to_target
+            self.angle_to_face = angle_to_target
             self.state = WAIT_REORIENT
 
         elif self.state == WAIT_REORIENT:
             if abs(self.angle_to_face - self.bot.angle) < ROTATE_MARGIN:
-                if self.compare_angles(angle_to_target, 0.0):
-                    self.state = REPOSITION
+                #if self.compare_angles(angle_to_target, 0.0):
+                self.state = REPOSITION
+            elif not self._robot_controller.is_moving:
+                print "<RETRY>"
+                self.state = REORIENT
+                    #self.reset()
                 # else:
                 #     self.state = REORIENT
 
@@ -200,14 +204,18 @@ class GetBall(Strategy):
         elif self.state == WAIT_REPOSITION:
             if self.bot.can_catch_ball(self.ball):
                 self.state = CLOSE_GRABBER
+            elif not self._robot_controller.is_moving:
+                print "<RETRY>"
+                self.state = REPOSITION
             # else:
             #     self.reset()
+
 
         elif self.state == CLOSE_GRABBER:
             if self.bot.can_catch_ball(self.ball):
                 self.state = WAIT_C_GRAB
-            # else:
-            #     self.reset()
+            else:
+                self.reset()
 
     def aim_towards_ball(self):
         angle = self.bot.get_rotation_to_point(self.ball.x, self.ball.y)
@@ -495,7 +503,12 @@ class PassBall(Strategy):
                     self.state = REPOSITION
                 elif not self._robot_controller.is_moving:
                     print "<RETRY>"
-                    self.reset()
+                    self.state = REORIENT_FREESPOT
+                    #self.reset()
+            elif not self._robot_controller.is_moving:
+                    print "<RETRY>"
+                    self.state = REORIENT_FREESPOT
+                    #self.reset()
 
         elif self.state == REPOSITION:
 
@@ -513,6 +526,9 @@ class PassBall(Strategy):
             #print "Repositioning to Freespot: "+str(abs(real_bot_y - self.freespot_y))
             if abs(real_bot_y - self.freespot_y) < DISPLACEMENT_MARGIN:
                 self.state = REORIENT_DEFENDER
+            elif not self._robot_controller.is_moving:
+                print "<RETRY>"
+                self.reset()
 
         elif self.state == REORIENT_DEFENDER:
 
@@ -532,17 +548,23 @@ class PassBall(Strategy):
             #print "Rotating: "+str(self.angle)
 
             if abs(self.angle) < ROTATE_MARGIN:
-                if self.compare_angles(self.angle, real_defender_angle):
-                    self.state = OPEN_GRABBER
-                elif not self._robot_controller.is_moving:
-                    print "<RETRY>"
-                    self.reset()
+                self.state = OPEN_GRABBER
+                # if self.compare_angles(self.angle, real_defender_angle):
+                #     self.state = OPEN_GRABBER
+                # elif not self._robot_controller.is_moving:
+                #     print "<RETRY>"
+                #     self.state = REORIENT_DEFENDER
+            elif not self._robot_controller.is_moving:
+                print "<RETRY>"
+                self.state = REORIENT_DEFENDER
 
         elif self.state == OPEN_GRABBER:
             #todo: FIGURE OUT WHY KICK DOES NOT WORK NICELY BEYOND THIS POINT.
+
             self.state = WAIT_O_GRAB
 
         elif self.state == WAIT_O_GRAB:
+            self._robot_controller.get_status()
             if self._robot_controller.grabber_open:
                 self.state = PASS
 
@@ -567,9 +589,9 @@ class PassBall(Strategy):
         (their_center_x, their_center_y) = self._world.pitch.zones[self._world.their_attacker.zone].center()
 
         if self._world.their_attacker.y > their_center_y:
-            freespot_y = (2.5/10) * self._world.pitch.height
+            freespot_y = (3.0/10) * self._world.pitch.height
         else:
-            freespot_y = (7.5/10) * self._world.pitch.height
+            freespot_y = (7.0/10) * self._world.pitch.height
 
         freespot_x = int(our_center_x)
 
