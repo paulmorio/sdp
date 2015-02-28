@@ -1,4 +1,5 @@
 from utilities import *
+import math
 
 
 class Strategy(object):
@@ -12,6 +13,7 @@ class Strategy(object):
         self.robot_ctl = robot_ctl
         self._state = self.state_map.keys()[0]
         self.robot_mdl = world.our_attacker
+        self.ball = world.ball
 
     @property
     def state(self):
@@ -62,42 +64,89 @@ class GetBall(Strategy):
     Intended use is when the ball is in our robot's area.
     """
     def __init__(self, world, robot_ctl):
-        _STATE_MAP = {GRABBER_CLOSED: self.open_grabber,
-                      GRABBER_OPEN: self.face_ball,
-                      FACING_BALL: self.move_to_ball,
+        _STATE_MAP = {INIT: self.face_ball,
+                      FACING_BALL: self.open_grabber,
+                      GRABBER_OPEN: self.move_to_ball,
                       BALL_IN_GRABBER_AREA: self.grab_ball,
+                      TESTING_GRAB: self.grab_test,
                       POSSESSION: self.do_nothing}
         super(GetBall, self).__init__(world, robot_ctl, _STATE_MAP)
-
-    def open_grabber(self):
-        """
-        Give the open grabber command, transition when the grabber is open.
-        """
-        if self.robot_ctl.grabber_open:  # Transition when the grabber is open
-            self.state = GRABBER_OPEN
-        elif not self.robot_ctl.is_grabbing:  # If not performing a grab
-            self.robot_ctl.open_grabber()
+        self.ball = self.world.ball
+        self.grab_tested = False
 
     def face_ball(self):
         """
         Command the robot to turn to face the ball, transition when the angle
         difference is within an acceptable margin.
         """
-        pass
+        angle_to_ball = self.robot_mdl.get_rotation_to_point(self.ball.x,
+                                                             self.ball.y)
+        if not self.robot_ctl.is_moving:
+            if abs(angle_to_ball) < ROTATE_MARGIN:
+                self.state = FACING_BALL
+            else:
+                self.robot_ctl.turn(angle_to_ball)
+        else:
+            self.robot_ctl.update_state()
+
+    def open_grabber(self):
+        """
+        Give the open grabber command, transition when the grabber is open.
+        """
+        if not self.robot_ctl.is_grabbing:
+            if self.robot_ctl.grabber_open:
+                self.state = GRABBER_OPEN
+            else:
+                self.robot_ctl.open_grabber()
+        else:
+            self.robot_ctl.update_state()
 
     def move_to_ball(self):
         """
         Command the robot to move to the ball, transition when the ball is
         within the robot grabber area.
         """
-        pass
+        if not self.robot_ctl.is_moving:
+            if self.robot_mdl.can_catch_ball(self.ball):
+                self.robot_ctl.stop()
+                self.state = BALL_IN_GRABBER_AREA
+            else:
+                dist = self.robot_mdl.get_displacement_to_point(self.ball.x,
+                                                                self.ball.y)
+                self.robot_ctl.move(dist)
+        else:
+            self.robot_ctl.update_state()
 
     def grab_ball(self):
         """
         Command the robot to grab the ball, transition when the ball is grabbed
         and the grab test has been passed.
         """
-        pass
+        if not self.robot_ctl.is_grabbing:
+            if not self.robot_ctl.grabber_open:
+                self.robot_ctl.turn(math.pi)
+                self.state = TESTING_GRAB
+            else:
+                self.robot_ctl.close_grabber()
+        else:
+            self.robot_ctl.update_state()
+
+    def grab_test(self):
+        """
+        Have the robot do a half-turn and then check if the ball is still in
+        the grabber
+        """
+        if not self.robot_ctl.is_moving:
+            if tested:
+                if self.robot_mdl.can_catch_ball(self.ball):
+                    self.state = POSSESSION
+                else:
+                    self.state = INIT
+            else:
+                self.robot_ctl.turn(math.pi)
+                tested = True
+        else:
+            self.robot_ctl.update_state()
 
 
 class PassBall(Strategy):

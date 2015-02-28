@@ -3,15 +3,17 @@ BALL_UNREACHABLE = 'ball_unreachable'
 BALL_OUR_ZONE = 'ball_our_zone'
 POSSESSION = 'possession'
 
+INIT = 'init'
 IDLE = 'idle'
 GRABBER_CLOSED = 'grabber_closed'
 GRABBER_OPEN = 'grabber_open'
 FACING_BALL = 'facing_ball'
 BALL_IN_GRABBER_AREA = 'ball_in_grabber_area'
+TESTING_GRAB = 'grab_test'
 
 
 # Margin constants
-ROTATE_MARGIN = 0.17  # in radians
+ROTATE_MARGIN = 0.13  # in radians
 DISPLACEMENT_MARGIN = 20  # in centimetres
 GRAB_AREA_MARGIN = 10  # in centimetres
 

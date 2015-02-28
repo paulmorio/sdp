@@ -96,7 +96,7 @@ class Robot(object):
         """
         self.close_grabber()
         while self.grabber_open:
-            self.get_status()
+            self.update_state()
         self.ready = True
 
     def drive(self, l_dist, r_dist, l_power=100, r_power=100):
@@ -125,6 +125,12 @@ class Robot(object):
         r_dist = str(cm_to_ticks(r_dist))
         self._command(Robot._DRIVE,
                       [l_dist, r_dist, str(l_power), str(r_power)])
+
+    def stop(self):
+        """
+        Stop the robot's drive motors.
+        """
+        self.drive(0, 0)
 
     def turn(self, radians, power=100):
         """
@@ -178,7 +184,7 @@ class Robot(object):
         """
         self._command(Robot._KICK, [str(time), str(power)])
 
-    def get_status(self):
+    def update_state(self):
         """
         Update the status bits. This is a dummy command with the sole purpose of
         getting an acknowledge with the attached status bits.
@@ -272,7 +278,7 @@ class ManualController(object):
         self.root.bind('<space>', lambda event: self.robot.kick())
         self.root.bind('s', lambda event: self.robot.drive(0, 0))
         self.root.bind('<Escape>', lambda event: self.quit())
-        self.root.bind('p', lambda event: self.robot.get_status())
+        self.root.bind('p', lambda event: self.robot.update_state())
 
         # Set window attributes and start
         self.root.geometry('400x400')
