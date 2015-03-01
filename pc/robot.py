@@ -1,6 +1,6 @@
 from serial import Serial
 import math
-
+import time
 
 class Robot(object):
     """
@@ -17,7 +17,7 @@ class Robot(object):
     _COMM_DELIMITER = ' '
     _COMM_TERMINAL = '\n'
 
-    _CMD_FREQ_LIMIT = 200
+    _STATE_UPDATE_FREQ = 500  # Update state at most every 500 ms
 
     # Robot constants
     _ROTARY_SENSOR_RESOLUTION = 2.0
@@ -26,7 +26,7 @@ class Robot(object):
     _WHEELBASE_DIAM_CM = 10.93
     _WHEELBASE_CIRC_CM = _WHEELBASE_DIAM_CM * math.pi
 
-    def __init__(self, port="/dev/ttyACM0", timeout=0.2,
+    def __init__(self, port="/dev/ttyACM0", timeout=0.1,
                  rate=115200, comms=True):
         """
         Create a robot object which provides action methods and opens a serial
@@ -51,6 +51,7 @@ class Robot(object):
         self.is_grabbing = False
         self.is_moving = False
         self.is_kicking = False
+        self.last_state_update = time.time()*1000 - Robot._STATE_UPDATE_FREQ
 
         if comms:
             self._ack_bit = '0'
@@ -120,7 +121,7 @@ class Robot(object):
         """
         # Currently rounding down strictly as too little is better than too much
         self.is_moving = True
-        cm_to_ticks = lambda cm: int((cm / Robot._TICK_DIST_CM)*0.6) # TODO MAGIC NUMBER WOOO
+        cm_to_ticks = lambda cm: int(cm / Robot._TICK_DIST_CM)
         l_dist = str(cm_to_ticks(l_dist))
         r_dist = str(cm_to_ticks(r_dist))
         self._command(Robot._DRIVE,
@@ -158,6 +159,7 @@ class Robot(object):
         :param power: Motor power from 0-100
         :type power: int
         """
+        self.is_grabbing = True
         self._command(Robot._OPEN_GRABBER, [str(time), str(power)])
 
     def close_grabber(self, time=1500, power=100):
@@ -170,9 +172,10 @@ class Robot(object):
         :param power: Motor power from 0-100
         :type power: int
         """
+        self.is_grabbing = True
         self._command(Robot._CLOSE_GRABBER, [str(time), str(power)])
 
-    def kick(self, time=1400, power=100):
+    def kick(self, time=800, power=100):
         """
         Run the kicker motor forward for the given number of milliseconds at the
         given motor speed.
@@ -182,6 +185,7 @@ class Robot(object):
         :param power: Motor power from 0-100
         :type power: int
         """
+        self.is_kicking = True
         self._command(Robot._KICK, [str(time), str(power)])
 
     def teardown(self):
@@ -200,7 +204,10 @@ class Robot(object):
         """
         Dummy action to get an ack with updated state from the bot.
         """
-        self._command(Robot._STATUS)
+        current_time_ms = time.time()*1000
+        if current_time_ms >= self.last_state_update + Robot._STATE_UPDATE_FREQ:
+            self.last_state_update = current_time_ms
+            self._command(Robot._STATUS)
 
     def ack(self):
         """
