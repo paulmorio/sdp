@@ -17,6 +17,8 @@ class Robot(object):
     _COMM_DELIMITER = ' '
     _COMM_TERMINAL = '\n'
 
+    _CMD_FREQ_LIMIT = 200
+
     # Robot constants
     _ROTARY_SENSOR_RESOLUTION = 2.0
     _WHEEL_DIAM_CM = 8.16
@@ -24,7 +26,7 @@ class Robot(object):
     _WHEELBASE_DIAM_CM = 10.93
     _WHEELBASE_CIRC_CM = _WHEELBASE_DIAM_CM * math.pi
 
-    def __init__(self, port="/dev/ttyACM0", timeout=0.05,
+    def __init__(self, port="/dev/ttyACM0", timeout=0.1,
                  rate=115200, comms=True):
         """
         Create a robot object which provides action methods and opens a serial
@@ -45,10 +47,9 @@ class Robot(object):
         """
         self._last_command = None
         self.ready = False  # True if ready to receive a command
-        self.grabber_open = True  # True if the grabber is open
-        self.is_grabbing = False  # True if the grabber motor is running
-        self.is_moving = False  # True if the drive motors are running
-        self.is_kicking = False  # True if the kicker motor is running
+        self.grabber_open = True
+        self.is_moving = False
+        self.is_turning = False
 
         if comms:
             self._ack_bit = '0'
@@ -72,7 +73,6 @@ class Robot(object):
         :type arguments: list of str
         """
         self._last_command = (command, arguments)  # Store for resending
-
         # Build the command
         current_command = command
         if arguments is not None:  # Append arguments
@@ -95,8 +95,6 @@ class Robot(object):
         for acknowledgement before setting the ready flag.
         """
         self.close_grabber()
-        while self.grabber_open:
-            self.update_state()
         self.ready = True
 
     def drive(self, l_dist, r_dist, l_power=100, r_power=100):
@@ -109,10 +107,10 @@ class Robot(object):
 
         :param l_dist: Distance travelled by the left wheel in centimetres. A
         negative value runs the motor in reverse (drive backward).
-        :type l_dist: Float
+        :type l_dist: float
         :param r_dist: Distance travelled by the right wheel in centimetres. A
         negative value runs the motor in reverse (drive backward).
-        :type r_dist: Float
+        :type r_dist: float
         :param l_power: Motor power from 0-100 - note that low values may not
         provide enough torque for movement.
         :type l_power: int
@@ -120,7 +118,8 @@ class Robot(object):
         enough torque for drive.
         """
         # Currently rounding down strictly as too little is better than too much
-        cm_to_ticks = lambda cm: int(cm / Robot._TICK_DIST_CM)
+        self.is_moving = True
+        cm_to_ticks = lambda cm: int((cm / Robot._TICK_DIST_CM)*0.5)
         l_dist = str(cm_to_ticks(l_dist))
         r_dist = str(cm_to_ticks(r_dist))
         self._command(Robot._DRIVE,
@@ -130,6 +129,8 @@ class Robot(object):
         """
         Stop the robot's drive motors.
         """
+        self.is_turning = False
+        self.is_moving = False
         self.drive(0, 0)
 
     def turn(self, radians, power=100):
@@ -145,6 +146,7 @@ class Robot(object):
         :param power: Motor power
         :type power: int
         """
+        self.is_turning = True
         wheel_dist = Robot._WHEELBASE_CIRC_CM * radians / (2 * math.pi)
         self.drive(wheel_dist, -wheel_dist, power, power)
 
@@ -158,9 +160,10 @@ class Robot(object):
         :param power: Motor power from 0-100
         :type power: int
         """
+        self.grabber_open = True
         self._command(Robot._OPEN_GRABBER, [str(time), str(power)])
 
-    def close_grabber(self, time=1400, power=100):
+    def close_grabber(self, time=1000, power=100):
         """
         Run the grabber motor in the closing direction for the given number of
         milliseconds at the given motor power.
@@ -170,6 +173,7 @@ class Robot(object):
         :param power: Motor power from 0-100
         :type power: int
         """
+        self.grabber_open = False
         self._command(Robot._CLOSE_GRABBER, [str(time), str(power)])
 
     def kick(self, time=700, power=100):
@@ -184,17 +188,10 @@ class Robot(object):
         """
         self._command(Robot._KICK, [str(time), str(power)])
 
-    def update_state(self):
-        """
-        Update the status bits. This is a dummy command with the sole purpose of
-        getting an acknowledge with the attached status bits.
-        """
-        self._command(Robot._STATUS)
-
     def teardown(self):
         """
         Stop robot motors, set grabber to default position, then close the
-        serial port
+        serial port.
         """
         if self._serial is not None:
             self.drive(0, 0)  # Stop drive motors
@@ -215,11 +212,6 @@ class Robot(object):
         ack = self._serial.readline()  # returns empty string on timeout
         if len(ack) == 7 and ack[0] == self._ack_bit:  # Successful ack
             self._ack_bit = '0' if self._ack_bit == '1' else '0'  # Flip
-            self.grabber_open = ack[1] == '1'
-            self.is_grabbing = ack[2] == '1'
-            self.is_moving = ack[3] == '1'
-            self.is_kicking = ack[4] == '1'
-
         else:  # No ack within timeout - resend command
             self._command(self._last_command[0], self._last_command[1])
 
@@ -268,7 +260,8 @@ class ManualController(object):
         self.root.bind('w', lambda event: self.robot.drive(20, 20))
         self.root.bind('<Up>', lambda event: self.robot.drive(20, 20, 70, 70))
         self.root.bind('x', lambda event: self.robot.drive(-20, -20))
-        self.root.bind('<Down>', lambda event: self.robot.drive(-20, -20, 70, 70))
+        self.root.bind('<Down>', lambda event: self.robot.drive(-20, -20,
+                                                                70, 70))
         self.root.bind('<Left>', lambda event: self.robot.turn(-math.pi))
         self.root.bind('<Right>', lambda event: self.robot.turn(math.pi))
         self.root.bind('a', lambda event: self.robot.turn(-math.pi))
@@ -278,7 +271,6 @@ class ManualController(object):
         self.root.bind('<space>', lambda event: self.robot.kick())
         self.root.bind('s', lambda event: self.robot.drive(0, 0))
         self.root.bind('<Escape>', lambda event: self.quit())
-        self.root.bind('p', lambda event: self.robot.update_state())
 
         # Set window attributes and start
         self.root.geometry('400x400')

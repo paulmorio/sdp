@@ -121,7 +121,7 @@ if __name__ == '__main__':
         "side", help="The side of our defender ['left', 'right'] allowed."
     )
     parser.add_argument(
-        "profile", help="The planning profile - ['attacker', 'defender']"
+        "profile", help="The planning profile - ['ms3']"
     )
     parser.add_argument(
         "-t", "--tablesetup",
@@ -154,12 +154,12 @@ if __name__ == '__main__':
         arb = Arbiter(int(args.pitch), args.colour, args.side,
                       profile=None, comms=False)
     elif args.nocomms:
-        assert args.profile in ['defender', 'attacker']
+        assert args.profile in ['ms3']
         arb = Arbiter(int(args.pitch), args.colour, args.side,
                       profile=args.profile, comms=False)
 
     else:
-        assert args.profile in ['defender', 'attacker']
+        assert args.profile in ['ms3']
         arb = Arbiter(int(args.pitch), args.colour, args.side,
                       profile=args.profile, comms=True)
     arb.run()

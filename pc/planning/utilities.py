@@ -1,19 +1,20 @@
 # Planner and strategy state constants
 BALL_UNREACHABLE = 'ball_unreachable'
 BALL_OUR_ZONE = 'ball_our_zone'
-POSSESSION = 'possession'
+POSSESSION = 'possessBAWBAGion'
 
-INIT = 'init'
+NOT_FACING_BALL = 'NOT_FACING_BALL'
 IDLE = 'idle'
 GRABBER_CLOSED = 'grabber_closed'
 GRABBER_OPEN = 'grabber_open'
 FACING_BALL = 'facing_ball'
+GRABBING_BALL = 'grabbing_ball'
 BALL_IN_GRABBER_AREA = 'ball_in_grabber_area'
 TESTING_GRAB = 'grab_test'
 
 
 # Margin constants
-ROTATE_MARGIN = 0.13  # in radians
+ROTATE_MARGIN = 0.20  # in radians
 DISPLACEMENT_MARGIN = 20  # in centimetres
 GRAB_AREA_MARGIN = 10  # in centimetres
 MARGIN_WIDTH_CM = 38.4
@@ -21,7 +22,7 @@ MARGIN_WIDTH_PX = 91.0
 CM_PX_RATIO = MARGIN_WIDTH_CM / MARGIN_WIDTH_PX
 
 # Threshold constants
-ANGLE_THRESH = 0.2  # in radians
+ANGLE_THRESH = 0.14  # in radians
 
 
 def px_to_cm(px):

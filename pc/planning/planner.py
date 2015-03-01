@@ -17,13 +17,13 @@ class Planner(object):
         assert (profile in ['ms3'])
         self._world = world
         self._profile = profile
-        self._robot_mdl = self._world.our_attacker
+        self._robot_mdl = world.our_attacker
         self._robot_ctl = robot_ctl
 
         # Strategy dictionaries return a strategy given a state.
         if self._profile == 'ms3':
             self._strat_map = {
-                BALL_UNREACHABLE: Idle(),
+                BALL_UNREACHABLE: Idle(self._world, self._robot_ctl),
                 BALL_OUR_ZONE: GetBall(self._world, self._robot_ctl),
                 POSSESSION: PassBall(self._world, self._robot_ctl)
             }
@@ -40,6 +40,7 @@ class Planner(object):
         self.ms3_transition()
         self._strategy.transition()
         self._strategy.act()
+        print self._strategy.state
 
     def update_strategy(self):
         """
@@ -60,7 +61,6 @@ class Planner(object):
 
         For the attacker profile.
         """
-
         # If the ball is not in our robot's margin
         if not self._world.ball_in_area([self._robot_mdl]):
             self._state = BALL_UNREACHABLE
