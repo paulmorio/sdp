@@ -145,9 +145,9 @@ class WorldUpdater:
         # These are really hacked together -- TODO
         # Grabber areas - TODO should be adjusted once the robot is finalised
         self.world.our_defender.catcher_area = \
-            {'width': 30, 'height': 30, 'front_offset': 15}  # In pixels???
+            {'width': 30, 'height': 30, 'front_offset': 20}  # In pixels???
         self.world.our_attacker.catcher_area = \
-            {'width': 30, 'height': 30, 'front_offset': 15}
+            {'width': 30, 'height': 25, 'front_offset': 20}
         grabbers = {'our_defender': self.world.our_defender.catcher_area,
                     'our_attacker': self.world.our_attacker.catcher_area}
 

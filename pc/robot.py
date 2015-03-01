@@ -26,7 +26,7 @@ class Robot(object):
     _WHEELBASE_DIAM_CM = 10.93
     _WHEELBASE_CIRC_CM = _WHEELBASE_DIAM_CM * math.pi
 
-    def __init__(self, port="/dev/ttyACM0", timeout=0.1,
+    def __init__(self, port="/dev/ttyACM0", timeout=0.2,
                  rate=115200, comms=True):
         """
         Create a robot object which provides action methods and opens a serial
@@ -48,8 +48,9 @@ class Robot(object):
         self._last_command = None
         self.ready = False  # True if ready to receive a command
         self.grabber_open = True
+        self.is_grabbing = False
         self.is_moving = False
-        self.is_turning = False
+        self.is_kicking = False
 
         if comms:
             self._ack_bit = '0'
@@ -119,7 +120,7 @@ class Robot(object):
         """
         # Currently rounding down strictly as too little is better than too much
         self.is_moving = True
-        cm_to_ticks = lambda cm: int((cm / Robot._TICK_DIST_CM)*0.5)
+        cm_to_ticks = lambda cm: int((cm / Robot._TICK_DIST_CM)*0.6) # TODO MAGIC NUMBER WOOO
         l_dist = str(cm_to_ticks(l_dist))
         r_dist = str(cm_to_ticks(r_dist))
         self._command(Robot._DRIVE,
@@ -129,8 +130,6 @@ class Robot(object):
         """
         Stop the robot's drive motors.
         """
-        self.is_turning = False
-        self.is_moving = False
         self.drive(0, 0)
 
     def turn(self, radians, power=100):
@@ -146,7 +145,6 @@ class Robot(object):
         :param power: Motor power
         :type power: int
         """
-        self.is_turning = True
         wheel_dist = Robot._WHEELBASE_CIRC_CM * radians / (2 * math.pi)
         self.drive(wheel_dist, -wheel_dist, power, power)
 
@@ -160,10 +158,9 @@ class Robot(object):
         :param power: Motor power from 0-100
         :type power: int
         """
-        self.grabber_open = True
         self._command(Robot._OPEN_GRABBER, [str(time), str(power)])
 
-    def close_grabber(self, time=1000, power=100):
+    def close_grabber(self, time=1500, power=100):
         """
         Run the grabber motor in the closing direction for the given number of
         milliseconds at the given motor power.
@@ -173,10 +170,9 @@ class Robot(object):
         :param power: Motor power from 0-100
         :type power: int
         """
-        self.grabber_open = False
         self._command(Robot._CLOSE_GRABBER, [str(time), str(power)])
 
-    def kick(self, time=700, power=100):
+    def kick(self, time=1400, power=100):
         """
         Run the kicker motor forward for the given number of milliseconds at the
         given motor speed.
@@ -200,6 +196,12 @@ class Robot(object):
             self._serial.close()
             print "Robot teardown complete. Serial connection is closed."
 
+    def update_state(self):
+        """
+        Dummy action to get an ack with updated state from the bot.
+        """
+        self._command(Robot._STATUS)
+
     def ack(self):
         """
         Wait for the robot to acknowledge the most recent command. Resend
@@ -212,6 +214,10 @@ class Robot(object):
         ack = self._serial.readline()  # returns empty string on timeout
         if len(ack) == 7 and ack[0] == self._ack_bit:  # Successful ack
             self._ack_bit = '0' if self._ack_bit == '1' else '0'  # Flip
+            self.grabber_open = ack[1] == '1'
+            self.is_grabbing = ack[2] == '1'
+            self.is_moving = ack[3] == '1'
+            self.is_kicking = ack[4] == '1'
         else:  # No ack within timeout - resend command
             self._command(self._last_command[0], self._last_command[1])
 

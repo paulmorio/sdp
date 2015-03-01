@@ -285,12 +285,12 @@ class Robot(PitchObject):
 
     def get_pass_path(self, target):
         """
-            Gets a path represented by a Polygon for the area for passing ball
-            between two robots
+        Gets a path represented by a Polygon for the area for passing ball
+        between two robots
         """
         robot_poly = self.get_polygon()
         target_poly = target.get_polygon()
-        return Polygon(robot_poly[0], robot_poly[1], target_poly[0], target_poly[1])
+        return Polygon((robot_poly[0], robot_poly[1], target_poly[0], target_poly[1]))
 
     def __repr__(self):
         return ('zone: %s\nx: %s\ny: %s\nangle: %s'

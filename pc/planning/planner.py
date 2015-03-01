@@ -33,14 +33,15 @@ class Planner(object):
         self._strategy = None
         self.update_strategy()
 
+        self.has_ball = False
+
     def plan(self):
         """
         Update the planner and strategy states before acting.
         """
         self.ms3_transition()
-        # self._strategy.transition() No longer needed right? 
+        self._strategy.transition()
         self._strategy.act()
-        print self._strategy.state
 
     def update_strategy(self):
         """
@@ -62,6 +63,10 @@ class Planner(object):
 
         For the attacker profile.
         """
+        if self.has_ball:
+            self._state = POSSESSION
+            print self._strategy.state
+
         # If the ball is not in our robot's margin
         if not self._world.ball_in_area([self._robot_mdl]):
             self._state = BALL_UNREACHABLE
@@ -72,16 +77,16 @@ class Planner(object):
             # Ball was unreachable on the previous frame but is now reachable
             if self._state == BALL_UNREACHABLE:
                 self._state = BALL_OUR_ZONE
-
             # Check for strategy final state
             elif self._strategy.final_state():
 
                 # Successfully grabbed ball
                 if isinstance(self._strategy, GetBall):
                     self._state = POSSESSION
+                    self.has_ball = True
 
                 # Had ball and have kicked
                 elif isinstance(self._strategy, PassBall):
-                    self._state = BALL_OUR_ZONE
+                    self._state = POSSESSION
 
         self.update_strategy()
