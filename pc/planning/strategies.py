@@ -139,6 +139,47 @@ class PassBall(Strategy):
     Intended use is when the ball is in our possession.
     """
     def __init__(self, world, robot_ctl):
-        _STATES = [NOT_FACING_BALL]
-        _STATE_MAP = {NOT_FACING_BALL: self.do_nothing()}
-        super(PassBall, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
+        _STATE_MAP = {INIT: self.face_defender,
+                      FACING_DEFENDER: self.open_grabber,
+                      GRABBER_OPEN: self.kick,
+                      KICKED: self.do_nothing}
+
+        super(PassBall, self).__init__(world, robot_ctl, _STATE_MAP)
+
+    def face_defender(self):
+        """
+        Command the robot to turn to face the defender, transition when the angle
+        difference is within an acceptable margin.
+        """
+        angle_to_defender = self.robot_mdl.get_rotation_to_point(self.world.our_defender.x, 
+                                                                self.world.our_defender.y)
+        if not self.robot_ctl.is_moving:
+            if abs(angle_to_defender) < ROTATE_MARGIN:
+                self.state = FACING_BALL
+            else:
+                self.robot_ctl.turn(angle_to_defender)
+        else:
+            self.robot_ctl.update_state()
+
+    def open_grabber(self):
+        """
+        Give the open grabber command, transition when the grabber is open.
+        """
+        if not self.robot_ctl.is_grabbing:
+            if self.robot_ctl.grabber_open:
+                self.state = GRABBER_OPEN
+            else:
+                self.robot_ctl.open_grabber()
+        else:
+            self.robot_ctl.update_state()
+
+    def kick(self):
+        """
+        Give the kick command
+        """
+
+        if not self.robot_ctl.is_kicking:
+            self.state = KICKED
+        else:
+            self.robot_ctl.kick()
+            self.robot_ctl.update_state()
