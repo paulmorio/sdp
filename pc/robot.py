@@ -220,8 +220,7 @@ class Robot(object):
         [ack_bit][grabber_open][is_grabbing][is_moving][is_kicking]
         """
         ack = self._serial.readline()  # returns empty string on timeout
-        print len(ack)
-        if len(ack) == 6 and ack[0] == self._ack_bit:  # Successful ack
+        if len(ack) == 8 and ack[0] == self._ack_bit:  # Successful ack
             self._ack_bit = '0' if self._ack_bit == '1' else '0'  # Flip
             self.grabber_open = ack[1] == '1'
             self.is_grabbing = ack[2] == '1'
