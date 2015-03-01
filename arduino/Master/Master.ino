@@ -21,6 +21,7 @@
 // Rotary encoder
 #define ROTARY_SLAVE_ADDRESS 5
 #define ROTARY_COUNT 2
+#define SENSOR_COUNT 1
 
 int rotaryMotor[] = {MOTOR_L, MOTOR_R};  // Rotary encoder motor numbers
 int rotaryCounter[ROTARY_COUNT] = {0};  // Counters for rotary encoders
@@ -34,6 +35,7 @@ boolean grabberOpen = true;  // Assume open on startup
 boolean isMoving = false;
 boolean isKicking = false;
 boolean isGrabbing = false;
+boolean ballGrabbed = false;
 unsigned long grabTimer = 0;
 unsigned long kickTimer = 0;
 
@@ -49,7 +51,7 @@ void setup() {
 
 void loop() {
   checkTimers();
-  checkRotaryMotors();
+  checkSensors();
   comm.readSerial();
 }
 
@@ -153,10 +155,10 @@ void checkTimers() {
   }
 }
 
-void checkRotaryMotors() {
-  /* Update the rotary counters and stop motors when necessary. */
+void checkSensors() {
+  /* Update the sensor states/counters and stop motors if necessary */
   // Get rotary diffs from slave
-  Wire.requestFrom(ROTARY_SLAVE_ADDRESS, ROTARY_COUNT);
+  Wire.requestFrom(ROTARY_SLAVE_ADDRESS, ROTARY_COUNT + SENSOR_COUNT);
   
   // Update counters and check for completion
   for (int i = 0; i < ROTARY_COUNT; i++) {
@@ -166,6 +168,12 @@ void checkRotaryMotors() {
       motorDir[i] = 0;
     }
   }
+  // Update grabbed state
+  uint8_t grabberSwitchState = Wire.read();  // non-zero if not grabbed
+  if (grabberSwitchState) ballGrabbed = false;
+  else ballGrabbed = true;
+  
+  // Update moving state
   if (motorDir[0] == 0 && motorDir[1] == 0) isMoving = false;
 }
 
@@ -178,7 +186,9 @@ void ack() {
   else Serial.print(0);
   if (isMoving) Serial.print(1);
   else Serial.print(0);
-  if (isKicking) Serial.println(1);
+  if (isKicking) Serial.print(1);
+  else Serial.print(0);
+  if (ballGrabbed) Serial.println(1);
   else Serial.println(0);
   Serial.flush();
 }

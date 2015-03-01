@@ -51,6 +51,7 @@ class Robot(object):
         self.is_grabbing = False
         self.is_moving = False
         self.is_kicking = False
+        self.ball_grabbed = False
         self.last_state_update = time.time()*1000 - Robot._STATE_UPDATE_FREQ
 
         if comms:
@@ -205,7 +206,7 @@ class Robot(object):
         Dummy action to get an ack with updated state from the bot.
         """
         current_time_ms = time.time()*1000
-        if current_time_ms >= self.last_state_update + Robot._STATE_UPDATE_FREQ:
+        if not self.ready or current_time_ms >= self.last_state_update + Robot._STATE_UPDATE_FREQ:
             self.last_state_update = current_time_ms
             self._command(Robot._STATUS)
 
@@ -219,12 +220,14 @@ class Robot(object):
         [ack_bit][grabber_open][is_grabbing][is_moving][is_kicking]
         """
         ack = self._serial.readline()  # returns empty string on timeout
-        if len(ack) == 7 and ack[0] == self._ack_bit:  # Successful ack
+        print len(ack)
+        if len(ack) == 6 and ack[0] == self._ack_bit:  # Successful ack
             self._ack_bit = '0' if self._ack_bit == '1' else '0'  # Flip
             self.grabber_open = ack[1] == '1'
             self.is_grabbing = ack[2] == '1'
             self.is_moving = ack[3] == '1'
             self.is_kicking = ack[4] == '1'
+            self.ball_grabbed = ack[5] == '1'
         else:  # No ack within timeout - resend command
             self._command(self._last_command[0], self._last_command[1])
 
