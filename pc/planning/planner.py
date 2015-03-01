@@ -62,7 +62,7 @@ class Planner(object):
         For the attacker profile.
         """
 
-        # Via robot sensor - vision is unreliable for this case.
+        # Successfully grabbed ball
         if self._robot_ctl.ball_grabbed:
             self._state = POSSESSION
 
@@ -80,12 +80,8 @@ class Planner(object):
             # Check for strategy final state
             elif self._strategy.final_state():
 
-                # Successfully grabbed ball
-                if isinstance(self._strategy, GetBall):
-                    self._state = POSSESSION
-
                 # Had ball and have kicked
-                elif isinstance(self._strategy, PassBall):
+                if isinstance(self._strategy, PassBall):
                     self._state = BALL_OUR_ZONE
 
         self.update_strategy()

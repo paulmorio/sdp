@@ -100,7 +100,7 @@ class Robot(object):
         self.close_grabber()
         self.ready = True
 
-    def drive(self, l_dist, r_dist, l_power=100, r_power=100):
+    def drive(self, l_dist, r_dist, l_power=80, r_power=80):
         """
         Drive the robot for the giving left and right wheel distances at the
         given powers. There is some loss of precision as the unit of distance

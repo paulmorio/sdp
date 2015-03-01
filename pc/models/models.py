@@ -16,6 +16,9 @@ GOAL_WIDTH = 140
 GOAL_LENGTH = 1
 GOAL_HEIGHT = 10
 
+CM_PER_PX = 38.4 / 91
+
+
 class Coordinate(object):
 
     def __init__(self, x, y):
@@ -84,7 +87,7 @@ class Vector(Coordinate):
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) \
-               and (self.__dict__ == other.__dict__)
+            and (self.__dict__ == other.__dict__)
 
     def __repr__(self):
         return ('x: %s, y: %s, angle: %s, velocity: %s\n' %
@@ -191,7 +194,6 @@ class Robot(PitchObject):
         super(Robot, self).__init__(x, y, angle, velocity, width, length,
                                     height, angle_offset)
         self._zone = zone
-        self._catcher = 'open'
 
     @property
     def zone(self):
@@ -215,20 +217,12 @@ class Robot(PitchObject):
 
         area = Polygon((front_left, front_right, back_left, back_right))
         area.rotate(self.angle, self.x, self.y)
+
         return area
 
     @catcher_area.setter
     def catcher_area(self, area_dict):
         self._catcher_area = area_dict
-
-    @property
-    def catcher(self):
-        return self._catcher
-
-    @catcher.setter
-    def catcher(self, new_position):
-        assert new_position in ['open', 'closed']
-        self._catcher = new_position
 
     def can_catch_ball(self, ball):
         """
@@ -236,17 +230,9 @@ class Robot(PitchObject):
         """
         return self.catcher_area.isInside(ball.x, ball.y)
 
-    def has_ball(self, ball):
-        """
-        Gets if the robot has possession of the ball
-        """
-        return (self._catcher == 'closed') and self.can_catch_ball(ball)
-
     def get_rotation_to_point(self, x, y):
         """
-        This method returns an angle by which the robot needs to
-        rotate to achieve alignment. It takes either an x, y coordinate of the
-        object that we want to rotate to
+        Get the angle by which the robot needs to rotate to attain alignment.
         """
         delta_x = x - self.x
         delta_y = y - self.y
@@ -265,20 +251,18 @@ class Robot(PitchObject):
 
     def get_displacement_to_point(self, x, y):
         """
-        This method returns the displacement between the robot
-        and the (x, y) coordinate.
+        This method returns the displacement (CM) between the robot and the
+        (x, y) coordinate.
         """
         delta_x = x - self.x
         delta_y = y - self.y
-        displacement = hypot(delta_x, delta_y)
-
-        displacement *= 0.4
-
+        displacement = hypot(delta_x, delta_y) * CM_PER_PX  # To CM
         return displacement
 
     def get_direction_to_point(self, x, y):
         """
-        This method returns the displacement (in cm) and angle to coordinate x, y.
+        This method returns the displacement (CM) and angle (RAD) to
+        coordinate x, y.
         """
         return (self.get_displacement_to_point(x, y),
                 self.get_rotation_to_point(x, y))
@@ -290,7 +274,8 @@ class Robot(PitchObject):
         """
         robot_poly = self.get_polygon()
         target_poly = target.get_polygon()
-        return Polygon((robot_poly[0], robot_poly[1], target_poly[0], target_poly[1]))
+        return Polygon((robot_poly[0], robot_poly[1],
+                        target_poly[0], target_poly[1]))
 
     def __repr__(self):
         return ('zone: %s\nx: %s\ny: %s\nangle: %s'

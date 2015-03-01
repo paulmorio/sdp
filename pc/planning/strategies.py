@@ -53,6 +53,25 @@ class Strategy(object):
     def do_nothing(self):
         pass
 
+    def facing_point(self, x, y):
+        angle = self.robot_mdl.get_rotation_to_point(x, y)
+        return -ROTATE_MARGIN < angle < ROTATE_MARGIN
+
+    def calc_freespot(self):
+        our_center_x, our_center_y = \
+            self.world.pitch.zones[self.robot_mdl.zone].center()
+        their_center_x, their_center_y = \
+            self.world.pitch.zones[self.world.their_defender.zone].center()
+
+        if self.world.their_defender.y > their_center_y:
+            freespot_y = (2.0/10) * self.world.pitch.height
+        else:
+            freespot_y = (8.0/10) * self.world.pitch.height
+
+        freespot_x = int(our_center_x)
+
+        return freespot_x, freespot_y
+
 
 class Idle(Strategy):
     """
@@ -71,50 +90,41 @@ class GetBall(Strategy):
     Intended use is when the ball is in our robot's area.
     """
     def __init__(self, world, robot_ctl):
-        _STATES = [NOT_FACING_BALL, FACING_BALL, GRABBER_OPEN,
-                   GRABBING_BALL, TESTING_GRAB, POSSESSION]
-        _STATE_MAP = {NOT_FACING_BALL: self.face_ball,
-                      FACING_BALL: self.open_grabber,
-                      GRABBER_OPEN: self.move_to_ball,
+        _STATES = [TURNING_TO_BALL, OPENING_GRABBER, KICKING,
+                   GRABBING_BALL, POSSESSION]
+        _STATE_MAP = {TURNING_TO_BALL: self.face_ball,
+                      OPENING_GRABBER: self.open_grabber,
+                      KICKING: self.move_to_ball,
                       GRABBING_BALL: self.grab_ball,
-                      TESTING_GRAB: self.test_grab,
                       POSSESSION: self.do_nothing}
         super(GetBall, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
         self.ball = self.world.ball
-        self.grab_successful = False
-        self.grab_testing = False
 
     def transition(self):
-        if self.grab_successful:
+        if self.robot_ctl.ball_grabbed:
             self.state = POSSESSION
-        elif self.grab_testing:
-            self.state = TESTING_GRAB
-        elif not self.facing_ball():
-            self.state = NOT_FACING_BALL
-        elif not self.robot_ctl.grabber_open and not self.robot_mdl.can_catch_ball(self.ball):
-            self.state = FACING_BALL
+        elif not self.facing_point(self.ball.x, self.ball.y):
+            self.state = TURNING_TO_BALL
+        elif not self.robot_ctl.grabber_open:
+            self.state = OPENING_GRABBER
         elif not self.robot_mdl.can_catch_ball(self.world.ball):
-            self.state = GRABBER_OPEN
+            self.state = KICKING
         else:
             self.state = GRABBING_BALL
-
-    def facing_ball(self):
-        ball = self.world.ball
-        angle_to_ball = self.robot_mdl.get_rotation_to_point(ball.x, ball.y)
-        return -ROTATE_MARGIN < angle_to_ball < ROTATE_MARGIN
-
-    def ball_in_danger_zone(self):
-        ball = self.world.ball
-        ball_dist = self.robot_mdl.get_displacement_to_point(ball.x, ball.y)
-        return ball_dist < 30  # TODO MAGIC NUMBER WOOOOOOO
 
     def face_ball(self):
         """
         Command the robot to turn to face the ball.
         """
-        if self.robot_ctl.grabber_open and not self.robot_ctl.is_grabbing and\
-                self.ball_in_danger_zone() and not self.robot_mdl.can_catch_ball(self.ball):
+        # If the grabber is open, the ball is too close to turn, and the ball
+        # is not in the grabber area - close the grabber.
+        if self.robot_ctl.grabber_open \
+                and not self.robot_ctl.is_grabbing \
+                and self.ball_in_danger_zone() \
+                and not self.robot_mdl.can_catch_ball(self.ball):
+
             self.robot_ctl.close_grabber()
+
         elif not self.robot_ctl.is_moving:
             angle_to_ball = self.robot_mdl.get_rotation_to_point(self.ball.x,
                                                                  self.ball.y)
@@ -127,9 +137,10 @@ class GetBall(Strategy):
         Command the robot to move to the ball.
         """
         if not self.robot_ctl.is_moving:
-            dist = self.robot_mdl.get_displacement_to_point(self.ball.x,
-                                                            self.ball.y)
-            self.robot_ctl.drive(px_to_cm(dist), px_to_cm(dist))
+            grabber_box_center = self.robot_mdl.catcher_area.center()
+            dist = grabber_box_center.get_displacement_to_point(self.world.ball.x,
+                                                                self.world.ball.y)
+            self.robot_ctl.drive(dist, dist)
         else:
             self.robot_ctl.update_state()
 
@@ -149,36 +160,28 @@ class GetBall(Strategy):
             if self.robot_ctl.grabber_open:
                 self.robot_ctl.close_grabber()
             else:
-                self.grab_testing = True
                 self.robot_ctl.turn(math.pi)
         else:
             self.robot_ctl.update_state()
 
-    def test_grab(self):
-        """
-        Check the grab test initiated by the grab_ball method.
-        """
-        if not self.robot_ctl.is_moving:  # Done spinning
-            if self.robot_mdl.can_catch_ball(self.ball):  # Still in grabber
-                self.grab_successful = True
-                self.grab_testing = False
-            else:
-                self.grab_testing = False
-        else:
-            self.robot_ctl.update_state()
+    def ball_in_danger_zone(self):
+        ball = self.world.ball
+        ball_dist = self.robot_mdl.get_displacement_to_point(ball.x, ball.y)
+        return ball_dist < 15
 
 
 class PassBall(Strategy):
     """
     Have the robot find a path and pass to the defending robot.
-    Intended use is when the ball is in our possession. **MS3**
+    Intended use is when the ball is in our possession.
     """
     def __init__(self, world, robot_ctl):
-        _STATES = [FIND_PATH, HAS_LOS, FACING_DEFENDER, GRABBER_OPEN, KICKED]
-        _STATE_MAP = {FIND_PATH: self.move_to_los,
-                      HAS_LOS: self.face_defender,
-                      FACING_DEFENDER: self.open_grabber,
-                      GRABBER_OPEN: self.kick,
+        _STATES = [FINDING_PATH, TURNING_TO_DEFENDER,
+                   OPENING_GRABBER, KICKING, KICKED]
+        _STATE_MAP = {FINDING_PATH: self.move_to_los,
+                      TURNING_TO_DEFENDER: self.face_defender,
+                      OPENING_GRABBER: self.open_grabber,
+                      KICKING: self.kick,
                       KICKED: self.do_nothing}
 
         super(PassBall, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
@@ -190,24 +193,23 @@ class PassBall(Strategy):
         pass_path = self.robot_mdl.get_pass_path(self.target)
         angle_to_def = self.robot_mdl.get_rotation_to_point(self.target.x,
                                                             self.target.y)
-        if self.has_kicked:
+        if not self.robot_ctl.ball_grabbed:
             self.state = KICKED
         elif pass_path.isInside(self.their_attacker.x, self.their_attacker.y):
-            self.state = FIND_PATH
+            self.state = FINDING_PATH
         elif not -ROTATE_MARGIN < angle_to_def < ROTATE_MARGIN:
-            self.state = HAS_LOS
+            self.state = TURNING_TO_DEFENDER
         elif not self.robot_ctl.grabber_open:
-            self.state = FACING_DEFENDER
+            self.state = OPENING_GRABBER
         else:
-            self.state = GRABBER_OPEN
+            self.state = KICKING
 
     def move_to_los(self):
         """
         Command the robot to move to the ball.
         """
         spot = self.calc_freespot()
-        angle = self.robot_mdl.get_rotation_to_point(spot[0], spot[1])
-        dist = self.robot_mdl.get_displacement_to_point(spot[0], spot[1])
+        angle, dist = self.robot_mdl.get_direction_to_point(spot[0], spot[1])
 
         if not self.robot_ctl.is_moving:
             if not -ROTATE_MARGIN < angle < ROTATE_MARGIN:
@@ -224,7 +226,7 @@ class PassBall(Strategy):
         if not self.robot_ctl.is_moving:
             angle_to_def = self.robot_mdl.get_rotation_to_point(self.target.x,
                                                                 self.target.y)
-            self.robot_ctl.turn(angle_to_def, 80)
+            self.robot_ctl.turn(angle_to_def)
         else:
             self.robot_ctl.update_state()
 
@@ -237,21 +239,6 @@ class PassBall(Strategy):
             self.has_kicked = True
         else:
             self.robot_ctl.update_state()
-
-    def calc_freespot(self):
-        our_center_x, our_center_y = \
-            self.world.pitch.zones[self.robot_mdl.zone].center()
-        their_center_x, their_center_y = \
-            self.world.pitch.zones[self.world.their_attacker.zone].center()
-
-        if self.world.their_attacker.y > their_center_y:
-            freespot_y = (2.0/10) * self.world.pitch.height
-        else:
-            freespot_y = (8.0/10) * self.world.pitch.height
-
-        freespot_x = int(our_center_x)
-
-        return freespot_x, freespot_y
 
     def open_grabber(self):
         if not self.robot_ctl.grabber_open and not self.robot_ctl.is_grabbing:
@@ -267,11 +254,12 @@ class ShootGoal(Strategy):
     """
 
     def __init__(self, world, robot_ctl):
-        _STATES = [FIND_PATH, HAS_LOS, FACING_GOAL, GRABBER_OPEN, KICKED]
-        _STATE_MAP = {FIND_PATH: self.move_to_los,
-                      HAS_LOS: self.face_goal,
+        _STATES = [FINDING_PATH, TURNING_TO_DEFENDER,
+                   FACING_GOAL, KICKING, KICKED]
+        _STATE_MAP = {FINDING_PATH: self.move_to_los,
+                      TURNING_TO_DEFENDER: self.face_goal,
                       FACING_GOAL: self.open_grabber,
-                      GRABBER_OPEN: self.kick,
+                      KICKING: self.kick,
                       KICKED: self.do_nothing}
 
         super(ShootGoal, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
@@ -284,15 +272,15 @@ class ShootGoal(Strategy):
         angle_to_goal = self.robot_mdl.get_rotation_to_point(self.target.x, self.target.y)
         spot = self.calc_freespot()
         if self.has_kicked:
-            self.state = GRABBER_OPEN # Evil infinite loop to make sure it gets rid of the ball. TODO: Fix
+            self.state = KICKING # Evil infinite loop to make sure it gets rid of the ball. TODO: Fix
         elif shooting_path.isInside(self.their_defender.x, self.their_defender.y):
-            self.state = FIND_PATH
+            self.state = FINDING_PATH
         elif not -ROTATE_MARGIN < angle_to_goal < ROTATE_MARGIN:
-            self.state = HAS_LOS
+            self.state = TURNING_TO_DEFENDER
         elif not self.robot_ctl.grabber_open:
             self.state = FACING_GOAL
         else:
-            self.state = GRABBER_OPEN
+            self.state = KICKING
 
     def move_to_los(self):
         """
@@ -327,19 +315,6 @@ class ShootGoal(Strategy):
         """
         self.robot_ctl.kick()
         self.has_kicked = True
-
-    def calc_freespot(self):
-        (our_center_x, our_center_y) = self.world.pitch.zones[self.robot_mdl.zone].center()
-        (their_center_x, their_center_y) = self.world.pitch.zones[self.world.their_defender.zone].center()
-
-        if self.world.their_defender.y > their_center_y:
-            freespot_y = (3.0/10) * self.world.pitch.height
-        else:
-            freespot_y = (7.0/10) * self.world.pitch.height
-
-        freespot_x = int(our_center_x)
-
-        return freespot_x, freespot_y
 
     def open_grabber(self):
         if not self.robot_ctl.grabber_open and not self.robot_ctl.is_grabbing:
