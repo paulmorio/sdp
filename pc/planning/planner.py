@@ -50,8 +50,7 @@ class Planner(object):
         new_strategy = self._strat_map[self._state]
         if new_strategy is not self._strategy:
             if self._strategy is not None:
-                self._strategy.reset()  
-
+                self._strategy.reset()
             self._strategy = new_strategy
 
     def ms3_transition(self):
@@ -70,18 +69,8 @@ class Planner(object):
         elif not self._world.ball_in_area([self._robot_mdl]):
             self._state = BALL_UNREACHABLE
 
-        # If ball is in our margin
+        # If ball is in our margin - move to possession state if ball grabbed
         elif self._world.ball_in_area([self._robot_mdl]):
-
-            # Ball was unreachable on the previous frame but is now reachable
-            if self._state == BALL_UNREACHABLE:
-                self._state = BALL_OUR_ZONE
-
-            # Check for strategy final state
-            elif self._strategy.final_state():
-
-                # Had ball and have kicked
-                if isinstance(self._strategy, PassBall):
-                    self._state = BALL_OUR_ZONE
+            self._state = BALL_OUR_ZONE
 
         self.update_strategy()

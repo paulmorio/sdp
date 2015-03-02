@@ -1,5 +1,3 @@
-# Planner and strategy state constants
-
 # Planner Constants
 BALL_UNREACHABLE = 'ball_unreachable'
 BALL_OUR_ZONE = 'ball_our_zone'
@@ -21,7 +19,7 @@ FINDING_PATH = 'finding_path'
 TURNING_TO_DEFENDER = 'turning_to_def'
 
 # Margin constants
-ROTATE_MARGIN = 0.30  # in radians
+ROTATE_MARGIN = 0.16  # in radians
 DISPLACEMENT_MARGIN = 20  # in centimetres
 GRAB_AREA_MARGIN = 10  # in centimetres
 DANGER_ZONE_CM = 20

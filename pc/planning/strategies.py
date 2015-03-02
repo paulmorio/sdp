@@ -195,9 +195,10 @@ class PassBall(Strategy):
         pass_path = self.robot_mdl.get_pass_path(self.target)
         angle_to_def = self.robot_mdl.get_rotation_to_point(self.target.x,
                                                             self.target.y)
+        # TODO add 'safety grab' case for ball close to wall/margin
         if not self.robot_ctl.ball_grabbed:
             self.state = KICKED
-        elif pass_path.isInside(self.their_attacker.x, self.their_attacker.y):
+        elif pass_path.overlaps(self.their_attacker.zone):
             self.state = FINDING_PATH
         elif not -ROTATE_MARGIN < angle_to_def < ROTATE_MARGIN:
             self.state = TURNING_TO_DEFENDER
@@ -211,14 +212,13 @@ class PassBall(Strategy):
         Command the robot to move to the ball.
         """
         spot = self.calc_freespot()
-
         dist, angle = self.robot_mdl.get_direction_to_point(spot[0], spot[1])
 
         if not self.robot_ctl.is_moving:
             if not -ROTATE_MARGIN < angle < ROTATE_MARGIN:
                 self.robot_ctl.turn(angle)
             else:
-                self.robot_ctl.drive(dist, dist)
+                self.robot_ctl.drive(dist*0.5, dist*0.5)
         else:
             self.robot_ctl.update_state()
 

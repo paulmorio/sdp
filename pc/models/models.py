@@ -257,8 +257,8 @@ class Robot(PitchObject):
         if displacement == 0:
             theta = 0
         else:
-            theta = atan2(delta_y, delta_x) - atan2(sin(self.angle),
-                                                    cos(self.angle))
+            theta = atan2(delta_y, delta_x) - \
+                    atan2(sin(self.angle), cos(self.angle))
             if theta > pi:
                 theta -= 2*pi
             elif theta < -pi:
