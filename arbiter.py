@@ -85,7 +85,7 @@ class Arbiter(object):
 
                 # Act on the updated world model
                 p_state = s_state = None
-                if self.planner is not None:
+                if self.planner is not None:  # TODO tidy up the whole state drawing thing
                     self.planner.plan()
                     p_state = self.planner._state
                     s_state = self.planner._strategy.state
