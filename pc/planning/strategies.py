@@ -137,10 +137,9 @@ class GetBall(Strategy):
         Command the robot to move to the ball.
         """
         if not self.robot_ctl.is_moving:
-            grabber_box_center = self.robot_mdl.catcher_area.center()
-            dist = grabber_box_center.get_displacement_to_point(self.world.ball.x,
-                                                                self.world.ball.y)
-            self.robot_ctl.drive(dist, dist)
+            dist = self.robot_mdl.get_displacement_to_point(self.world.ball.x,
+                                                            self.world.ball.y)
+            self.robot_ctl.drive(dist*0.5, dist*0.5)
         else:
             self.robot_ctl.update_state()
 
@@ -170,7 +169,7 @@ class GetBall(Strategy):
         """
         ball = self.world.ball
         ball_dist = self.robot_mdl.get_displacement_to_point(ball.x, ball.y)
-        return ball_dist < _DANGER_ZONE_CM
+        return ball_dist < DANGER_ZONE_CM
 
 
 class PassBall(Strategy):
@@ -212,7 +211,8 @@ class PassBall(Strategy):
         Command the robot to move to the ball.
         """
         spot = self.calc_freespot()
-        angle, dist = self.robot_mdl.get_direction_to_point(spot[0], spot[1])
+
+        dist, angle = self.robot_mdl.get_direction_to_point(spot[0], spot[1])
 
         if not self.robot_ctl.is_moving:
             if not -ROTATE_MARGIN < angle < ROTATE_MARGIN:
