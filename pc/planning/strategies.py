@@ -165,9 +165,12 @@ class GetBall(Strategy):
             self.robot_ctl.update_state()
 
     def ball_in_danger_zone(self):
+        """
+        True if the wall is within DANGER_ZONE_CM of the robot.
+        """
         ball = self.world.ball
         ball_dist = self.robot_mdl.get_displacement_to_point(ball.x, ball.y)
-        return ball_dist < 15
+        return ball_dist < _DANGER_ZONE_CM
 
 
 class PassBall(Strategy):

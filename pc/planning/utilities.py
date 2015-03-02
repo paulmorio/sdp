@@ -24,3 +24,4 @@ TURNING_TO_DEFENDER = 'turning_to_def'
 ROTATE_MARGIN = 0.30  # in radians
 DISPLACEMENT_MARGIN = 20  # in centimetres
 GRAB_AREA_MARGIN = 10  # in centimetres
+DANGER_ZONE_CM = 20
