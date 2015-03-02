@@ -61,12 +61,12 @@ class Strategy(object):
         our_center_x, our_center_y = \
             self.world.pitch.zones[self.robot_mdl.zone].center()
         their_center_x, their_center_y = \
-            self.world.pitch.zones[self.world.their_defender.zone].center()
+            self.world.pitch.zones[self.world.their_attacker.zone].center()
 
-        if self.world.their_defender.y > their_center_y:
-            freespot_y = (2.0/10) * self.world.pitch.height
+        if self.world.their_attacker.y > their_center_y:
+            freespot_y = (3.0/10) * self.world.pitch.height
         else:
-            freespot_y = (8.0/10) * self.world.pitch.height
+            freespot_y = (7.0/10) * self.world.pitch.height
 
         freespot_x = int(our_center_x)
 
