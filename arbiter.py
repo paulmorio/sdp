@@ -84,15 +84,19 @@ class Arbiter(object):
                     self.world_updater.update_world(frame)
 
                 # Act on the updated world model
+                p_state = s_state = None
                 if self.planner is not None:
                     self.planner.plan()
+                    p_state = self.planner._state
+                    s_state = self.planner._strategy.state
 
                 fps = float(counter) / (time.clock() - timer)
 
                 # Draw GUIs
                 self.calibration_gui.show(frame, key=key)
                 self.gui.draw(frame, model_positions, regular_positions,
-                              grabbers, fps, self.colour, self.side)
+                              grabbers, fps, self.colour, self.side, p_state,
+                              s_state)
 
                 counter += 1
                 key = cv2.waitKey(1) & 0xFF  # Capture keypress
