@@ -76,6 +76,63 @@ class Strategy(object):
         return self._robot_controller.get_status
 
 
+    ####################################################
+    def facing_point(self, x, y):
+        # True if robot faces given x,y coordinates
+        angle = self._bot.get_rotation_to_point(x, y)
+        return -ROTATE_MARGIN < angle < ROTATE_MARGIN
+
+    def open_grabber(self):
+        if self._robot_controller.grabber_open \
+                and not self._robot_controller.is_grabbing \
+                and self.ball_in_danger_zone() \
+                and not self._bot.can_catch_ball(self.ball):
+            self._robot_controller.close_grabber()
+        else:
+            self._robot_controller.update_state()
+
+    def grab_ball(self):
+        # Command the robot to grab the ball. Test the grab
+        if not self._robot_controller.is_grabbing:
+            if self._robot_controller.grabber_open:
+                self._robot_controller.close_grabber()
+            else:
+                self._robot_controller.turn(pi)
+        else:
+            self._robot_controller.update_state()
+
+    def aim_towards_ball(self):
+        # Command the robot to turn to face the ball.
+        # If the grabber is open, the ball is too close to turn, and the ball
+        # is not in the grabber area - close the grabber.
+        if self._robot_controller.grabber_open \
+                and not self._robot_controller.is_grabbing \
+                and self.ball_in_danger_zone() \
+                and not self._bot.can_catch_ball(self.ball):
+
+            self._robot_controller.close_grabber()
+
+        elif not self._robot_controller.is_moving:
+            angle_to_ball = self._bot.get_rotation_to_point(self.ball.x, self.ball.y)
+            self._robot_controller.turn(angle_to_ball)
+        else:
+            self._robot_controller.update_state()
+
+    def ball_in_danger_zone(self):
+        # True if the ball is within GRAB_AREA_MARGIN of the robot.
+        return self.bot.get_displacement_to_point(self.ball.x, self.ball.y) < GRAB_AREA_MARGIN
+
+    def move_towards_ball(self):
+        # Move robot forward toward ball
+        if not self._robot_controller.is_moving:
+            grabber_box_center = self._robot_controller.catcher_area.center()
+            dist = grabber_box_center.get_displacement_to_point(self.ball.x,
+                                                                self.ball.y)
+            self._robot_controller.drive(dist, dist)
+        else:
+            self._robot_controller.update_state()
+
+
 class Idle(Strategy):
     """
     The idle strategy is typically the initial strategy and should be returned
@@ -111,7 +168,7 @@ class Idle(Strategy):
 
         if self.state == REORIENT:
             self.angle_to_face = bot_angle + angle_to_target
-            self.state == WAIT_REORIENT
+            self.state = WAIT_REORIENT
 
         if self.state == WAIT_REORIENT:
             if not self._robot_controller.is_moving:
@@ -157,73 +214,29 @@ class GetBall(Strategy):
 
         self.angle_to_face = 0
 
-        states = [OPEN_GRABBER, WAIT_O_GRAB, REORIENT, WAIT_REORIENT, REPOSITION, WAIT_REPOSITION, CLOSE_GRABBER, WAIT_C_GRAB]
+        states = [OPEN_GRABBER, TURN_TO_BALL, MOVE_TO_BALL, CLOSE_GRABBER, POSSESSION]
         action_map = {
-            OPEN_GRABBER: self._robot_controller.open_grabber,
-            WAIT_O_GRAB: self.do_nothing,
-            REORIENT: self.aim_towards_ball,
-            WAIT_REORIENT: self.do_nothing,
-            REPOSITION: self.move_towards_ball,
-            WAIT_REPOSITION: self.do_nothing,
-            CLOSE_GRABBER: self._robot_controller.close_grabber,
-            WAIT_C_GRAB: self.do_nothing
+            OPEN_GRABBER: self.open_grabber,
+            TURN_TO_BALL: self.aim_towards_ball,
+            MOVE_TO_BALL: self.move_towards_ball,
+            CLOSE_GRABBER: self.grab_ball,
+            POSSESSION: self.do_nothing
         }
 
         super(GetBall, self).__init__(world, robot_controller, states, action_map)
 
     def transition(self):
         #todo: all states have to be thoroughly double-checked.
-        bot_angle = self.bot.angle
-        angle_to_target = self.bot.get_rotation_to_point(self.ball.x, self.ball.y)
-
-        if self.state == OPEN_GRABBER:
-            self.state = WAIT_O_GRAB
-
-        elif self.state == WAIT_O_GRAB:
-            if self._robot_controller.open_grabber:
-                self.state = REORIENT
-
-        elif self.state == REORIENT:
-            self.angle_to_face = angle_to_target
-            self.state = WAIT_REORIENT
-
-        elif self.state == WAIT_REORIENT:
-            if abs(self.angle_to_face - self.bot.angle) < ROTATE_MARGIN:
-                #if self.compare_angles(angle_to_target, 0.0):
-                self.state = REPOSITION
-            elif not self._robot_controller.is_moving:
-                print "<RETRY>"
-                self.state = REORIENT
-                    #self.reset()
-                # else:
-                #     self.state = REORIENT
-
-        elif self.state == REPOSITION:
-            self.state = WAIT_REPOSITION
-
-        elif self.state == WAIT_REPOSITION:
-            if self.bot.can_catch_ball(self.ball):
-                self.state = CLOSE_GRABBER
-            elif not self._robot_controller.is_moving:
-                print "<RETRY>"
-                self.state = REPOSITION
-            # else:
-            #     self.reset()
-
-
-        elif self.state == CLOSE_GRABBER:
-            if self.bot.can_catch_ball(self.ball):
-                self.state = WAIT_C_GRAB
-            else:
-                self.reset()
-
-    def aim_towards_ball(self):
-        angle = self.bot.get_rotation_to_point(self.ball.x, self.ball.y)
-        self._robot_controller.turn(angle)
-
-    def move_towards_ball(self):
-        distance = self.bot.get_displacement_to_point(self.ball.x, self.ball.y) - GRAB_AREA_MARGIN
-        self._robot_controller.drive(distance, distance)
+        if self._robot_controller.ball_grabbed:
+            self.state = POSSESSION
+        elif not self._robot_controller.grabber_open:
+            self.state = OPEN_GRABBER
+        elif not self.facing_point(self.ball.x, self.ball.y):
+            self.state = TURN_TO_BALL
+        elif not self._robot_controller.can_catch_ball(self.ball):
+            self.state = MOVE_TO_BALL
+        else:
+            self.state = CLOSE_GRABBER
 
 
 class CatchBall(Strategy):
@@ -243,80 +256,82 @@ class CatchBall(Strategy):
 
         self.angle_to_face = 0
 
-        states = [OPEN_GRABBER, WAIT_O_GRAB, REORIENT_FREESPOT, WAIT_REORIENT_FREESPOT, REPOSITION, WAIT_REPOSITION, REORIENT_PASSER, WAIT_REORIENT_PASSER, IDLE]
-        action_map = {
-            OPEN_GRABBER: self._robot_controller.open_grabber,
-            WAIT_O_GRAB: self.do_nothing,
-            REORIENT_FREESPOT: self.aim_towards_freespot,
-            WAIT_REORIENT_FREESPOT: self.do_nothing,
-            REPOSITION: self.move_towards_freespot,
-            WAIT_REPOSITION: self.do_nothing,
-            REORIENT_PASSER: self.aim_towards_passer,
-            WAIT_REORIENT_PASSER: self.do_nothing,
-            IDLE: self.do_nothing
-        }
+        states = []
+        action_map = {}
+        # states = [OPEN_GRABBER, WAIT_O_GRAB, REORIENT_FREESPOT, WAIT_REORIENT_FREESPOT, REPOSITION, WAIT_REPOSITION, REORIENT_PASSER, WAIT_REORIENT_PASSER, IDLE]
+        # action_map = {
+        #     OPEN_GRABBER: self._robot_controller.open_grabber,
+        #     WAIT_O_GRAB: self.do_nothing,
+        #     REORIENT_FREESPOT: self.aim_towards_freespot,
+        #     WAIT_REORIENT_FREESPOT: self.do_nothing,
+        #     REPOSITION: self.move_towards_freespot,
+        #     WAIT_REPOSITION: self.do_nothing,
+        #     REORIENT_PASSER: self.aim_towards_passer,
+        #     WAIT_REORIENT_PASSER: self.do_nothing,
+        #     IDLE: self.do_nothing
+        # }
 
         super(CatchBall, self).__init__(world, robot_controller, states, action_map)
 
-    def transition(self):
-
-        bot_angle = self.bot.angle
-        angle_to_freespot = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
-        angle_to_passer = self.bot.get_rotation_to_point(self.passer.x, self.passer.y)
-
-        # Open the grabber
-        if self.state == OPEN_GRABBER:
-            self.state == WAIT_O_GRAB
-
-        if self.state == WAIT_O_GRAB:
-            if self._robot_controller.grabber_open:
-                self.state = REORIENT_FREESPOT
-
-        # Rotate to face the "freespot" (point at center of our zone)
-        elif self.state == REORIENT_FREESPOT:
-            self.angle_to_face = bot_angle + angle_to_freespot
-            self.state = WAIT_REORIENT_FREESPOT
-
-        elif self.state == WAIT_REORIENT_FREESPOT:
-            if abs(self.angle_to_face - self.bot.angle) < ROTATE_MARGIN:
-                if self.compare_angles(angle_to_freespot, 0):
-                    self.state = REPOSITION
-                # else:
-                #     self.state = REORIENT_FREESPOT
-
-        # Move to the freespot
-        elif self.state == REPOSITION:
-            self.state = WAIT_REPOSITION
-
-        elif self.state == WAIT_REPOSITION:
-            # if on freespot
-            displacement = self.bot.get_displacement_to_point(self.freespot_x, self.freespot_y)
-            if displacement < DISPLACEMENT_MARGIN:
-                self.state = REORIENT_PASSER
-
-        # Rotate to face our passer, and wait
-        elif self.state == REORIENT_PASSER:
-            self.angle_to_face = self.bot.angle + angle_to_passer
-            self.state = WAIT_REORIENT_PASSER
-
-        elif self.state == WAIT_REORIENT_PASSER:
-            if abs(self.angle_to_face - self.bot.angle) < ROTATE_MARGIN:
-                if self.compare_angles(angle_to_passer, 0.0):
-                    self.state = IDLE
-                # else:
-                #     self.REORIENT_FREESPOT
-
-    def aim_towards_freespot(self):
-        angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
-        self._robot_controller.turn(angle)
-
-    def move_towards_freespot(self):
-        distance = self.bot.get_displacement_to_point(self.freespot_x, self.freespot_y)
-        self._robot_controller(distance, distance)
-
-    def aim_towards_passer(self):
-        angle = self.bot.get_rotation_to_point(self.passer.x, self.passer.y)
-        self._robot_controller.turn(angle)
+    # def transition(self):
+    #
+    #     bot_angle = self.bot.angle
+    #     angle_to_freespot = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
+    #     angle_to_passer = self.bot.get_rotation_to_point(self.passer.x, self.passer.y)
+    #
+    #     # Open the grabber
+    #     if self.state == OPEN_GRABBER:
+    #         self.state == WAIT_O_GRAB
+    #
+    #     if self.state == WAIT_O_GRAB:
+    #         if self._robot_controller.grabber_open:
+    #             self.state = REORIENT_FREESPOT
+    #
+    #     # Rotate to face the "freespot" (point at center of our zone)
+    #     elif self.state == REORIENT_FREESPOT:
+    #         self.angle_to_face = bot_angle + angle_to_freespot
+    #         self.state = WAIT_REORIENT_FREESPOT
+    #
+    #     elif self.state == WAIT_REORIENT_FREESPOT:
+    #         if abs(self.angle_to_face - self.bot.angle) < ROTATE_MARGIN:
+    #             if self.compare_angles(angle_to_freespot, 0):
+    #                 self.state = REPOSITION
+    #             # else:
+    #             #     self.state = REORIENT_FREESPOT
+    #
+    #     # Move to the freespot
+    #     elif self.state == REPOSITION:
+    #         self.state = WAIT_REPOSITION
+    #
+    #     elif self.state == WAIT_REPOSITION:
+    #         # if on freespot
+    #         displacement = self.bot.get_displacement_to_point(self.freespot_x, self.freespot_y)
+    #         if displacement < DISPLACEMENT_MARGIN:
+    #             self.state = REORIENT_PASSER
+    #
+    #     # Rotate to face our passer, and wait
+    #     elif self.state == REORIENT_PASSER:
+    #         self.angle_to_face = self.bot.angle + angle_to_passer
+    #         self.state = WAIT_REORIENT_PASSER
+    #
+    #     elif self.state == WAIT_REORIENT_PASSER:
+    #         if abs(self.angle_to_face - self.bot.angle) < ROTATE_MARGIN:
+    #             if self.compare_angles(angle_to_passer, 0.0):
+    #                 self.state = IDLE
+    #             # else:
+    #             #     self.REORIENT_FREESPOT
+    #
+    # def aim_towards_freespot(self):
+    #     angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
+    #     self._robot_controller.turn(angle)
+    #
+    # def move_towards_freespot(self):
+    #     distance = self.bot.get_displacement_to_point(self.freespot_x, self.freespot_y)
+    #     self._robot_controller(distance, distance)
+    #
+    # def aim_towards_passer(self):
+    #     angle = self.bot.get_rotation_to_point(self.passer.x, self.passer.y)
+    #     self._robot_controller.turn(angle)
 
 
 class Confuse(Strategy):
@@ -444,145 +459,67 @@ class PassBall(Strategy):
         self.bot = world.our_attacker
         self._robot_controller = robot_controller
 
-        self.freespot_x, self.freespot_y = self.calc_freespot()
-        self.defender_x, self.defender_y = (self._world.our_defender.x, self._world.our_defender.y)
-        self.snap_bot_y = self.bot.y
-        self.angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
+        # self.freespot_x, self.freespot_y = self.calc_freespot()
+        # self.defender_x, self.defender_y = (self._world.our_defender.x, self._world.our_defender.y)
+        # self.snap_bot_y = self.bot.y
+        # self.angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
 
-        states = [INIT_VARS, REORIENT_FREESPOT, WAIT_REORIENT, REPOSITION, WAIT_REPOSITION, REORIENT_DEFENDER, WAIT_REORIENT_DEFENDER, OPEN_GRABBER, WAIT_O_GRAB, PASS]
+        self.target = self.world.our_defender
+
+        states = [ROTATE_TO_FREESPOT, REPOSITION_TO_FREESPOT, ROTATE_TO_DEFENDER, OPEN_GRABBER, PASS_TO_DEFENDER, PASSED]
         action_map = {
-            INIT_VARS: self.do_nothing(),
-            REORIENT_FREESPOT: self.rotate_to_freespot,
-            WAIT_REORIENT: self.do_nothing,
-            REPOSITION: self.move_to_freespot,
-            WAIT_REPOSITION: self.do_nothing,
-            REORIENT_DEFENDER: self.rotate_to_defender,
-            WAIT_REORIENT_DEFENDER: self.do_nothing,
-            OPEN_GRABBER: self._robot_controller.open_grabber,
-            WAIT_O_GRAB: self.do_nothing,
-            PASS: self._robot_controller.kick
+            ROTATE_TO_FREESPOT: self.rotate_to_freespot,
+            REPOSITION_TO_FREESPOT: self.move_to_freespot,
+            ROTATE_TO_DEFENDER: self.rotate_to_defender,
+            OPEN_GRABBER: self.open_grabber,
+            PASS_TO_DEFENDER: self._robot_controller.kick,
+            PASSED: self.do_nothing
         }
 
         super(PassBall, self).__init__(world, robot_controller, states, action_map)
 
     def transition(self):
-        #print self.state
-        #real freespot and angle values
-        (real_freespot_x, real_freespot_y) = self.calc_freespot()
-        (real_defender_x, real_defender_y) = (self._world.our_defender.x, self._world.our_defender.y)
-        real_realspot_angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
-        real_defender_angle = self.bot.get_rotation_to_point(self._world.our_defender.x, self._world.our_defender.y)
-        real_bot_y = self.bot.y
+        (freespot_x, freespot_y) = self.calc_freespot()
+        angle_to_def = self._bot.get_rotation_to_point(self.target.x, self.target.y)
+        angle_to_freespot = self.bot.get_rotation_to_point(freespot_x, freespot_y)
 
-
-        if self.state == INIT_VARS:
-            (self.freespot_x, self.freespot_y) = (real_freespot_x, real_freespot_y)
-            self.state = REORIENT_FREESPOT
-
-        elif self.state == REORIENT_FREESPOT:
-            # take snapshot of freespot cords
-            print "\n1"
-
-            print "freespot: ("+str(self.freespot_x)+", "+str(self.freespot_y)+")"
-            print "robot: ("+str(self.bot.x)+", "+str(self.bot.y)+")"
-
-            print "\nROTATE TO FREESPOT\nangle: "+str(self.angle*180/pi)+"deg"
-            print "margin: "+str(ROTATE_MARGIN)
-            print "d/rotate: "+str(abs(self.angle < ROTATE_MARGIN))
-
-            self.state = WAIT_REORIENT
-
-        elif self.state == WAIT_REORIENT:
-            self.angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
-            #print "Rotating to Freespot: "+str(self.angle)
-
-            if abs(self.angle) < ROTATE_MARGIN:
-                self._robot_controller.get_status()
-
-                if self.compare_angles(self.angle, real_realspot_angle):
-                    self.state = REPOSITION
-                elif not self._robot_controller.is_moving:
-                    print "<RETRY>"
-                    self.state = REORIENT_FREESPOT
-                    #self.reset()
-            elif not self._robot_controller.is_moving:
-                    print "<RETRY>"
-                    self.state = REORIENT_FREESPOT
-                    #self.reset()
-
-        elif self.state == REPOSITION:
-
-            # take snapshot of freespot and robot
-            (self.freespot_x, self.freespot_y) = (real_freespot_x, real_freespot_y)
-            self.snap_bot_y = real_bot_y
-
-            print "\nMOVE\nour_y: "+str(self.bot.y)
-            print "freespot_y: "+str(self.freespot_y)
-            print "dy: "+str(abs(self.snap_bot_y - self.freespot_y) < ROTATE_MARGIN)
-
-            self.state = WAIT_REPOSITION
-
-        elif self.state == WAIT_REPOSITION:
-            #print "Repositioning to Freespot: "+str(abs(real_bot_y - self.freespot_y))
-            if abs(real_bot_y - self.freespot_y) < DISPLACEMENT_MARGIN:
-                self.state = REORIENT_DEFENDER
-            elif not self._robot_controller.is_moving:
-                print "<RETRY>"
-                self.reset()
-
-        elif self.state == REORIENT_DEFENDER:
-
-            # take snaphot of defender cords
-            (self.defender_x, self.defender_y) = (real_defender_x, real_defender_y)
-
-            print "\nROTATE TO DEFENDER\nangle: "+str(self.angle*180/pi)+"deg"
-            print "margin: "+str(ROTATE_MARGIN)
-            print "d/rotate: "+str(abs(self.angle < ROTATE_MARGIN))
-
-            self.state = WAIT_REORIENT_DEFENDER
-
-        elif self.state == WAIT_REORIENT_DEFENDER:
-            self._robot_controller.get_status()
-
-            self.angle = self.bot.get_rotation_to_point(self.defender_x, self.defender_y)
-            #print "Rotating: "+str(self.angle)
-
-            if abs(self.angle) < ROTATE_MARGIN:
-                self.state = OPEN_GRABBER
-                # if self.compare_angles(self.angle, real_defender_angle):
-                #     self.state = OPEN_GRABBER
-                # elif not self._robot_controller.is_moving:
-                #     print "<RETRY>"
-                #     self.state = REORIENT_DEFENDER
-            elif not self._robot_controller.is_moving:
-                print "<RETRY>"
-                self.state = REORIENT_DEFENDER
-
-        elif self.state == OPEN_GRABBER:
-            #todo: FIGURE OUT WHY KICK DOES NOT WORK NICELY BEYOND THIS POINT.
-
-            self.state = WAIT_O_GRAB
-
-        elif self.state == WAIT_O_GRAB:
-            self._robot_controller.get_status()
-            if self._robot_controller.grabber_open:
-                self.state = PASS
-
-        elif self.state == PASS:
-            print "\n--------------PASSED BALL WITH MARGIN\nangle: "+str(real_defender_angle)+" radians from target"
-            self.state = IDLE
+        if not self._robot_controller.ball_grabbed:
+            self.state = PASSED
+        elif abs(self.bot.y - self.freespot_y) < DISPLACEMENT_MARGIN:
+            if not -ROTATE_MARGIN < angle_to_freespot < ROTATE_MARGIN:
+                self.state = ROTATE_TO_FREESPOT
+            else:
+                self.state = REPOSITION_TO_FREESPOT
+        elif not -ROTATE_MARGIN < angle_to_def < ROTATE_MARGIN:
+            self.state = ROTATE_TO_DEFENDER
+        elif not self._robot_controller.grabber_open:
+            self.state = OPEN_GRABBER
+        else:
+            self.state = PASS_TO_DEFENDER
 
     def rotate_to_freespot(self):
-        angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
-        self._robot_controller.turn(angle)
+        # Command robot to rotate to freespot
+        (freespot_x, freespot_y) = self.calc_freespot()
+        angle = self.bot.get_rotation_to_point(freespot_x, freespot_y)
+
+        if not self._robot_controller.is_moving:
+            # if not -ROTATE_MARGIN < angle < ROTATE_MARGIN:
+            self._robot_controller.turn(angle)
 
     def move_to_freespot(self):
         distance = self.bot.get_displacement_to_point(self.freespot_x, self.freespot_y)
-        self._robot_controller.drive(distance, distance)
+        if not self._robot_controller.is_moving:
+                self._robot_controller.drive(distance, distance)
+        else:
+            self._robot_controller.update_state()
 
     def rotate_to_defender(self):
-        angle = self.bot.get_rotation_to_point(self._world.our_defender.x, self._world.our_defender.y)
-        self._robot_controller.turn(angle)
+        #Command the robot to turn to face our defender.
+        if not self._robot_controller.is_moving:
+            self._robot_controller.turn(angle)
+        else:
+            self._robot_controller.update_state()
+
 
     def calc_freespot(self):
         (our_center_x, our_center_y) = self._world.pitch.zones[self.bot.zone].center()
