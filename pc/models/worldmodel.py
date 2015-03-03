@@ -125,6 +125,28 @@ class World(object):
         too_close_y = r_y - threshold_px < b_y < r_y + threshold_px
         return too_close_x and too_close_y
 
+    # TODO generalize
+    def find_line_of_sight(self, robot):
+        """
+        Get a point where we have line of sight to a given target (i.e. for
+        passing). Not yet implemented, this provides a solution for milestone
+        3 though.
+        """
+        our_center_x, our_center_y = \
+            self.pitch.zones[robot.zone].center()
+        their_center_x, their_center_y = \
+            self.pitch.zones[self.their_attacker.zone].center()
+
+        if self.their_attacker.y > their_center_y:
+            los_y = (2.0/10) * self.pitch.height
+        else:
+            los_y = (8.0/10) * self.pitch.height
+
+        # TODO add an offset to make it move to the edge of the margin
+        los_x = int(our_center_x)
+
+        return los_x, los_y
+
 
 class WorldUpdater:
     """

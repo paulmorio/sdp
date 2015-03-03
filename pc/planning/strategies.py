@@ -52,26 +52,6 @@ class Strategy(object):
     def do_nothing(self):
         pass
 
-    def facing_point(self, x, y):
-        angle = self.robot_mdl.get_rotation_to_point(x, y)
-        return -ROTATE_MARGIN < angle < ROTATE_MARGIN
-
-    def calc_freespot(self):
-        our_center_x, our_center_y = \
-            self.world.pitch.zones[self.robot_mdl.zone].center()
-        their_center_x, their_center_y = \
-            self.world.pitch.zones[self.world.their_attacker.zone].center()
-
-        if self.world.their_attacker.y > their_center_y:
-            freespot_y = (2.0/10) * self.world.pitch.height
-        else:
-            freespot_y = (8.0/10) * self.world.pitch.height
-
-        # TODO add an offset to make it move to the edge of the margin
-        freespot_x = int(our_center_x)
-
-        return freespot_x, freespot_y
-
 
 class Idle(Strategy):
     """
@@ -103,11 +83,11 @@ class GetBall(Strategy):
     def transition(self):
         if self.robot_ctl.ball_grabbed:  # Have ball, final state
             self.state = POSSESSION
-        elif not self.facing_point(self.ball.x, self.ball.y):  # Not facing ball
+        elif not self.robot_mdl.facing_point(self.ball.x, self.ball.y):
             self.state = TURNING_TO_BALL
         elif not self.robot_ctl.grabber_open:  # Facing ball but grabber is not open
             self.state = OPENING_GRABBER
-        elif not self.robot_mdl.can_catch_ball(self.world.ball): # TODO careful approach
+        elif not self.robot_mdl.can_catch_ball(self.world.ball):
             self.state = MOVING_TO_BALL
         else:
             self.state = GRABBING_BALL
@@ -175,7 +155,7 @@ class FaceBall(Strategy):
     def transition(self):
         if not self.robot_ctl.grabber_open:
             self.state = GRABBER_CLOSED
-        elif not self.facing_point(self.world.ball.x, self.world.ball.y):
+        elif not self.robot_mdl.facing_point(self.ball.x, self.ball.y):
             self.state = FINDING_BALL
         else:
             self.state = FACING_BALL
@@ -223,7 +203,7 @@ class PassBall(Strategy):
             self.state = FINDING_PATH
         elif not self.robot_ctl.ball_grabbed:  # Get pulled out of this strat
             self.state = KICKED
-        elif not self.facing_point(self.target.x, self.target.y):
+        elif not self.robot_mdl.facing_point(self.target.x, self.target.y):
             self.state = TURNING_TO_DEFENDER
         elif self.robot_ctl.grabber_open and not self.robot_ctl.is_grabbing:
             self.state = MOVING_TO_BALL
@@ -236,7 +216,7 @@ class PassBall(Strategy):
         """
         if self.robot_ctl.grabber_open and not self.robot_ctl.is_grabbing:
             if self.spot is None:
-                self.spot = self.calc_freespot()
+                self.spot = self.world.find_line_of_sight(self.robot_mdl)
             dist, angle = self.robot_mdl.get_direction_to_point(self.spot[0],
                                                                 self.spot[1])
 
@@ -333,7 +313,7 @@ class ShootGoal(Strategy):
         """
         if self.robot_ctl.grabber_open and not self.robot_ctl.is_grabbing:
             if self.spot is None:
-                self.spot = self.calc_freespot()
+                self.spot = self.world.find_line_of_sight(self.robot_mdl)
             dist, angle = self.robot_mdl.get_direction_to_point(self.spot[0],
                                                                 self.spot[1])
 

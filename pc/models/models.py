@@ -307,6 +307,12 @@ class Robot(PitchObject):
         return Polygon((robot_poly[0], robot_poly[1],
                         target_poly[0], target_poly[1]))
 
+    def facing_point(self, x, y, rad_threshold=0.17):
+        """
+        True if the robot is facing a given point given some threshold.
+        """
+        return -rad_threshold < self.get_rotation_to_point(x, y) < rad_threshold
+
     def __repr__(self):
         return ('zone: %s\nx: %s\ny: %s\nangle: %s'
                 '\nvelocity: %s\ndimensions: %s\n' %
