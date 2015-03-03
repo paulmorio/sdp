@@ -212,6 +212,7 @@ class Robot(PitchObject):
         super(Robot, self).__init__(x, y, angle, velocity, width, length,
                                     height, angle_offset)
         self._zone = zone
+        self._catcher_centre = None
 
     @property
     def zone(self):
@@ -284,6 +285,17 @@ class Robot(PitchObject):
         """
         return (self.get_displacement_to_point(x, y),
                 self.get_rotation_to_point(x, y))
+
+    def dist_from_grabber(self, x, y):
+        """
+        Get the distance CM from the center of the robot's grabber.
+        Note that the robot must have a grabber defined.
+        """
+        grab_centre = self.catcher_area.centre  # Centre of gravity
+        delta_x = x - grab_centre[0]
+        delta_y = y - grab_centre[1]
+        dist = hypot(delta_x, delta_y) * CM_PER_PX
+        return dist
 
     def get_pass_path(self, target):
         """
