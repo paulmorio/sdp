@@ -291,7 +291,8 @@ class Robot(PitchObject):
         """
         robot_poly = self.get_polygon()
         target_poly = target.get_polygon()
-        return Polygon((robot_poly[0], robot_poly[1], target_poly[0], target_poly[1]))
+        return Polygon((robot_poly[0], robot_poly[1],
+                        target_poly[0], target_poly[1]))
 
     def __repr__(self):
         return ('zone: %s\nx: %s\ny: %s\nangle: %s'
@@ -327,9 +328,8 @@ class Goal(PitchObject):
 
 class Pitch(object):
     """
-    Class that describes the pitch
+    Describe the pitch given the table setup results.
     """
-
     def __init__(self, pitch_num):
         config_json = get_croppings(pitch=pitch_num)
         self._width = max([point[0] for point in config_json['outline']]) \

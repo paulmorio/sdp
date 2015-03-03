@@ -4,6 +4,8 @@ import warnings
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+PX_PER_CM = 91 / 38.4
+
 
 class World(object):
     """
@@ -98,6 +100,16 @@ class World(object):
         """
         return self.ball_in_area(self._robots)
 
+    def ball_at_wall(self, threshold=10):
+        """
+        True if the ball is within threshold cm of the wall. Intended use is to
+        determine when the robot must take a careful approach to the ball.
+        """
+        threshold_px = cm_to_px(threshold)
+        return self.ball.x < threshold_px or \
+            self.ball.y < threshold_px or \
+            self.ball.x > self.pitch.width - threshold_px or \
+            self.ball.y > self.pitch.height - threshold_px
 
 class WorldUpdater:
     """
@@ -142,8 +154,9 @@ class WorldUpdater:
         model_positions, regular_positions = self.vision.locate(frame)
         model_positions = self.postprocessing.analyze(model_positions)
 
-        # These are really hacked together -- TODO
         # Grabber areas - TODO should be adjusted once the robot is finalised
+        # Note that due to how the setter is written, these things need to be
+        # set on every frame - bit hacked together.
         self.world.our_defender.catcher_area = \
             {'width': 30, 'height': 30, 'front_offset': 20}  # In pixels???
         self.world.our_attacker.catcher_area = \
@@ -153,3 +166,12 @@ class WorldUpdater:
 
         self.world.update_positions(model_positions)
         return model_positions, regular_positions, grabbers
+
+
+def cm_to_px(cm):
+    """
+    Use the constant ratio CM_PX_RATIO to convert from cm to px
+    :param cm: Centimetre valued to be converted.
+    :return: Pixel equivalent
+    """
+    return PX_PER_CM * cm
