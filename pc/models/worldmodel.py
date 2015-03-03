@@ -147,6 +147,15 @@ class World(object):
 
         return los_x, los_y
 
+    def can_catch_ball(self, robot):
+        """
+        True if the given robot can catch the ball. Note that this requires
+        that the given robot has a grabber area defined.
+        """
+        ball_polygon = self.ball.get_polygon()
+        grabber_poly = robot.get_polygon()
+        return grabber_poly.covers(ball_polygon)
+
 
 class WorldUpdater:
     """

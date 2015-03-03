@@ -1,5 +1,4 @@
 from utilities import *
-from Polygon.cPolygon import Polygon
 
 
 class Strategy(object):
@@ -87,7 +86,7 @@ class GetBall(Strategy):
             self.state = TURNING_TO_BALL
         elif not self.robot_ctl.grabber_open:  # Facing ball but grabber is not open
             self.state = OPENING_GRABBER
-        elif not self.robot_mdl.can_catch_ball(self.world.ball):
+        elif not self.world.can_catch_ball(self.robot_mdl):
             self.state = MOVING_TO_BALL
         else:
             self.state = GRABBING_BALL
@@ -131,7 +130,7 @@ class GetBall(Strategy):
     def open_grabber(self):
         if not self.robot_ctl.grabber_open \
                 and not self.robot_ctl.is_grabbing \
-                and not self.robot_mdl.can_catch_ball(self.ball):
+                and not self.world.can_catch_ball(self.robot_mdl):
             if self.world.ball_too_close(self.robot_mdl):
                 self.robot_ctl.drive(-3, -3)
             else:
@@ -199,7 +198,7 @@ class PassBall(Strategy):
 
         # Their attacker is in our pass path, or we already have a destination
         if self.spot is not None or \
-                Polygon(self.their_attacker.get_polygon()).overlaps(pass_path):
+                self.their_attacker.get_polygon().overlaps(pass_path):
             self.state = FINDING_PATH
         elif not self.robot_ctl.ball_grabbed:  # Get pulled out of this strat
             self.state = KICKED
@@ -221,7 +220,7 @@ class PassBall(Strategy):
                                                                 self.spot[1])
 
             if not self.robot_ctl.is_moving:
-                if not -ROTATE_MARGIN < angle < ROTATE_MARGIN:
+                if not self.robot_mdl.facing_point(self.spot[0], self.spot[1]):
                     self.robot_ctl.turn(angle)
                 else:
                     self.robot_ctl.drive(dist*0.5, dist*0.5)
@@ -273,7 +272,8 @@ class PassBall(Strategy):
 class ShootGoal(Strategy):
     """
     Strategy that makes the robot face the goal and kick given it has a clear 
-    line of sight on goal
+    line of sight on goal.
+    NYI
     """
 
     def __init__(self, world, robot_ctl):
@@ -285,22 +285,20 @@ class ShootGoal(Strategy):
                       MOVING_TO_BALL: self.kick,
                       KICKED: self.do_nothing}
 
-        super(PassBall, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
+        super(ShootGoal, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
         self.target = self.world.their_goal
         self.their_defender = self.world.their_defender
         self.spot = None
 
     def transition(self):
         pass_path = self.robot_mdl.get_pass_path(self.target)
-        angle_to_goal = self.robot_mdl.get_rotation_to_point(self.target.x,
-                                                             self.target.y)
 
         if self.spot is not None or \
-                Polygon(self.their_defender.get_polygon()).overlaps(pass_path):
+                self.their_defender.get_polygon().overlaps(pass_path):
             self.state = FINDING_PATH
         elif not self.robot_ctl.ball_grabbed:  # Get pulled out of this strat
             self.state = KICKED
-        elif not -ROTATE_MARGIN < angle_to_goal < ROTATE_MARGIN:
+        elif not self.robot_mdl.facing_point(self.target.x, self.target.y):
             self.state = TURNING_TO_GOAL
         elif self.robot_ctl.grabber_open and not self.robot_ctl.is_grabbing:
             self.state = MOVING_TO_BALL
@@ -318,7 +316,7 @@ class ShootGoal(Strategy):
                                                                 self.spot[1])
 
             if not self.robot_ctl.is_moving:
-                if not -ROTATE_MARGIN < angle < ROTATE_MARGIN:
+                if not self.robot_mdl.facing_point(self.target.x, self.target.y):
                     self.robot_ctl.turn(angle)
                 else:
                     self.robot_ctl.drive(dist*0.5, dist*0.5)

@@ -23,8 +23,3 @@ TURNING_TO_BALL = 'turning_to_ball'
 TURNING_TO_GOAL = 'turning_to_goal'
 FACING_BALL = 'facing_ball'
 
-# Margin constants
-ROTATE_MARGIN = 0.17  # in radians
-DISPLACEMENT_MARGIN = 20  # in centimetres
-GRAB_AREA_MARGIN = 10  # in centimetres
-DANGER_ZONE_CM = 20

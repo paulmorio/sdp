@@ -180,16 +180,15 @@ class PitchObject(object):
     def get_generic_polygon(self, width, length):
         """
         Get polygon drawn around the current object, but with some
-        custom width and length:
+        custom width and length.
         """
-        # TODO return Polygon type, rather than the set of points
         front_left = (self.x + length/2, self.y + width/2)
         front_right = (self.x + length/2, self.y - width/2)
         back_left = (self.x - length/2, self.y + width/2)
         back_right = (self.x - length/2, self.y - width/2)
         poly = Polygon((front_left, front_right, back_left, back_right))
         poly.rotate(self.angle, self.x, self.y)
-        return poly[0]
+        return poly
 
     def get_polygon(self):
         """
@@ -242,12 +241,6 @@ class Robot(PitchObject):
     @catcher_area.setter
     def catcher_area(self, area_dict):
         self._catcher_area = area_dict
-
-    def can_catch_ball(self, ball):
-        """
-        Get if the ball is in the catcher zone but may not have possession
-        """
-        return self.catcher_area.isInside(ball.x, ball.y)
 
     def get_rotation_to_point(self, x, y):
         """
