@@ -1,7 +1,7 @@
 from serial import Serial
 import math
-import time
 import threading
+import time
 
 # Command string constants
 _DRIVE = "DRIVE"
@@ -28,7 +28,7 @@ class Robot(object):
     Serial connection, IO, and robot actions.
     """
 
-    def __init__(self, port="/dev/ttyACM0", timeout=0.5,
+    def __init__(self, port="/dev/ttyACM0", timeout=0.1,
                  rate=115200, comms=True):
         """
         Create a robot object which provides action methods and opens a serial
@@ -58,7 +58,7 @@ class Robot(object):
         self.waiting_for_ack = False
 
         if comms:
-            t = threading.Thread(target=self.ack_listener())
+            t = threading.Thread(target=self.ack_listener)
             t.daemon = True
             t.start()
             self._ack_bit = '0'
@@ -88,10 +88,9 @@ class Robot(object):
 
             # Send and wait for ack
             if self._serial is not None:
-                    if not self.waiting_for_ack:
-                        self._serial.write(current_command)
-                        self._serial.flush()
-                        self.waiting_for_ack = True
+                self._serial.write(current_command)
+                self._serial.flush()
+                self.waiting_for_ack = True
             else:
                 print current_command
 
@@ -100,8 +99,10 @@ class Robot(object):
         Initialize the robot: set the grabber to the default position then wait
         for acknowledgement before setting the ready flag.
         """
-        self.update_state()
         self.close_grabber()
+        while self.grabber_open and self.is_grabbing or True:
+            self.update_state()
+        self.ready = True
 
     def drive(self, l_dist, r_dist, l_power=80, r_power=80):
         """
@@ -230,12 +231,15 @@ class Robot(object):
                     self.is_moving = ack[3] == '1'
                     self.is_kicking = ack[4] == '1'
                     self.ball_grabbed = ack[5] == '1'
+
                     self.waiting_for_ack = False
                     self.current_command = None
                 else:
                     # Ack failed, send command again
-                    self.waiting_for_ack = False
+                    print 'failure'
+                    self._command()
             elif self.current_command is not None:
+                # New command
                 self._command()
 
 
