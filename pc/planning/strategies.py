@@ -72,9 +72,6 @@ class Strategy(object):
             return True
         return False
 
-    def get_status(self):
-        return self._robot_controller.get_status
-
 
     ####################################################
     def facing_point(self, x, y):
@@ -125,12 +122,11 @@ class Strategy(object):
     def move_towards_ball(self):
         # Move robot forward toward ball
         if not self._robot_controller.is_moving:
-            grabber_box_center = self._robot_controller.catcher_area.center()
-            dist = grabber_box_center.get_displacement_to_point(self.ball.x,
-                                                                self.ball.y)
-            self._robot_controller.drive(dist, dist)
+            dist = self.robot_mdl.get_displacement_to_point(self.world.ball.x,
+                                                            self.world.ball.y)
+            self.robot_ctl.drive(dist, dist)
         else:
-            self._robot_controller.update_state()
+            self.robot_ctl.update_state()
 
 
 class Idle(Strategy):
@@ -153,9 +149,9 @@ class Idle(Strategy):
         states = [REORIENT, WAIT_REORIENT, REPOSITION, WAIT_REPOSITION, IDLE]
         action_map = {
             REORIENT: self.face_pitch_center,
-            WAIT_REORIENT: self.get_status,
+            WAIT_REORIENT: self.do_nothing,
             REPOSITION: self.move_to_origin,
-            WAIT_REPOSITION: self.get_status,
+            WAIT_REPOSITION: self.do_nothing,
             IDLE: self.do_nothing
         }
 
@@ -233,7 +229,7 @@ class GetBall(Strategy):
             self.state = OPEN_GRABBER
         elif not self.facing_point(self.ball.x, self.ball.y):
             self.state = TURN_TO_BALL
-        elif not self._robot_controller.can_catch_ball(self.ball):
+        elif not self._bot.can_catch_ball(self.ball):
             self.state = MOVE_TO_BALL
         else:
             self.state = CLOSE_GRABBER
@@ -258,20 +254,19 @@ class CatchBall(Strategy):
 
         states = []
         action_map = {}
-        # states = [OPEN_GRABBER, WAIT_O_GRAB, REORIENT_FREESPOT, WAIT_REORIENT_FREESPOT, REPOSITION, WAIT_REPOSITION, REORIENT_PASSER, WAIT_REORIENT_PASSER, IDLE]
-        # action_map = {
-        #     OPEN_GRABBER: self._robot_controller.open_grabber,
-        #     WAIT_O_GRAB: self.do_nothing,
-        #     REORIENT_FREESPOT: self.aim_towards_freespot,
-        #     WAIT_REORIENT_FREESPOT: self.do_nothing,
-        #     REPOSITION: self.move_towards_freespot,
-        #     WAIT_REPOSITION: self.do_nothing,
-        #     REORIENT_PASSER: self.aim_towards_passer,
-        #     WAIT_REORIENT_PASSER: self.do_nothing,
-        #     IDLE: self.do_nothing
-        # }
+        states = [OPEN_GRABBER, ROTATE_TO_FREESPOT, REPOSITION_TO_FREESPOT, ROTATE_TO_PASSER, IDLE]
+        action_map = {
+            OPEN_GRABBER: self.do_nothing,
+            ROTATE_TO_FREESPOT: self.do_nothing,
+            REPOSITION_TO_FREESPOT: self.do_nothing,
+            ROTATE_TO_PASSER: self.do_nothing,
+            IDLE: self.do_nothing
+        }
 
         super(CatchBall, self).__init__(world, robot_controller, states, action_map)
+    
+    def transition(self):
+        pass
 
     # def transition(self):
     #
@@ -464,7 +459,7 @@ class PassBall(Strategy):
         # self.snap_bot_y = self.bot.y
         # self.angle = self.bot.get_rotation_to_point(self.freespot_x, self.freespot_y)
 
-        self.target = self.world.our_defender
+        self.target = self._world.our_defender
 
         states = [ROTATE_TO_FREESPOT, REPOSITION_TO_FREESPOT, ROTATE_TO_DEFENDER, OPEN_GRABBER, PASS_TO_DEFENDER, PASSED]
         action_map = {

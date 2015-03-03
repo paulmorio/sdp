@@ -17,6 +17,7 @@ NONE = "no_state"
 INIT_VARS = "init_variables"
 ROTATE_TO_FREESPOT = "reorient_freespot"
 ROTATE_TO_DEFENDER = "reorient_defender"
+ROTATE_TO_PASSER = 'rotate_passer'
 REPOSITION_TO_FREESPOT = 'reposition_defender'
 REORIENT_PASSER = "reorient_passer"
 OPEN_GRABBER = 'open_grabber'
