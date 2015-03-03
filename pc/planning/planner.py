@@ -61,7 +61,6 @@ class Planner(object):
 
         For the attacker profile.
         """
-
         # Successfully grabbed ball
         if self._robot_ctl.ball_grabbed:
             self._state = POSSESSION

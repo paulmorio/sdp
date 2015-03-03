@@ -33,7 +33,6 @@ class Strategy(object):
         """
         assert (new_state in self.states)
         if new_state != self._state:
-            self.robot_ctl.stop()
             self._state = new_state
 
     def transition(self):
