@@ -12,7 +12,7 @@ _STATUS = "STATUS"
 _COMM_DELIMITER = ' '
 _COMM_TERMINAL = '\n'
 
-_UPDATE_FREQ = 500  # Update state at most every 500 ms
+_UPDATE_FREQ = 1000  # Update state at most every 500 ms
 
 # Robot constants
 _ROTARY_SENSOR_RESOLUTION = 2.0

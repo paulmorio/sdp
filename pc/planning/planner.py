@@ -23,13 +23,14 @@ class Planner(object):
         # Strategy dictionaries return a strategy given a state.
         if self._profile == 'ms3':
             self._strat_map = {
-                BALL_UNREACHABLE: Idle(self._world, self._robot_ctl),
+                BALL_NOT_VISIBLE: Idle(self._world, self._robot_ctl),
                 BALL_OUR_ZONE: GetBall(self._world, self._robot_ctl),
-                POSSESSION: PassBall(self._world, self._robot_ctl)
+                POSSESSION: PassBall(self._world, self._robot_ctl),
+                BALL_NOT_IN_OUR_ZONE: FaceBall(self._world, self._robot_ctl)
             }
 
         # Choose initial strategy
-        self._state = BALL_UNREACHABLE
+        self._state = BALL_NOT_VISIBLE
         self._strategy = None
         self.update_strategy()
 
@@ -65,12 +66,16 @@ class Planner(object):
         if self._robot_ctl.ball_grabbed:
             self._state = POSSESSION
 
-        # If the ball is not in our robot's margin
-        elif not self._world.ball_in_area([self._robot_mdl]):
-            self._state = BALL_UNREACHABLE
-
         # If ball is in our margin - move to possession state if ball grabbed
         elif self._world.ball_in_area([self._robot_mdl]):
             self._state = BALL_OUR_ZONE
+
+        # If the ball is not visible
+        elif not self._world.ball_in_play():
+            self._state = BALL_NOT_VISIBLE
+
+        # Ball in play but not in our margin
+        else:
+            self._state = BALL_NOT_IN_OUR_ZONE
 
         self.update_strategy()
