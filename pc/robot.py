@@ -13,7 +13,7 @@ _STATUS = "STATUS"
 _COMM_DELIMITER = ' '
 _COMM_TERMINAL = '\n'
 
-_UPDATE_FREQ = 500  # Update state at most every 500 ms
+_UPDATE_FREQ = 100  # Update state at most every 500 ms
 
 # Robot constants
 _ROTARY_SENSOR_RESOLUTION = 2.0
@@ -100,11 +100,11 @@ class Robot(object):
         for acknowledgement before setting the ready flag.
         """
         self.close_grabber()
-        while self.grabber_open and self.is_grabbing or True:
+        while self.grabber_open and self.is_grabbing:
             self.update_state()
         self.ready = True
 
-    def drive(self, l_dist, r_dist, l_power=80, r_power=80):
+    def drive(self, l_dist, r_dist, l_power=100, r_power=100):
         """
         Drive the robot for the giving left and right wheel distances at the
         given powers. There is some loss of precision as the unit of distance
@@ -136,7 +136,7 @@ class Robot(object):
         """
         self.drive(0, 0)
 
-    def turn(self, radians, power=70):
+    def turn(self, radians, power=80):
         """
         Turn the robot at the given motor power. The radians should be relative
         to the current orientation of the robot, where the robot is facing 0 rad
@@ -236,7 +236,6 @@ class Robot(object):
                     self.current_command = None
                 else:
                     # Ack failed, send command again
-                    print 'failure'
                     self._command()
             elif self.current_command is not None:
                 # New command
