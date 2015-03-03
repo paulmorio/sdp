@@ -19,7 +19,7 @@ FINDING_PATH = 'finding_path'
 TURNING_TO_DEFENDER = 'turning_to_def'
 
 # Margin constants
-ROTATE_MARGIN = 0.16  # in radians
+ROTATE_MARGIN = 0.1  # in radians
 DISPLACEMENT_MARGIN = 20  # in centimetres
 GRAB_AREA_MARGIN = 10  # in centimetres
 DANGER_ZONE_CM = 20

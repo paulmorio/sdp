@@ -27,8 +27,6 @@ class Robot(object):
     Serial connection, IO, and robot actions.
     """
 
-
-
     def __init__(self, port="/dev/ttyACM0", timeout=0.1,
                  rate=115200, comms=True):
         """
@@ -154,7 +152,7 @@ class Robot(object):
         wheel_dist = _WHEELBASE_CIRC_CM * radians / (2 * math.pi)
         self.drive(wheel_dist, -wheel_dist, power, power)
 
-    def open_grabber(self, time=950, power=100):
+    def open_grabber(self, time=1500, power=100):
         """
         Run the grabber motor in the opening direction for the given number of
         milliseconds at the given motor power.
@@ -167,7 +165,7 @@ class Robot(object):
         self.is_grabbing = True
         self._command(_OPEN_GRABBER, [str(time), str(power)])
 
-    def close_grabber(self, time=1000, power=100):
+    def close_grabber(self, time=1500, power=100):
         """
         Run the grabber motor in the closing direction for the given number of
         milliseconds at the given motor power.
@@ -180,7 +178,7 @@ class Robot(object):
         self.is_grabbing = True
         self._command(_CLOSE_GRABBER, [str(time), str(power)])
 
-    def kick(self, time=800, power=100):
+    def kick(self, time=700, power=100):
         """
         Run the kicker motor forward for the given number of milliseconds at the
         given motor speed.

@@ -64,9 +64,9 @@ class Strategy(object):
             self.world.pitch.zones[self.world.their_attacker.zone].center()
 
         if self.world.their_attacker.y > their_center_y:
-            freespot_y = (3.0/10) * self.world.pitch.height
+            freespot_y = (1.0/10) * self.world.pitch.height
         else:
-            freespot_y = (7.0/10) * self.world.pitch.height
+            freespot_y = (9.0/10) * self.world.pitch.height
 
         freespot_x = int(our_center_x)
 
@@ -198,7 +198,8 @@ class PassBall(Strategy):
         # TODO add 'safety grab' case for ball close to wall/margin
         if not self.robot_ctl.ball_grabbed:
             self.state = KICKED
-        elif pass_path.overlaps(self.their_attacker.zone):
+        elif pass_path.isInside(self.their_attacker.x, self.their_attacker.y):
+        #elif pass_path.overlaps(self.their_attacker.get_polygon()):
             self.state = FINDING_PATH
         elif not -ROTATE_MARGIN < angle_to_def < ROTATE_MARGIN:
             self.state = TURNING_TO_DEFENDER
@@ -237,7 +238,8 @@ class PassBall(Strategy):
         """
         Give the kick command.
         """
-        if not self.robot_ctl.is_kicking:
+        if not self.robot_ctl.is_kicking and self.robot_ctl.grabber_open \
+                and not self.robot_ctl.is_grabbing:
             self.robot_ctl.kick()
             self.has_kicked = True
         else:
