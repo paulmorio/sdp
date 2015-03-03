@@ -1,6 +1,7 @@
 # Planner Constants
 BALL_NOT_VISIBLE = 'ball_unreachable'
 BALL_OUR_ZONE = 'ball_our_zone'
+BALL_OUR_ZONE_AT_WALL = 'ball_our_zone_at_wall'
 POSSESSION = 'possession'
 BALL_NOT_IN_OUR_ZONE = 'ball_not_in_our_zone'
 FINDING_BALL = 'finding_ball'

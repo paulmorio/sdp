@@ -26,8 +26,7 @@ class Planner(object):
                 BALL_NOT_VISIBLE: Idle(self._world, self._robot_ctl),
                 BALL_OUR_ZONE: GetBall(self._world, self._robot_ctl),
                 POSSESSION: PassBall(self._world, self._robot_ctl),
-                BALL_NOT_IN_OUR_ZONE: FaceBall(self._world, self._robot_ctl)
-            }
+                BALL_NOT_IN_OUR_ZONE: FaceBall(self._world, self._robot_ctl)}
 
         # Choose initial strategy
         self._state = BALL_NOT_VISIBLE
