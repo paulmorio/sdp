@@ -305,47 +305,54 @@ class ShootGoal(Strategy):
     """
 
     def __init__(self, world, robot_ctl):
-        _STATES = [FINDING_PATH, TURNING_TO_DEFENDER,
-                   FACING_GOAL, MOVING_TO_BALL, KICKED]
+        _STATES = [FINDING_PATH, TURNING_TO_GOAL,
+                   OPENING_GRABBER, MOVING_TO_BALL, KICKED]
         _STATE_MAP = {FINDING_PATH: self.move_to_los,
-                      TURNING_TO_DEFENDER: self.face_goal,
-                      FACING_GOAL: self.open_grabber,
+                      TURNING_TO_GOAL: self.face_goal,
+                      OPENING_GRABBER: self.open_grabber,
                       MOVING_TO_BALL: self.kick,
                       KICKED: self.do_nothing}
 
-        super(ShootGoal, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
+        super(PassBall, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
         self.target = self.world.their_goal
         self.their_defender = self.world.their_defender
-        self.has_kicked = False
+        self.spot = None
 
     def transition(self):
-        shooting_path = self.robot_mdl.get_pass_path(self.target) #Using pass path as it achieves the same
-        angle_to_goal = self.robot_mdl.get_rotation_to_point(self.target.x, self.target.y)
-        spot = self.calc_freespot()
-        if self.has_kicked:
-            self.state = MOVING_TO_BALL # Evil infinite loop to make sure it gets rid of the ball. TODO: Fix
-        elif shooting_path.isInside(self.their_defender.x, self.their_defender.y):
+        pass_path = self.robot_mdl.get_pass_path(self.target)
+        angle_to_goal = self.robot_mdl.get_rotation_to_point(self.target.x,
+                                                            self.target.y)
+
+        if self.spot is not None or \
+                Polygon(self.their_defender.get_polygon()).overlaps(pass_path):
             self.state = FINDING_PATH
+        elif not self.robot_ctl.ball_grabbed:  # Get pulled out of this strat
+            self.state = KICKED
         elif not -ROTATE_MARGIN < angle_to_goal < ROTATE_MARGIN:
-            self.state = TURNING_TO_DEFENDER
-        elif not self.robot_ctl.grabber_open:
-            self.state = FACING_GOAL
-        else:
+            self.state = TURNING_TO_GOAL
+        elif self.robot_ctl.grabber_open and not self.robot_ctl.is_grabbing:
             self.state = MOVING_TO_BALL
+        else:
+            self.state = OPENING_GRABBER
 
     def move_to_los(self):
         """
-        Command the robot to move to a better location.
+        Command the robot to move to the ball.
         """
-        spot = self.calc_freespot()
-        angle = self.robot_mdl.get_rotation_to_point(spot[0], spot[1])
-        dist = self.robot_mdl.get_displacement_to_point(spot[0], spot[1])
+        if self.robot_ctl.grabber_open and not self.robot_ctl.is_grabbing:
+            if self.spot is None:
+                self.spot = self.calc_freespot()
+            dist, angle = self.robot_mdl.get_direction_to_point(self.spot[0], self.spot[1])
 
-        if not self.robot_ctl.is_moving:
-            if not -ROTATE_MARGIN < angle < ROTATE_MARGIN:
-                self.robot_ctl.turn(angle, 80)
-            elif dist > 10:
-                self.robot_ctl.drive(dist, dist, 90, 90)
+            if not self.robot_ctl.is_moving:
+                if not -ROTATE_MARGIN < angle < ROTATE_MARGIN:
+                    self.robot_ctl.turn(angle)
+                else:
+                    self.robot_ctl.drive(dist*0.5, dist*0.5)
+            else:
+                self.robot_ctl.update_state()
+        elif not self.robot_ctl.is_grabbing:
+            self.robot_ctl.close_grabber()
         else:
             self.robot_ctl.update_state()
 
@@ -353,22 +360,34 @@ class ShootGoal(Strategy):
         """
         Command the robot to turn to face their goal.
         """
-        if not self.robot_ctl.is_moving:
-            angle_to_goal = self.robot_mdl.get_rotation_to_point(self.target.x,
-                                                                self.target.y)
-            self.robot_ctl.turn(angle_to_goal, 80)
+        if self.robot_ctl.grabber_open:
+            if not self.robot_ctl.is_moving:
+                angle_to_goal = self.robot_mdl.get_rotation_to_point(self.target.x,
+                                                                    self.target.y)
+                self.robot_ctl.turn(angle_to_goal)
+            else:
+                self.robot_ctl.update_state()
+        elif not self.robot_ctl.is_grabbing:
+            self.robot_ctl.close_grabber()
         else:
             self.robot_ctl.update_state()
 
     def kick(self):
         """
-        Give the kick command
+        Give the kick command.
         """
-        self.robot_ctl.kick()
-        self.has_kicked = True
+        if not self.robot_ctl.is_kicking and self.robot_ctl.grabber_open \
+                and not self.robot_ctl.is_grabbing:
+            self.robot_ctl.kick()
+        else:
+            self.robot_ctl.update_state()
 
     def open_grabber(self):
         if not self.robot_ctl.grabber_open and not self.robot_ctl.is_grabbing:
             self.robot_ctl.open_grabber()
         else:
             self.robot_ctl.update_state()
+
+    def reset(self):
+        self.spot = None
+        self.state = self.states[0]
