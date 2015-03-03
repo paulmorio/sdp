@@ -1,6 +1,7 @@
 from serial import Serial
 import math
 import time
+import threading
 
 # Command string constants
 _DRIVE = "DRIVE"
@@ -12,7 +13,7 @@ _STATUS = "STATUS"
 _COMM_DELIMITER = ' '
 _COMM_TERMINAL = '\n'
 
-_UPDATE_FREQ = 1000  # Update state at most every 500 ms
+_UPDATE_FREQ = 500  # Update state at most every 500 ms
 
 # Robot constants
 _ROTARY_SENSOR_RESOLUTION = 2.0
@@ -27,7 +28,7 @@ class Robot(object):
     Serial connection, IO, and robot actions.
     """
 
-    def __init__(self, port="/dev/ttyACM0", timeout=0.1,
+    def __init__(self, port="/dev/ttyACM0", timeout=0.5,
                  rate=115200, comms=True):
         """
         Create a robot object which provides action methods and opens a serial
@@ -64,7 +65,7 @@ class Robot(object):
             self.ready = True
             self._ack_bit = '0'
 
-    def _command(self, command, arguments=None):
+    def _command(self, command, arguments=None, from_ack=False):
         """
         Send a command to the robot then wait for acknowledgement. Resend
         the command if no acknowledgement is received within the serial read
@@ -87,9 +88,14 @@ class Robot(object):
 
         # Send and wait for ack
         if self._serial is not None:
-            self._serial.write(current_command)
-            self._serial.flush()
-            self.ack()
+            if self.ready or from_ack:
+                self._serial.write(current_command)
+                self._serial.flush()
+                t = threading.Thread(target=self.ack)  # TODO SHITE HACK
+                t.daemon = True
+                t.start()
+            else:
+                print 'NOT READY'
         else:
             print current_command
 
@@ -99,9 +105,8 @@ class Robot(object):
         for acknowledgement before setting the ready flag.
         """
         self.update_state()
-        if self.grabber_open:
-            self.close_grabber()
-        self.ready = True
+        self.close_grabber()
+        self.ack()
 
     def drive(self, l_dist, r_dist, l_power=80, r_power=80):
         """
@@ -124,7 +129,6 @@ class Robot(object):
         enough torque for drive.
         """
         # Currently rounding down strictly as too little is better than too much
-        self.is_moving = True
         cm_to_ticks = lambda cm: int(cm / _TICK_DIST_CM)
         l_dist = str(cm_to_ticks(l_dist))
         r_dist = str(cm_to_ticks(r_dist))
@@ -136,7 +140,7 @@ class Robot(object):
         """
         self.drive(0, 0)
 
-    def turn(self, radians, power=80):
+    def turn(self, radians, power=70):
         """
         Turn the robot at the given motor power. The radians should be relative
         to the current orientation of the robot, where the robot is facing 0 rad
@@ -162,7 +166,6 @@ class Robot(object):
         :param power: Motor power from 0-100
         :type power: int
         """
-        self.is_grabbing = True
         self._command(_OPEN_GRABBER, [str(time), str(power)])
 
     def close_grabber(self, time=1500, power=100):
@@ -175,7 +178,6 @@ class Robot(object):
         :param power: Motor power from 0-100
         :type power: int
         """
-        self.is_grabbing = True
         self._command(_CLOSE_GRABBER, [str(time), str(power)])
 
     def kick(self, time=700, power=100):
@@ -188,7 +190,6 @@ class Robot(object):
         :param power: Motor power from 0-100
         :type power: int
         """
-        self.is_kicking = True
         self._command(_KICK, [str(time), str(power)])
 
     def teardown(self):
@@ -222,6 +223,7 @@ class Robot(object):
         The acknowledge packet is of the following format:
         [ack_bit][grabber_open][is_grabbing][is_moving][is_kicking]
         """
+        self.ready = False
         ack = self._serial.readline()  # returns empty string on timeout
         if len(ack) == 8 and ack[0] == self._ack_bit:  # Successful ack
             self._ack_bit = '0' if self._ack_bit == '1' else '0'  # Flip
@@ -230,8 +232,11 @@ class Robot(object):
             self.is_moving = ack[3] == '1'
             self.is_kicking = ack[4] == '1'
             self.ball_grabbed = ack[5] == '1'
+            print ack
+            self.ready = True
         else:  # No ack within timeout - resend command
-            self._command(self._last_command[0], self._last_command[1])
+            self._command(self._last_command[0], self._last_command[1],
+                          from_ack=True)
 
 
 class ManualController(object):

@@ -147,7 +147,7 @@ class WorldUpdater:
         self.world.our_defender.catcher_area = \
             {'width': 30, 'height': 30, 'front_offset': 20}  # In pixels???
         self.world.our_attacker.catcher_area = \
-            {'width': 20, 'height': 30, 'front_offset': 20}
+            {'width': 30, 'height': 20, 'front_offset': 10}
         grabbers = {'our_defender': self.world.our_defender.catcher_area,
                     'our_attacker': self.world.our_attacker.catcher_area}
 
