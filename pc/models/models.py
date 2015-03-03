@@ -182,6 +182,7 @@ class PitchObject(object):
         Get polygon drawn around the current object, but with some
         custom width and length:
         """
+        # TODO return Polygon type, rather than the set of points
         front_left = (self.x + length/2, self.y + width/2)
         front_right = (self.x + length/2, self.y - width/2)
         back_left = (self.x - length/2, self.y + width/2)

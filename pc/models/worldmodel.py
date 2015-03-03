@@ -111,6 +111,21 @@ class World(object):
             self.ball.x > self.pitch.width - threshold_px or \
             self.ball.y > self.pitch.height - threshold_px
 
+    def ball_too_close(self, robot, threshold=20):
+        """
+        True if the ball is within threshold cm of the robot. Intended use is to
+        determine if it is safe for the robot to turn, open grabbers, etc.
+        Note that we calculate the distance from the robot's center, and so
+        this is dependent on the dimensions of the robot.
+        """
+        threshold_px = cm_to_px(threshold)
+        r_x, r_y = robot.x, robot.y
+        b_x, b_y = self.ball.x, self.ball.y
+        too_close_x = r_x - threshold_px < b_x < r_x + threshold_px
+        too_close_y = r_y - threshold_px < b_y < r_y + threshold_px
+        return too_close_x and too_close_y
+
+
 class WorldUpdater:
     """
     Ties vision to the world model.
