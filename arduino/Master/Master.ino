@@ -194,6 +194,4 @@ void ack() {
 }
 
 void invalidCommand(const char* command) {
-  Serial.print("Invalid command: ");
-  Serial.println(command);
 }
