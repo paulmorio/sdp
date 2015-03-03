@@ -22,10 +22,12 @@
 #define ROTARY_SLAVE_ADDRESS 5
 #define ROTARY_COUNT 2
 #define SENSOR_COUNT 1
+#define ROTARY_TIMEOUT 1000  // cycles
 
 int rotaryMotor[] = {MOTOR_L, MOTOR_R};  // Rotary encoder motor numbers
 int rotaryCounter[ROTARY_COUNT] = {0};  // Counters for rotary encoders
 int motorDir[ROTARY_COUNT] = {0};  // Track direction of rotary encoder motors
+int rotaryTimeout[ROTARY_COUNT] = {-1};  // Counters for rotary timeout
 
 // Communications
 SerialCommand comm;
@@ -163,9 +165,18 @@ void checkSensors() {
   // Update counters and check for completion
   for (int i = 0; i < ROTARY_COUNT; i++) {
     int8_t diff = Wire.read();
+    /* Set timeout counter if diff is 0 and there is not
+       already a counter. If there is already a counter 
+       then decrement. */
+    if (diff == 0 && motorDir[i] != 0) {
+      if (rotaryTimeout[i] == -1) rotaryTimeout[i] = ROTARY_TIMEOUT;
+      else if (--rotaryTimeout[i] == 0) rotaryCounter[i] = 0;
+    }
+    /* Subtract diff and check */
     if (motorDir[i] * (rotaryCounter[i]  -= diff) <= 0) {
       motorStop(rotaryMotor[i]);
       motorDir[i] = 0;
+      rotaryTimeout[i] = -1;
     }
   }
   // Update grabbed state
