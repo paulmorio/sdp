@@ -19,6 +19,7 @@ KICKED = 'kicked'
 FINDING_PATH = 'finding_path'
 TURNING_TO_DEFENDER = 'turning_to_def'
 TURNING_TO_BALL = 'turning_to_ball'
+TURNING_TO_GOAL = 'turning_to_goal'
 FACING_BALL = 'facing_ball'
 
 # Margin constants
