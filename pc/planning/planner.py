@@ -38,7 +38,6 @@ class Planner(object):
         Update the planner and strategy states before acting.
         """
         self.ms3_transition()
-        self._strategy.transition()
         self._strategy.act()
 
     def update_strategy(self):

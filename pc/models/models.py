@@ -177,6 +177,12 @@ class PitchObject(object):
                                   new_vector.angle - self._angle_offset,
                                   new_vector.velocity)
 
+    def overlaps(self, poly):
+        """
+        True if this object overlaps the given polygon
+        """
+        return self.get_polygon().overlaps(poly)
+
     def get_generic_polygon(self, width, length):
         """
         Get polygon drawn around the current object, but with some
@@ -300,11 +306,18 @@ class Robot(PitchObject):
         return Polygon((robot_poly[0], robot_poly[1],
                         target_poly[0], target_poly[1]))
 
-    def facing_point(self, x, y, rad_threshold=0.17):
+    def is_facing_point(self, x, y, rad_threshold=0.17):
         """
         True if the robot is facing a given point given some threshold.
         """
         return -rad_threshold < self.get_rotation_to_point(x, y) < rad_threshold
+
+    def is_at_point(self, x, y, cm_threshold=4):
+        """
+        True if the point is less that cm_threshold centimetres from the robot
+        center
+        """
+        return self.get_displacement_to_point(x, y) < cm_threshold
 
     def __repr__(self):
         return ('zone: %s\nx: %s\ny: %s\nangle: %s'

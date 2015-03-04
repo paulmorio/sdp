@@ -104,7 +104,7 @@ class Robot(object):
             self.update_state()
         self.ready = True
 
-    def drive(self, l_dist, r_dist, l_power=90, r_power=90):
+    def drive(self, l_dist, r_dist, l_power=60, r_power=60):
         """
         Drive the robot for the giving left and right wheel distances at the
         given powers. There is some loss of precision as the unit of distance
@@ -128,7 +128,9 @@ class Robot(object):
         cm_to_ticks = lambda cm: int(cm / _TICK_DIST_CM)
         l_dist = str(cm_to_ticks(l_dist))
         r_dist = str(cm_to_ticks(r_dist))
-        self.current_command = (_DRIVE, [l_dist, r_dist, str(l_power), str(r_power)])
+        self.current_command = \
+            (_DRIVE, [l_dist, r_dist, str(l_power), str(r_power)])
+        self.is_moving = True
 
     def stop(self):
         """
@@ -136,7 +138,7 @@ class Robot(object):
         """
         self.drive(0, 0)
 
-    def turn(self, radians, power=80):
+    def turn(self, radians, power=60):
         """
         Turn the robot at the given motor power. The radians should be relative
         to the current orientation of the robot, where the robot is facing 0 rad
@@ -163,6 +165,7 @@ class Robot(object):
         :type power: int
         """
         self.current_command = (_OPEN_GRABBER, [str(time), str(power)])
+        self.is_grabbing = True
 
     def close_grabber(self, time=1500, power=100):
         """
@@ -175,6 +178,7 @@ class Robot(object):
         :type power: int
         """
         self.current_command = (_CLOSE_GRABBER, [str(time), str(power)])
+        self.is_grabbing = True
 
     def kick(self, time=700, power=100):
         """
@@ -187,6 +191,7 @@ class Robot(object):
         :type power: int
         """
         self.current_command = (_KICK, [str(time), str(power)])
+        self.is_kicking = True
 
     def teardown(self):
         """
@@ -240,15 +245,6 @@ class Robot(object):
             elif self.current_command is not None:
                 # New command
                 self._command()
-                # TODO Fix messy status updates - these are here for instant
-                # feedback in lieu of waiting for robot feedback
-                if self.current_command[0] == _KICK:
-                    self.is_kicking = True
-                elif self.current_command[0] == _OPEN_GRABBER or\
-                        self.current_command[0] == _CLOSE_GRABBER:
-                    self.is_grabbing = True
-                elif self.current_command[0] == _DRIVE:
-                    self.is_moving = True
 
 
 class ManualController(object):

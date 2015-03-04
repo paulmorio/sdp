@@ -111,7 +111,7 @@ class World(object):
             self.ball.x > self.pitch.width - threshold_px or \
             self.ball.y > self.pitch.height - threshold_px
 
-    def ball_too_close(self, robot, threshold=20):
+    def ball_too_close(self, robot, threshold=23):
         """
         True if the ball is within threshold cm of the robot. Intended use is to
         determine if it is safe for the robot to turn, open grabbers, etc.
@@ -152,9 +152,7 @@ class World(object):
         True if the given robot can catch the ball. Note that this requires
         that the given robot has a grabber area defined.
         """
-        ball_polygon = self.ball.get_polygon()
-        grabber_poly = robot.get_polygon()
-        return grabber_poly.covers(ball_polygon)
+        return robot.catcher_area.isInside(self.ball.x, self.ball.y)
 
 
 class WorldUpdater:
@@ -206,7 +204,7 @@ class WorldUpdater:
         self.world.our_defender.catcher_area = \
             {'width': 30, 'height': 30, 'front_offset': 20}  # In pixels???
         self.world.our_attacker.catcher_area = \
-            {'width': 30, 'height': 25, 'front_offset': 15}
+            {'width': 30, 'height': 20, 'front_offset': 15}
         grabbers = {'our_defender': self.world.our_defender.catcher_area,
                     'our_attacker': self.world.our_attacker.catcher_area}
 
