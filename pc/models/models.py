@@ -312,7 +312,7 @@ class Robot(PitchObject):
         """
         return -rad_threshold < self.get_rotation_to_point(x, y) < rad_threshold
 
-    def is_at_point(self, x, y, cm_threshold=4):
+    def is_at_point(self, x, y, cm_threshold=1):
         """
         True if the point is less that cm_threshold centimetres from the robot
         center

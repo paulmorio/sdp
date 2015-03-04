@@ -180,7 +180,7 @@ class PassBall(Strategy):
 
     def find_path(self):
         path = self.robot_mdl.get_pass_path(self.target)
-        if path.isInside(self.their_attacker.x, self.their_attacker.y):
+        if path.overlaps(self.their_attacker.get_polygon()):
             self.dest = self.world.find_line_of_sight(self.robot_mdl)
             self.state = MOVING_TO_DEST
         else:
@@ -189,7 +189,7 @@ class PassBall(Strategy):
     def move_to_dest(self):
         if self.robot_mdl.is_at_point(self.dest[0], self.dest[1]):
             self.state = TURNING_TO_DEFENDER
-        elif self.robot_mdl.is_facing_point(self.dest[0], self.dest[1]):
+        elif self.robot_mdl.is_facing_point(self.dest[0], self.dest[1], 0.1):
             dist = self.robot_mdl.get_displacement_to_point(self.dest[0],
                                                             self.dest[1])
             if not self.robot_ctl.is_moving:
@@ -205,11 +205,12 @@ class PassBall(Strategy):
                 self.robot_ctl.update_state()
 
     def turn_to_def(self):
-        if self.robot_mdl.is_facing_point(self.target.x, self.target.y):
+        if self.robot_mdl.is_facing_point(self.target.x, self.target.y, 0.05) and\
+            not self.robot_ctl.is_moving:
             self.state = OPENING_GRABBER
         else:
-            angle = self.robot_mdl.get_displacement_to_point(self.target.x,
-                                                             self.target.y)
+            angle = self.robot_mdl.get_rotation_to_point(self.target.x,
+                                                         self.target.y)
             if not self.robot_ctl.is_moving:
                 self.robot_ctl.turn(angle)
             else:
