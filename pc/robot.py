@@ -100,7 +100,7 @@ class Robot(object):
         for acknowledgement before setting the ready flag.
         """
         self.close_grabber()
-        while self.grabber_open and self.is_grabbing:
+        while self.grabber_open:
             self.update_state()
         self.ready = True
 
