@@ -31,6 +31,7 @@ class Strategy(object):
         """
         assert (new_state in self.states)
         if new_state != self._state:
+            self.robot_ctl.stop()
             self._state = new_state
 
     def transition(self):
@@ -69,10 +70,10 @@ class GetBall(Strategy):
     Intended use is when the ball is in our robot's area.
     """
     def __init__(self, world, robot_ctl):
-        _STATES = [TURNING_TO_BALL, OPENING_GRABBER, MOVING_TO_BALL,
+        _STATES = [TURNING_TO_BALL, TIME_TO_KICK, MOVING_TO_BALL,
                    GRABBING_BALL, POSSESSION]
         _STATE_MAP = {TURNING_TO_BALL: self.face_ball,
-                      OPENING_GRABBER: self.open_grabber,
+                      TIME_TO_KICK: self.open_grabber,
                       MOVING_TO_BALL: self.move_to_ball,
                       GRABBING_BALL: self.grab_ball,
                       POSSESSION: self.do_nothing}
@@ -85,7 +86,7 @@ class GetBall(Strategy):
         elif not self.robot_mdl.facing_point(self.ball.x, self.ball.y):
             self.state = TURNING_TO_BALL
         elif not self.robot_ctl.grabber_open:  # Facing ball but grabber is not open
-            self.state = OPENING_GRABBER
+            self.state = TIME_TO_KICK
         elif not self.world.can_catch_ball(self.robot_mdl):
             self.state = MOVING_TO_BALL
         else:
@@ -113,7 +114,8 @@ class GetBall(Strategy):
         Command the robot to move to the ball.
         """
         if not self.robot_ctl.is_moving:
-            dist = self.robot_mdl.dist_from_grabber(self.ball.x, self.ball.y)
+            dist = self.robot_mdl.get_displacement_to_point(self.ball.x,
+                                                            self.ball.y)
             self.robot_ctl.drive(dist*0.5, dist*0.5)
         else:
             self.robot_ctl.update_state()
@@ -181,46 +183,48 @@ class PassBall(Strategy):
     """
     def __init__(self, world, robot_ctl):
         _STATES = [FINDING_PATH, TURNING_TO_DEFENDER,
-                   OPENING_GRABBER, MOVING_TO_BALL, KICKED]
+                   TIME_TO_KICK, OPENING_GRABBER, KICKED]
         _STATE_MAP = {FINDING_PATH: self.move_to_los,
                       TURNING_TO_DEFENDER: self.face_defender,
                       OPENING_GRABBER: self.open_grabber,
-                      MOVING_TO_BALL: self.kick,
+                      TIME_TO_KICK: self.kick,
                       KICKED: self.do_nothing}
-
         super(PassBall, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
         self.target = self.world.our_defender
         self.their_attacker = self.world.their_attacker
-        self.spot = None
+        self.dest = None
 
     def transition(self):
         pass_path = self.robot_mdl.get_pass_path(self.target)
 
-        # Their attacker is in our pass path, or we already have a destination
-        if self.spot is not None or \
-                self.their_attacker.get_polygon().overlaps(pass_path):
-            self.state = FINDING_PATH
-        elif not self.robot_ctl.ball_grabbed:  # Get pulled out of this strat
+        # Reset destination when reached (this is a bit naive)
+        if self.dest is not None:
+            if self.robot_mdl.get_polygon().isInside(self.dest[0], self.dest[1]):
+                self.dest = None
+            else:
+                self.state = FINDING_PATH
+        elif not self.robot_ctl.ball_grabbed:  # Ball lost, final state
             self.state = KICKED
+        elif self.their_attacker.get_polygon().overlaps(pass_path):
+            self.state = FINDING_PATH
         elif not self.robot_mdl.facing_point(self.target.x, self.target.y):
             self.state = TURNING_TO_DEFENDER
-        elif self.robot_ctl.grabber_open and not self.robot_ctl.is_grabbing:
-            self.state = MOVING_TO_BALL
-        else:
+        elif not self.robot_ctl.grabber_open:
             self.state = OPENING_GRABBER
+        elif not self.robot_ctl.is_grabbing:
+            self.state = TIME_TO_KICK
 
     def move_to_los(self):
         """
         Command the robot to move to the ball.
         """
         if self.robot_ctl.grabber_open and not self.robot_ctl.is_grabbing:
-            if self.spot is None:
-                self.spot = self.world.find_line_of_sight(self.robot_mdl)
-            dist, angle = self.robot_mdl.get_direction_to_point(self.spot[0],
-                                                                self.spot[1])
-
+            if self.dest is None:
+                self.dest = self.world.find_line_of_sight(self.robot_mdl)
+            dist, angle = self.robot_mdl.get_direction_to_point(self.dest[0],
+                                                                self.dest[1])
             if not self.robot_ctl.is_moving:
-                if not self.robot_mdl.facing_point(self.spot[0], self.spot[1]):
+                if not self.robot_mdl.facing_point(self.dest[0], self.dest[1]):
                     self.robot_ctl.turn(angle)
                 else:
                     self.robot_ctl.drive(dist*0.5, dist*0.5)
@@ -235,16 +239,10 @@ class PassBall(Strategy):
         """
         Command the robot to turn to face our defender.
         """
-        if self.robot_ctl.grabber_open:
-            if not self.robot_ctl.is_moving:
-                angle_to_def = \
-                    self.robot_mdl.get_rotation_to_point(self.target.x,
-                                                         self.target.y)
-                self.robot_ctl.turn(angle_to_def)
-            else:
-                self.robot_ctl.update_state()
-        elif not self.robot_ctl.is_grabbing:
-            self.robot_ctl.close_grabber()
+        if not self.robot_ctl.is_moving:
+            angle_to_def = self.robot_mdl.get_rotation_to_point(self.target.x,
+                                                                self.target.y)
+            self.robot_ctl.turn(angle_to_def)
         else:
             self.robot_ctl.update_state()
 
@@ -265,7 +263,7 @@ class PassBall(Strategy):
             self.robot_ctl.update_state()
 
     def reset(self):
-        self.spot = None
+        self.dest = None
         self.state = self.states[0]
 
 
@@ -278,10 +276,10 @@ class ShootGoal(Strategy):
 
     def __init__(self, world, robot_ctl):
         _STATES = [FINDING_PATH, TURNING_TO_GOAL,
-                   OPENING_GRABBER, MOVING_TO_BALL, KICKED]
+                   TIME_TO_KICK, MOVING_TO_BALL, KICKED]
         _STATE_MAP = {FINDING_PATH: self.move_to_los,
                       TURNING_TO_GOAL: self.face_goal,
-                      OPENING_GRABBER: self.open_grabber,
+                      TIME_TO_KICK: self.open_grabber,
                       MOVING_TO_BALL: self.kick,
                       KICKED: self.do_nothing}
 
@@ -303,7 +301,7 @@ class ShootGoal(Strategy):
         elif self.robot_ctl.grabber_open and not self.robot_ctl.is_grabbing:
             self.state = MOVING_TO_BALL
         else:
-            self.state = OPENING_GRABBER
+            self.state = TIME_TO_KICK
 
     def move_to_los(self):
         """

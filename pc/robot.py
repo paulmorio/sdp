@@ -79,7 +79,7 @@ class Robot(object):
         """
         # Build the command
         if self.current_command is not None:
-            current_command, arguments = self.current_command  # TODO mutates??
+            current_command, arguments = self.current_command
             if arguments is not None:  # Append arguments
                 for arg in arguments:
                     current_command += _COMM_DELIMITER + arg
@@ -104,7 +104,7 @@ class Robot(object):
             self.update_state()
         self.ready = True
 
-    def drive(self, l_dist, r_dist, l_power=100, r_power=100):
+    def drive(self, l_dist, r_dist, l_power=90, r_power=90):
         """
         Drive the robot for the giving left and right wheel distances at the
         given powers. There is some loss of precision as the unit of distance
@@ -240,6 +240,15 @@ class Robot(object):
             elif self.current_command is not None:
                 # New command
                 self._command()
+                # TODO Fix messy status updates - these are here for instant
+                # feedback in lieu of waiting for robot feedback
+                if self.current_command[0] == _KICK:
+                    self.is_kicking = True
+                elif self.current_command[0] == _OPEN_GRABBER or\
+                        self.current_command[0] == _CLOSE_GRABBER:
+                    self.is_grabbing = True
+                elif self.current_command[0] == _DRIVE:
+                    self.is_moving = True
 
 
 class ManualController(object):

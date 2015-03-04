@@ -284,7 +284,7 @@ class Robot(PitchObject):
         Get the distance CM from the center of the robot's grabber.
         Note that the robot must have a grabber defined.
         """
-        grab_centre = self.catcher_area.centre  # Centre of gravity
+        grab_centre = self.catcher_area.center()  # Centre of gravity
         delta_x = x - grab_centre[0]
         delta_y = y - grab_centre[1]
         dist = hypot(delta_x, delta_y) * CM_PER_PX
@@ -295,8 +295,8 @@ class Robot(PitchObject):
         Gets a path represented by a Polygon for the area for passing ball
         between two robots
         """
-        robot_poly = self.get_polygon()
-        target_poly = target.get_polygon()
+        robot_poly = self.get_polygon()[0]
+        target_poly = target.get_polygon()[0]
         return Polygon((robot_poly[0], robot_poly[1],
                         target_poly[0], target_poly[1]))
 

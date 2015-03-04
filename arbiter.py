@@ -1,4 +1,4 @@
-from pc.models.worldmodel import WorldUpdater, World
+from pc.models.world import WorldUpdater, World
 from pc.vision import tools, calibrationgui, visiongui, camera, vision
 from pc.planning.planner import Planner
 from pc.robot import Robot
