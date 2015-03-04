@@ -46,7 +46,7 @@ class Strategy(object):
         self.state_map[self.state]()
 
     def do_nothing(self):
-        pass
+        self.robot_ctl.update_state()
 
 
 class Idle(Strategy):
