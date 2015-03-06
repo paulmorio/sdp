@@ -49,7 +49,7 @@ class Robot(object):
         """
         self.current_command = None
         self.ready = False  # True if ready to receive a command
-        self.grabber_open = True
+        self.grabber_open = False
         self.is_grabbing = False
         self.is_moving = False
         self.is_kicking = False
@@ -99,9 +99,11 @@ class Robot(object):
         Initialize the robot: set the grabber to the default position then wait
         for acknowledgement before setting the ready flag.
         """
-        self.close_grabber()
         while self.grabber_open:
-            self.update_state()
+            if not self.is_grabbing:
+                self.close_grabber()
+            else:
+                self.update_state()
         self.ready = True
 
     def drive(self, l_dist, r_dist, l_power=60, r_power=60):
