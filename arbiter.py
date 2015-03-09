@@ -4,7 +4,8 @@ from pc.planning.planner import Planner
 from pc.robot import Robot
 import cv2
 import time
-from Tkinter import *
+from pc.gui import launcher
+from Tkinter import Tk
 
 
 class Arbiter(object):
@@ -114,80 +115,12 @@ if __name__ == '__main__':
     import subprocess
     subprocess.call(['./v4lctl.sh'])
 
-    # Create launcher GUI
-    gui_root = Tk()
-    gui_root.resizable(width=FALSE, height=FALSE)
-    gui_root.wm_title("Launcher")
-    Label(gui_root, text="Group 7 SDP").grid(row=0, column=0)
-    Label(gui_root, text="Test Launcher").grid(row=0, column=1)
-    launching = False
-
-    # Launcher controls/values for...
-    # Pitch
-    Label(gui_root, text="Pitch:").grid(row=1, column=0)
-    pitch = StringVar(gui_root)
-    pitch.set("0")  # default value
-    pitch_select = OptionMenu(gui_root, pitch, "0", "1")
-    pitch_select.grid(row=1, column=1)
-    # Colour
-    Label(gui_root, text="Colour:").grid(row=2, column=0)
-    colour = StringVar(gui_root)
-    colour.set("yellow")
-    colour_select = OptionMenu(gui_root, colour, "yellow", "blue")
-    colour_select.grid(row=2, column=1)
-    # Side
-    Label(gui_root, text="Side:").grid(row=3, column=0)
-    side = StringVar(gui_root)
-    side.set("left")
-    side_select = OptionMenu(gui_root, side, "left", "right")
-    side_select.grid(row=3, column=1)
-    # Profile
-    Label(gui_root, text="Profile:").grid(row=4, column=0)
-    profile = StringVar(gui_root)
-    profile.set("ms3")
-    profile_select = OptionMenu(gui_root, profile, "ms3", "None")
-    profile_select.grid(row=4, column=1)
-    # Comms
-    Label(gui_root, text="Comms:").grid(row=5, column=0)
-    comms = BooleanVar(gui_root)
-    comms.set(True)
-    comms_select = OptionMenu(gui_root, comms, True, False)
-    comms_select.grid(row=5, column=1)
-
-    class Launcher(Frame):
-        def create_widgets(self):
-            self.calibrate["text"] = "Calibrate Pitch"
-            self.calibrate["command"] = calibrate_table
-
-            self.calibrate.grid(row=7, column=1)
-
-            self.launch["text"] = "Launch"
-            self.launch["command"] = self.clean_launch
-
-            self.launch.grid(row=7, column=0)
-
-        def clean_launch(self):
-            self.launching = True
-            self.quit()
-
-        def __init__(self, master=None):
-            self.launching = False
-            Frame.__init__(self, master)
-            self.calibrate = Button(gui_root)
-            self.launch = Button(gui_root)
-            self.create_widgets()
-
-    def calibrate_table():
-        # TODO: this fails to close the calibration window
-        from pc.vision.table_setup import TableSetup
-        table_setup = TableSetup(int(pitch.get()))
-        table_setup.run()
-
-    app = Launcher(master=gui_root)
+    # Create a launcher
+    app = launcher.Launcher()
     app.mainloop()
 
-    launching = app.launching
-
-    if launching:
-        arb = Arbiter(int(pitch.get()), colour.get(), side.get(), profile=profile.get(), comms=comms.get())
+    # Checks if the launcher flag was set to "launch", and if so, runs Arbiter
+    if app.launching:
+        arb = Arbiter(int(app.pitch.get()), app.colour.get(), app.side.get(),
+                      profile=app.profile.get(), comms=app.comms.get())
         arb.run()
