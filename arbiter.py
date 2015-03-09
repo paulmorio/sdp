@@ -5,7 +5,6 @@ from pc.robot import Robot
 import cv2
 import time
 from pc.gui import launcher
-from Tkinter import Tk
 
 
 class Arbiter(object):
