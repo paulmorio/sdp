@@ -120,6 +120,7 @@ if __name__ == '__main__':
     gui_root.wm_title("Launcher")
     Label(gui_root, text="Group 7 SDP").grid(row=0, column=0)
     Label(gui_root, text="Test Launcher").grid(row=0, column=1)
+    launching = False
 
     # Launcher controls/values for...
     # Pitch
@@ -161,11 +162,16 @@ if __name__ == '__main__':
             self.calibrate.grid(row=7, column=1)
 
             self.launch["text"] = "Launch"
-            self.launch["command"] = self.quit
+            self.launch["command"] = self.clean_launch
 
             self.launch.grid(row=7, column=0)
 
+        def clean_launch(self):
+            self.launching = True
+            self.quit()
+
         def __init__(self, master=None):
+            self.launching = False
             Frame.__init__(self, master)
             self.calibrate = Button(gui_root)
             self.launch = Button(gui_root)
@@ -180,5 +186,8 @@ if __name__ == '__main__':
     app = Launcher(master=gui_root)
     app.mainloop()
 
-    arb = Arbiter(int(pitch.get()), colour.get(), side.get(), profile=profile.get(), comms=comms.get())
-    arb.run()
+    launching = app.launching
+
+    if launching:
+        arb = Arbiter(int(pitch.get()), colour.get(), side.get(), profile=profile.get(), comms=comms.get())
+        arb.run()
