@@ -4,6 +4,7 @@ from pc.planning.planner import Planner
 from pc.robot import Robot
 import cv2
 import time
+from Tkinter import *
 
 
 class Arbiter(object):
@@ -11,7 +12,7 @@ class Arbiter(object):
     Ties vision/state to planning/communication.
     """
 
-    def __init__(self, pitch, colour, our_side, profile=None,
+    def __init__(self, pitch, colour, our_side, profile="None",
                  video_src=0, comm_port='/dev/ttyACM0', comms=False):
         """
         Entry point for the SDP system. Initialises all components
@@ -55,7 +56,7 @@ class Arbiter(object):
         self.robot_controller = Robot(port=comm_port, comms=comms)
 
         # Set up the planner
-        if profile is not None:
+        if profile != "None":
             self.planner = Planner(self.world, self.robot_controller, profile)
         else:
             self.planner = None
@@ -112,58 +113,72 @@ if __name__ == '__main__':
     # Set capture card settings
     import subprocess
     subprocess.call(['./v4lctl.sh'])
-    # Parse args
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "pitch", help="[0] Main pitch, [1] Secondary pitch"
-    )
-    parser.add_argument(
-        "colour", help="The colour of our team - ['yellow', 'blue'] allowed."
-    )
-    parser.add_argument(
-        "side", help="The side of our defender ['left', 'right'] allowed."
-    )
-    parser.add_argument(
-        "profile", help="The planning profile - ['ms3']"
-    )
-    parser.add_argument(
-        "-t", "--tablesetup",
-        help="Bring up the table setup window",
-        action="store_true"
-    )
-    parser.add_mutually_exclusive_group()
-    parser.add_argument(
-        "-v", "--visiononly",
-        help="Run the vision system without the planner or robot/comms",
-        action="store_true"
-    )
-    parser.add_argument(
-        "-n", "--nocomms",
-        help="Run without comms.",
-        action="store_true"
-    )
 
-    args = parser.parse_args()
-    assert(int(args.pitch) in [0, 1])
-    assert(args.colour in ["blue", "yellow"])
-    assert(args.side in ["left", "right"])
+    # Create launcher GUI
+    gui_root = Tk()
+    gui_root.resizable(width=FALSE, height=FALSE)
+    gui_root.wm_title("Launcher")
+    Label(gui_root, text="Group 7 SDP").grid(row=0, column=0)
+    Label(gui_root, text="Test Launcher").grid(row=0, column=1)
 
-    if args.tablesetup:
+    # Launcher controls/values for...
+    # Pitch
+    Label(gui_root, text="Pitch:").grid(row=1, column=0)
+    pitch = StringVar(gui_root)
+    pitch.set("0")  # default value
+    pitch_select = OptionMenu(gui_root, pitch, "0", "1")
+    pitch_select.grid(row=1, column=1)
+    # Colour
+    Label(gui_root, text="Colour:").grid(row=2, column=0)
+    colour = StringVar(gui_root)
+    colour.set("yellow")
+    colour_select = OptionMenu(gui_root, colour, "yellow", "blue")
+    colour_select.grid(row=2, column=1)
+    # Side
+    Label(gui_root, text="Side:").grid(row=3, column=0)
+    side = StringVar(gui_root)
+    side.set("left")
+    side_select = OptionMenu(gui_root, side, "left", "right")
+    side_select.grid(row=3, column=1)
+    # Profile
+    Label(gui_root, text="Profile:").grid(row=4, column=0)
+    profile = StringVar(gui_root)
+    profile.set("ms3")
+    profile_select = OptionMenu(gui_root, profile, "ms3", "None")
+    profile_select.grid(row=4, column=1)
+    # Comms
+    Label(gui_root, text="Comms:").grid(row=5, column=0)
+    comms = BooleanVar(gui_root)
+    comms.set(True)
+    comms_select = OptionMenu(gui_root, comms, True, False)
+    comms_select.grid(row=5, column=1)
+
+    class Launcher(Frame):
+        def create_widgets(self):
+            self.calibrate["text"] = "Calibrate Pitch"
+            self.calibrate["command"] = calibrate_table
+
+            self.calibrate.grid(row=7, column=1)
+
+            self.launch["text"] = "Launch"
+            self.launch["command"] = self.quit
+
+            self.launch.grid(row=7, column=0)
+
+        def __init__(self, master=None):
+            Frame.__init__(self, master)
+            self.calibrate = Button(gui_root)
+            self.launch = Button(gui_root)
+            self.create_widgets()
+
+    def calibrate_table():
+        # TODO: this fails to close the calibration window
         from pc.vision.table_setup import TableSetup
-        tablesetup = TableSetup(int(args.pitch))
-        tablesetup.run()
+        table_setup = TableSetup(int(pitch.get()))
+        table_setup.run()
 
-    if args.visiononly:
-        arb = Arbiter(int(args.pitch), args.colour, args.side,
-                      profile=None, comms=False)
-    elif args.nocomms:
-        assert args.profile in ['ms3']
-        arb = Arbiter(int(args.pitch), args.colour, args.side,
-                      profile=args.profile, comms=False)
+    app = Launcher(master=gui_root)
+    app.mainloop()
 
-    else:
-        assert args.profile in ['ms3']
-        arb = Arbiter(int(args.pitch), args.colour, args.side,
-                      profile=args.profile, comms=True)
+    arb = Arbiter(int(pitch.get()), colour.get(), side.get(), profile=profile.get(), comms=comms.get())
     arb.run()
