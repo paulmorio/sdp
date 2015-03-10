@@ -259,7 +259,6 @@ class Robot(object):
             if self.waiting_for_ack:
                 ack = self._serial.readline()
                 if len(ack) == 8 and ack[0] == self._ack_bit:  # Successful ack
-                    print ack
                     self._ack_bit = '1' if self._ack_bit == '0' else '0'  # Flip
                     self.grabber_open = ack[1] == '1'
                     self.is_grabbing = ack[2] == '1'
