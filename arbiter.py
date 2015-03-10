@@ -1,10 +1,8 @@
 from pc.models.world import WorldUpdater, World
-from pc.vision import tools, calibrationgui, visiongui, camera, vision
+from pc.vision import tools, camera, vision
 from pc.planning.planner import Planner
 from pc.robot import Robot
-import cv2
-import time
-from pc.gui import launcher
+from pc.gui import launcher, wrapper
 
 
 class Arbiter(object):
@@ -62,8 +60,8 @@ class Arbiter(object):
             self.planner = None
 
         # Set up GUI
-        self.gui = visiongui.VisionGUI(self.pitch)
-        self.calibration_gui = calibrationgui.CalibrationGUI(self.calibration)
+        self.gui_wrapper = wrapper.Wrapper(self.camera, self.planner, self.pitch, self.world_updater,
+                                           self.calibration, self.colour, self.side)
 
     def run(self):
         """
@@ -71,36 +69,9 @@ class Arbiter(object):
         the world state.
         Also captures keys for exit (escape) and for the calibration gui.
         """
-        counter = 1L
-        timer = time.clock()
 
-        key = True
         try:
-            while key != 27:  # escape to quit
-                # Get frame
-                frame = self.camera.get_frame()
-
-                # Find object positions, update world model
-                model_positions, regular_positions, grabbers = \
-                    self.world_updater.update_world(frame)
-
-                # Act on the updated world model
-                p_state = s_state = None
-                if self.planner is not None:  # TODO tidy up the whole state drawing thing
-                    self.planner.plan()
-                    p_state = self.planner._state
-                    s_state = self.planner._strategy.state
-
-                fps = float(counter) / (time.clock() - timer)
-
-                # Draw GUIs
-                self.calibration_gui.show(frame, key=key)
-                self.gui.draw(frame, model_positions, regular_positions,
-                              grabbers, fps, self.colour, self.side, p_state,
-                              s_state)
-
-                counter += 1
-                key = cv2.waitKey(1) & 0xFF  # Capture keypress
+            self.gui_wrapper.render()
         except:
             raise
         finally:

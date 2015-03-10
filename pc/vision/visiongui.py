@@ -3,22 +3,24 @@ from colours import BGR_COMMON
 import numpy as np
 import tools
 import warnings
+from PIL import Image, ImageTk
 
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 TEAM_COLORS = set(['yellow', 'blue'])
-VISION = 'Lucky Number Seven'
 
 
 class VisionGUI(object):
 
-    def __init__(self, pitch):
+    def __init__(self, wrapper, pitch):
+        self.wrapper = wrapper
         self.pitch = pitch
         self.zones = None
-        cv2.namedWindow(VISION)
 
+        #TODO: test
+        #cv2.namedWindow("TEST1")
 
     def to_info(self, args):
         """
@@ -99,7 +101,17 @@ class VisionGUI(object):
                         model_positions[key].angle,
                         model_positions[key].velocity)
 
-        cv2.imshow(VISION, frame_with_blank)
+        #TODO:test
+        #cv2.imshow("TEST1", frame_with_blank)
+
+        # If the image is not just a blank array
+        if np.any(frame_with_blank):
+            # Convert the image to Tkinter format, and display
+            cv2img = cv2.cvtColor(frame_with_blank, cv2.COLOR_BGR2RGBA)
+            img = Image.fromarray(cv2img)
+            img_tk = ImageTk.PhotoImage(image=img)
+            # TODO: fix
+            #self.wrapper.vision_frame.configure(image=img_tk)
 
     def draw_zones(self, frame, width, height):
         # Re-initialize zones in case they have not been initialized

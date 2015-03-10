@@ -74,12 +74,14 @@ class World(object):
         if (self._our_side == 'left' and
                 not(self.our_defender.x < self.their_attacker.x
                     < self.our_attacker.x < self.their_defender.x)):
-            print "WARNING: The sides are probably wrong!"
+            #print "WARNING: The sides are probably wrong!"
+            pass
 
         if (self._our_side == 'right' and
                 not(self.our_defender.x > self.their_attacker.x
                     > self.our_attacker.x > self.their_defender.x)):
-            print "WARNING: The sides are probably wrong!"
+            #print "WARNING: The sides are probably wrong!"
+            pass
 
     def ball_in_area(self, robots):
         """

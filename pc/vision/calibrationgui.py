@@ -1,91 +1,66 @@
 import cv2
 import numpy as np
+#from pc.gui.wrapper import CONTROLS
+from PIL import Image, ImageTk
+
+KEYS = {'y': 'yellow',
+        'r': 'red',
+        'b': 'blue',
+        'd': 'dot',
+        'p': 'plate'}
 
 CONTROLS = ["LH", "UH", "LS", "US", "LV", "UV", "LR", "UR", "LG", "UG", "LB", "UB", "CT", "BL"]
-
-MAXBAR = {"LH": 360,
-          "UH": 360,
-          "LS": 255,
-          "US": 255,
-          "LV": 255,
-          "UV": 255,
-          "LR": 255,
-          "UR": 255,
-          "LG": 255,
-          "UG": 255,
-          "LB": 255,
-          "UB": 255,
-          "CT": 100,
-          "BL": 100}
-
-INDEX = {"LH": 0,
-         "UH": 0,
-         "LS": 1,
-         "US": 1,
-         "LV": 2,
-         "UV": 2,
-         "LR": 3,
-         "UR": 3,
-         "LG": 4,
-         "UG": 4,
-         "LB": 5,
-         "UB": 5}
-
-KEYS = {ord('y'): 'yellow',
-        ord('r'): 'red',
-        ord('b'): 'blue',
-        ord('d'): 'dot',
-        ord('p'): 'plate'}
 
 
 class CalibrationGUI(object):
 
-    def __init__(self, calibration):
+    def __init__(self, wrapper, calibration):
         self.color = 'plate'
-        # self.pre_options = pre_options
+        self.wrapper = wrapper
         self.calibration = calibration
-        self.maskWindowName = "Mask " + self.color
         self.set_window()
 
     def set_window(self):
-        cv2.namedWindow(self.maskWindowName)
+        # Hue
+        self.wrapper.sliders['LH'].set(self.calibration[self.color]['hsv_min'][0])
+        self.wrapper.sliders['UH'].set(self.calibration[self.color]['hsv_max'][0])
 
-        # Make trackbars
-        create_trackbar = lambda setting, value: cv2.createTrackbar(
-            setting, self.maskWindowName, int(value), MAXBAR[setting], nothing)
+        # Saturation
+        self.wrapper.sliders['LS'].set(self.calibration[self.color]['hsv_min'][1])
+        self.wrapper.sliders['US'].set(self.calibration[self.color]['hsv_max'][1])
 
-        create_trackbar('LH', self.calibration[self.color]['hsv_min'][0])  # Hue
-        create_trackbar('UH', self.calibration[self.color]['hsv_max'][0])
-        create_trackbar('LS', self.calibration[self.color]['hsv_min'][1])  # Sat
-        create_trackbar('US', self.calibration[self.color]['hsv_max'][1])
-        create_trackbar('LV', self.calibration[self.color]['hsv_min'][2])  # Val
-        create_trackbar('UV', self.calibration[self.color]['hsv_max'][2])
-        create_trackbar('LR', self.calibration[self.color]['rgb_min'][0])  # Red
-        create_trackbar('UR', self.calibration[self.color]['rgb_max'][0])
-        create_trackbar('LG', self.calibration[self.color]['rgb_min'][1])  # Green
-        create_trackbar('UG', self.calibration[self.color]['rgb_max'][1])
-        create_trackbar('LB', self.calibration[self.color]['rgb_min'][2])  # Blue
-        create_trackbar('UB', self.calibration[self.color]['rgb_max'][2])
-        create_trackbar('CT', self.calibration[self.color]['contrast'])  # Cont
-        create_trackbar('BL', self.calibration[self.color]['blur'])  # Blur
+        # Value
+        self.wrapper.sliders['LV'].set(self.calibration[self.color]['hsv_min'][2])
+        self.wrapper.sliders['UV'].set(self.calibration[self.color]['hsv_max'][2])
 
-        cv2.moveWindow(self.maskWindowName, 512, 0)
+        # Red
+        self.wrapper.sliders['LR'].set(self.calibration[self.color]['rgb_min'][0])
+        self.wrapper.sliders['UR'].set(self.calibration[self.color]['rgb_max'][0])
+
+        # Green
+        self.wrapper.sliders['LG'].set(self.calibration[self.color]['rgb_min'][1])
+        self.wrapper.sliders['UG'].set(self.calibration[self.color]['rgb_max'][1])
+
+        # Blue
+        self.wrapper.sliders['LB'].set(self.calibration[self.color]['rgb_min'][2])
+        self.wrapper.sliders['UB'].set(self.calibration[self.color]['rgb_max'][2])
+
+        # Contrast/blur
+        self.wrapper.sliders['CT'].set(self.calibration[self.color]['contrast'])
+        self.wrapper.sliders['BL'].set(self.calibration[self.color]['blur'])
 
     def change_color(self, color):
-        cv2.destroyWindow(self.maskWindowName)
+        self.wrapper.calibration_label.configure(text="Calibrating "+self.color+" mask")
         self.color = color
-        self.maskWindowName = "Mask " + self.color
         self.set_window()
 
     def show(self, frame, key=None):
-        if key != 255:
-            try:
-                self.change_color(KEYS[key])
-            except:
-                pass
+        try:
+            self.change_color(KEYS[key])
+        except:
+            pass
 
-        get_trackbar_pos = \
-            lambda val: cv2.getTrackbarPos(val, self.maskWindowName)
+        get_trackbar_pos = lambda val: self.wrapper.sliders[val].get()
 
         values = {}
         for setting in CONTROLS:
@@ -106,7 +81,14 @@ class CalibrationGUI(object):
         self.calibration[self.color]['blur'] = values['BL']
 
         mask = self.get_mask(frame)
-        cv2.imshow(self.maskWindowName, mask)
+
+        # If the image is not just a blank array
+        if np.any(mask):
+            # Convert the image to Tkinter format, and display
+            cv2img = cv2.cvtColor(mask, cv2.COLOR_BGR2RGBA)
+            img = Image.fromarray(cv2img)
+            img_tk = ImageTk.PhotoImage(image=img)
+            self.wrapper.root.calibration_frame.configure(image=img_tk)
 
     # Duplicated from tracker.py
     def get_mask(self, frame):

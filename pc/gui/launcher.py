@@ -74,6 +74,7 @@ class Launcher(Frame):
     def clean_launch(self):
         # Sets a flag to true, and then closes the launcher
         self.launching = True
+        self.destroy()
         self.quit()
 
     def calibrate_table(self):
