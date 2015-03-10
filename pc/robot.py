@@ -13,7 +13,7 @@ _STATUS = "STATUS"
 _COMM_DELIMITER = ' '
 _COMM_TERMINAL = '\n'
 
-_UPDATE_FREQ = 100  # Update state at most every 500 ms
+_UPDATE_FREQ = 100  # How often (in ms) we may update state (prevents flooding)
 
 # Robot constants
 _ROTARY_SENSOR_RESOLUTION = 2.0
@@ -47,9 +47,9 @@ class Robot(object):
         :return: A robot object used to initialize the robot and send commands
         :rtype: Robot
         """
-        self.current_command = None
+        self._current_command = None
         self.ready = False  # True if ready to receive a command
-        self.grabber_open = False
+        self.grabber_open = True
         self.is_grabbing = False
         self.is_moving = False
         self.is_kicking = False
@@ -69,6 +69,40 @@ class Robot(object):
             self.ready = True
             self._ack_bit = '0'
 
+    @property
+    def current_command(self):
+        if self._current_command is not None:
+            cmd, args = self._current_command
+            if args is not None:  # Append arguments
+                for arg in args:
+                    cmd += _COMM_DELIMITER + arg
+            cmd += _COMM_DELIMITER + self._ack_bit  # Append ack bit
+            cmd += _COMM_TERMINAL  # Append terminal
+            return cmd
+        else:
+            return None
+
+    @current_command.setter
+    def current_command(self, val):
+        """
+        Set the current command.
+        :param val: Iterable/tuple - cmd [args]
+        :return:
+        """
+        try:
+            cmd, args = val
+        except ValueError:
+            raise ValueError("Pass an iterable (cmd, [args])")
+        else:
+            self._current_command = cmd, args
+
+    def reset_command(self):
+        """
+        Set the current command to None. Used by the ack thread once a command
+        has been deemed successful.
+        """
+        self._current_command = None
+
     def _command(self):
         """
         Send a command to the robot then wait for acknowledgement. Resend
@@ -77,22 +111,14 @@ class Robot(object):
 
         send the current command to the robot
         """
-        # Build the command
         if self.current_command is not None:
-            current_command, arguments = self.current_command
-            if arguments is not None:  # Append arguments
-                for arg in arguments:
-                    current_command += _COMM_DELIMITER + arg
-            current_command += _COMM_DELIMITER + self._ack_bit  # Ack bit
-            current_command += _COMM_TERMINAL  # Append terminal char
-
             # Send and wait for ack
             if self._serial is not None:
-                self._serial.write(current_command)
+                self._serial.write(self.current_command)
                 self._serial.flush()
                 self.waiting_for_ack = True
             else:
-                print current_command
+                print self.current_command
 
     def _initialize(self):
         """
@@ -132,7 +158,6 @@ class Robot(object):
         r_dist = str(cm_to_ticks(r_dist))
         self.current_command = \
             (_DRIVE, [l_dist, r_dist, str(l_power), str(r_power)])
-        self.is_moving = True
 
     def stop(self):
         """
@@ -156,7 +181,7 @@ class Robot(object):
         wheel_dist = _WHEELBASE_CIRC_CM * radians / (2 * math.pi)
         self.drive(wheel_dist, -wheel_dist, power, power)
 
-    def open_grabber(self, time=1500, power=100):
+    def open_grabber(self, time=250, power=100):
         """
         Run the grabber motor in the opening direction for the given number of
         milliseconds at the given motor power.
@@ -167,9 +192,8 @@ class Robot(object):
         :type power: int
         """
         self.current_command = (_OPEN_GRABBER, [str(time), str(power)])
-        self.is_grabbing = True
 
-    def close_grabber(self, time=1500, power=100):
+    def close_grabber(self, time=250, power=100):
         """
         Run the grabber motor in the closing direction for the given number of
         milliseconds at the given motor power.
@@ -180,9 +204,8 @@ class Robot(object):
         :type power: int
         """
         self.current_command = (_CLOSE_GRABBER, [str(time), str(power)])
-        self.is_grabbing = True
 
-    def kick(self, time=700, power=100):
+    def kick(self, time=600, power=100):
         """
         Run the kicker motor forward for the given number of milliseconds at the
         given motor speed.
@@ -193,7 +216,6 @@ class Robot(object):
         :type power: int
         """
         self.current_command = (_KICK, [str(time), str(power)])
-        self.is_kicking = True
 
     def teardown(self):
         """
@@ -201,8 +223,13 @@ class Robot(object):
         serial port.
         """
         if self._serial is not None:
-            self.drive(0, 0)  # Stop drive motors
-            self.close_grabber()
+            while self.is_moving:
+                self.stop()  # Stop drive motors
+            while self.grabber_open:
+                if self.is_grabbing:
+                    self.update_state()
+                else:
+                    self.close_grabber()
             self._serial.flush()
             self._serial.close()
             print "Robot teardown complete. Serial connection is closed."
@@ -232,7 +259,8 @@ class Robot(object):
             if self.waiting_for_ack:
                 ack = self._serial.readline()
                 if len(ack) == 8 and ack[0] == self._ack_bit:  # Successful ack
-                    self._ack_bit = '0' if self._ack_bit == '1' else '0'  # Flip
+                    print ack
+                    self._ack_bit = '1' if self._ack_bit == '0' else '0'  # Flip
                     self.grabber_open = ack[1] == '1'
                     self.is_grabbing = ack[2] == '1'
                     self.is_moving = ack[3] == '1'
@@ -240,7 +268,7 @@ class Robot(object):
                     self.ball_grabbed = ack[5] == '1'
 
                     self.waiting_for_ack = False
-                    self.current_command = None
+                    self.reset_command()
                 else:
                     # Ack failed, send command again
                     self._command()

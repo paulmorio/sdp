@@ -109,9 +109,11 @@ void closeGrabber() {
    */
   int time = atoi(comm.next());
   int power = atoi(comm.next());
-  motorBackward(MOTOR_G, power);
-  grabTimer = millis() + time;
-  isGrabbing = true;
+  if (grabberOpen && !isGrabbing) {
+    motorBackward(MOTOR_G, power);
+    grabTimer = millis() + time;
+    isGrabbing = true;
+  }
   ack();
 }
 
@@ -122,9 +124,11 @@ void openGrabber() {
    */
   int time = atoi(comm.next());
   int power = atoi(comm.next());
-  motorForward(MOTOR_G, power);
-  grabTimer = millis() + time;
-  isGrabbing = true;
+  if (!grabberOpen && !isGrabbing) {
+    motorForward(MOTOR_G, power);
+    grabTimer = millis() + time;
+    isGrabbing = true;
+  }
   ack();
 }
 
@@ -136,21 +140,24 @@ void kick() {
    */
   int time = atoi(comm.next());
   int power = atoi(comm.next());
-  motorForward(MOTOR_K, power);
-  kickTimer = millis() + time;
+  if (!isKicking) {
+    motorForward(MOTOR_K, power);
+    kickTimer = millis() + time;
+    isKicking = true;
+  }
   ack();
 }
 
 void checkTimers() {
   /* Check kicker and grabber timers */
   unsigned long time = millis();
-  if (grabTimer && time >= grabTimer) {  // Grab timer test
+  if (isGrabbing && time >= grabTimer) {  // Grab timer test
     motorStop(MOTOR_G);
     grabTimer = 0;
     grabberOpen = !grabberOpen;
     isGrabbing = false;
   }
-  if (kickTimer && time >= kickTimer) {  // Kick timer test
+  if (isKicking && time >= kickTimer) {  // Kick timer test
     kickTimer = 0;
     isKicking = false;
     motorStop(MOTOR_K);
@@ -159,7 +166,7 @@ void checkTimers() {
 
 void checkSensors() {
   /* Update the sensor states/counters and stop motors if necessary */
-  // Get rotary diffs from slave
+  // Get sensor status from slave
   Wire.requestFrom(ROTARY_SLAVE_ADDRESS, ROTARY_COUNT + SENSOR_COUNT);
   
   // Update counters and check for completion
