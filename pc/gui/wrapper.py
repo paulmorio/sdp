@@ -72,15 +72,12 @@ class Wrapper:
         self.key = 'p'
 
         # The OpenCV-based calibration and vision GUIs, which get wrapped
-        self.calibration_gui = calibrationgui.CalibrationGUI(self.calibration_label, self.calibration_frame,
-                                                             self.sliders, self._calibration)
-        self.gui = visiongui.VisionGUI(self.vision_frame, self._pitch)
+        self.calibration_gui = calibrationgui.CalibrationGUI(self, self._calibration)
+        self.gui = visiongui.VisionGUI(self, self._pitch)
 
     def key_press(self, event):
         """
         Sets the value of self.key upon a keypress
-
-        :return:
         """
         # Raise a flag that a key_event has occurred (used by calibration to change colour mode when needed)
         self.key_event = True

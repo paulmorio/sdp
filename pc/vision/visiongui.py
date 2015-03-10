@@ -3,7 +3,6 @@ from colours import BGR_COMMON
 import numpy as np
 import tools
 import warnings
-from Tkinter import Label
 from PIL import Image, ImageTk
 
 
@@ -15,8 +14,8 @@ TEAM_COLORS = set(['yellow', 'blue'])
 
 class VisionGUI(object):
 
-    def __init__(self, vision_frame, pitch):
-        self.vision_frame = vision_frame
+    def __init__(self, wrapper, pitch):
+        self.wrapper = wrapper
         self.pitch = pitch
         self.zones = None
 
@@ -102,8 +101,8 @@ class VisionGUI(object):
         # Convert the image to Tkinter format, and display
         img = Image.fromarray(cv2.cvtColor(frame_with_blank, cv2.COLOR_BGR2RGBA))
         img_tk = ImageTk.PhotoImage(image=img)
-        self.vision_frame.img_tk = img_tk
-        self.vision_frame.configure(image=img_tk)
+        self.wrapper.vision_frame.img_tk = img_tk
+        self.wrapper.vision_frame.configure(image=img_tk)
 
     def draw_zones(self, frame, width, height):
         # Re-initialize zones in case they have not been initialized
