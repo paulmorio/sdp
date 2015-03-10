@@ -65,9 +65,7 @@ class Arbiter(object):
 
     def run(self):
         """
-        Main loop of the system. Grabs frames and passes them to the GUIs and
-        the world state.
-        Also captures keys for exit (escape) and for the calibration gui.
+
         """
 
         try:

@@ -1,6 +1,6 @@
-from Tkinter import *
 import time
 from pc.vision import calibrationgui, visiongui
+from Tkinter import *
 
 CONTROLS = ["LH", "UH", "LS", "US", "LV", "UV", "LR", "UR", "LG", "UG", "LB", "UB", "CT", "BL"]
 
@@ -33,20 +33,24 @@ class Wrapper:
         self._colour = colour
         self._side = side
 
+        # Initialize the main GUI
         self.root = Tk()
         self.root.resizable(width=FALSE, height=FALSE)
-        self.root.wm_title("Wrapper Test")
+        self.root.wm_title("Vision Wrapper")
         self.root.bind('<Key>', self.key_press)
+        # Escape to quit
         self.root.bind('<Escape>', lambda e: self.root.quit())
 
-        # [Title                                       ]
-        # [Vision Frame (+fps etc)][-------------------]
-        # [Calibration Frame Label][-------------------]
-        # [Calibration Frame      ][Calibration Sliders]
+        # Layout
+        # [Title                                 ]
+        # [Vision Frame (+fps etc)][-------------]
+        # [Calibration Label      ][Slider Labels]
+        # [Calibration Frame      ][Sliders      ]
+
         # Labels
-        self.vision_label = Label(self.root, text="Group 7 - SDP - GUI Test")
-        self.vision_label.grid(row=0, column=0, columnspan=5)
-        self.calibration_label = Label(self.root, text="Calibrating: plate mask")
+        self.title = Label(self.root, text="Group 7 - SDP - Vision GUI", height=2)
+        self.title.grid(row=0, column=0, columnspan=100)
+        self.calibration_label = Label(self.root, text="Calibrating: plate mask", height=2)
         self.calibration_label.grid(row=2, column=0)
         # Frames
         self.vision_frame = Label(self.root)
@@ -55,14 +59,22 @@ class Wrapper:
         self.calibration_frame.grid(row=3, column=0)
         # Sliders
         self.sliders = {}
+        self.slider_labels = {}
         for index, setting in enumerate(CONTROLS):
-            self.sliders[setting] = Scale(self.root, from_=0, to=MAX_BAR[setting], label=setting)
+            self.sliders[setting] = Scale(self.root, from_=0, to=MAX_BAR[setting], length=300, width=10)
             self.sliders[setting].grid(row=3, column=(index+1))
 
+            self.slider_labels[setting] = Label(self.root, text=setting)
+            self.slider_labels[setting].grid(row=2, column=(index+1))
+
+        # Used by the calibration GUI to know which mode to calibrate (plate/dot/red etc)
+        self.key_event = False
         self.key = 'p'
 
-        self._calibration_gui = calibrationgui.CalibrationGUI(self, self._calibration)
-        self._gui = visiongui.VisionGUI(self, self._pitch)
+        # The OpenCV-based calibration and vision GUIs, which get wrapped
+        self.calibration_gui = calibrationgui.CalibrationGUI(self.calibration_label, self.calibration_frame,
+                                                             self.sliders, self._calibration)
+        self.gui = visiongui.VisionGUI(self.vision_frame, self._pitch)
 
     def key_press(self, event):
         """
@@ -70,10 +82,15 @@ class Wrapper:
 
         :return:
         """
+        # Raise a flag that a key_event has occurred (used by calibration to change colour mode when needed)
+        self.key_event = True
         self.key = event.char
 
     def tick(self):
-
+        """
+        Main loop of the system. Grabs frames and passes them to the GUIs and
+        the world state.
+        """
         counter = 1L
         timer = time.clock()
 
@@ -91,19 +108,23 @@ class Wrapper:
             p_state = self._planner._state
             s_state = self._planner._strategy.state
 
+        # TODO: this seems to have lost some of its accuracy..
         fps = float(counter) / (time.clock() - timer)
 
-        self.vision_frame.configure(text="FPS: "+'%.2f' % fps)
-
         # Draw GUIs
-        self._calibration_gui.show(frame, key=self.key)
-        self._gui.draw(frame, model_positions, regular_positions,
-                       grabbers, fps, self._colour, self._side, p_state,
-                       s_state)
+        self.calibration_gui.show(frame, self.key_event, key=self.key)
+        self.gui.draw(frame, model_positions, regular_positions,
+                      grabbers, fps, self._colour, self._side, p_state,
+                      s_state)
 
         counter += 1
+        # Reset the key_event flag
+        self.key_event = False
         self.root.after(1, self.tick)
 
     def render(self):
+        """
+        The loop enabler for the GUI/program
+        """
         self.tick()
         self.root.mainloop()

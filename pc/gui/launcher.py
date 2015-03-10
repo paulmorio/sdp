@@ -11,7 +11,7 @@ class Launcher(Frame):
         self.gui_root.resizable(width=FALSE, height=FALSE)
         self.gui_root.wm_title("Launcher")
 
-        Label(self.gui_root, text="Group 7 SDP - Test Launcher").grid(row=0, column=0, columnspan=2)
+        Label(self.gui_root, text="Group 7 - SDP - Launcher", height=2).grid(row=0, column=0, columnspan=2)
         self.gui_root.bind('<Escape>', lambda e: self.gui_root.quit())
 
         self.launching = False
@@ -57,7 +57,7 @@ class Launcher(Frame):
         profile_select.grid(row=4, column=1)
         # Comms
         Label(self.gui_root, text="Comms:").grid(row=5, column=0)
-        self.comms.set(True)
+        self.comms.set(False)
         comms_select = OptionMenu(self.gui_root, self.comms, True, False)
         comms_select.grid(row=5, column=1)
         # Pitch calibration
@@ -72,13 +72,17 @@ class Launcher(Frame):
         launch.grid(row=7, column=0)
 
     def clean_launch(self):
-        # Sets a flag to true, and then closes the launcher
+        """
+        Sets a flag to true, and then closes the launcher
+        """
         self.launching = True
-        self.destroy()
-        self.quit()
+        self.gui_root.destroy()
 
     def calibrate_table(self):
-        # TODO: this fails to close the calibration window
+        """
+        Run the table calibration tool from the launcher
+        """
+        # TODO: this crashes the program - seems to fail to close the calibration window
         from pc.vision.table_setup import TableSetup
         table_setup = TableSetup(int(self.pitch.get()))
         table_setup.run()

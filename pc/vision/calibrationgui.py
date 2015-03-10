@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-#from pc.gui.wrapper import CONTROLS
+#from pc.gui.wrapper import CONTROLS # TODO: no bueno?
 from PIL import Image, ImageTk
 
 KEYS = {'y': 'yellow',
@@ -14,53 +14,56 @@ CONTROLS = ["LH", "UH", "LS", "US", "LV", "UV", "LR", "UR", "LG", "UG", "LB", "U
 
 class CalibrationGUI(object):
 
-    def __init__(self, wrapper, calibration):
+    def __init__(self, calibration_label_wrapper, calibration_frame_wrapper, sliders, calibration):
         self.color = 'plate'
-        self.wrapper = wrapper
+        self.calibration_frame_wrapper = calibration_frame_wrapper
+        self.sliders = sliders
+        self.calibration_label_wrapper = calibration_label_wrapper
         self.calibration = calibration
         self.set_window()
 
     def set_window(self):
         # Hue
-        self.wrapper.sliders['LH'].set(self.calibration[self.color]['hsv_min'][0])
-        self.wrapper.sliders['UH'].set(self.calibration[self.color]['hsv_max'][0])
+        self.sliders['LH'].set(self.calibration[self.color]['hsv_min'][0])
+        self.sliders['UH'].set(self.calibration[self.color]['hsv_max'][0])
 
         # Saturation
-        self.wrapper.sliders['LS'].set(self.calibration[self.color]['hsv_min'][1])
-        self.wrapper.sliders['US'].set(self.calibration[self.color]['hsv_max'][1])
+        self.sliders['LS'].set(self.calibration[self.color]['hsv_min'][1])
+        self.sliders['US'].set(self.calibration[self.color]['hsv_max'][1])
 
         # Value
-        self.wrapper.sliders['LV'].set(self.calibration[self.color]['hsv_min'][2])
-        self.wrapper.sliders['UV'].set(self.calibration[self.color]['hsv_max'][2])
+        self.sliders['LV'].set(self.calibration[self.color]['hsv_min'][2])
+        self.sliders['UV'].set(self.calibration[self.color]['hsv_max'][2])
 
         # Red
-        self.wrapper.sliders['LR'].set(self.calibration[self.color]['rgb_min'][0])
-        self.wrapper.sliders['UR'].set(self.calibration[self.color]['rgb_max'][0])
+        self.sliders['LR'].set(self.calibration[self.color]['rgb_min'][0])
+        self.sliders['UR'].set(self.calibration[self.color]['rgb_max'][0])
 
         # Green
-        self.wrapper.sliders['LG'].set(self.calibration[self.color]['rgb_min'][1])
-        self.wrapper.sliders['UG'].set(self.calibration[self.color]['rgb_max'][1])
+        self.sliders['LG'].set(self.calibration[self.color]['rgb_min'][1])
+        self.sliders['UG'].set(self.calibration[self.color]['rgb_max'][1])
 
         # Blue
-        self.wrapper.sliders['LB'].set(self.calibration[self.color]['rgb_min'][2])
-        self.wrapper.sliders['UB'].set(self.calibration[self.color]['rgb_max'][2])
+        self.sliders['LB'].set(self.calibration[self.color]['rgb_min'][2])
+        self.sliders['UB'].set(self.calibration[self.color]['rgb_max'][2])
 
         # Contrast/blur
-        self.wrapper.sliders['CT'].set(self.calibration[self.color]['contrast'])
-        self.wrapper.sliders['BL'].set(self.calibration[self.color]['blur'])
+        self.sliders['CT'].set(self.calibration[self.color]['contrast'])
+        self.sliders['BL'].set(self.calibration[self.color]['blur'])
 
     def change_color(self, color):
-        self.wrapper.calibration_label.configure(text="Calibrating "+self.color+" mask")
+        self.calibration_label_wrapper.configure(text="Calibrating "+self.color+" mask")
         self.color = color
         self.set_window()
 
-    def show(self, frame, key=None):
-        try:
-            self.change_color(KEYS[key])
-        except:
-            pass
+    def show(self, frame, key_event, key=None):
+        if key_event:
+            try:
+                self.change_color(KEYS[key])
+            except:
+                pass
 
-        get_trackbar_pos = lambda val: self.wrapper.sliders[val].get()
+        get_trackbar_pos = lambda val: self.sliders[val].get()
 
         values = {}
         for setting in CONTROLS:
@@ -82,13 +85,11 @@ class CalibrationGUI(object):
 
         mask = self.get_mask(frame)
 
-        # If the image is not just a blank array
-        if np.any(mask):
-            # Convert the image to Tkinter format, and display
-            cv2img = cv2.cvtColor(mask, cv2.COLOR_BGR2RGBA)
-            img = Image.fromarray(cv2img)
-            img_tk = ImageTk.PhotoImage(image=img)
-            self.wrapper.root.calibration_frame.configure(image=img_tk)
+        # Convert the image to Tkinter format, and display
+        img = Image.fromarray(cv2.cvtColor(mask, cv2.COLOR_GRAY2RGBA))
+        img_tk = ImageTk.PhotoImage(image=img)
+        self.calibration_frame_wrapper.img_tk = img_tk
+        self.calibration_frame_wrapper.configure(image=img_tk)
 
     # Duplicated from tracker.py
     def get_mask(self, frame):
