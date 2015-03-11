@@ -1,8 +1,8 @@
-from serial import Serial
 import math
-import threading
 import time
-
+from multiprocessing import Process, Pipe
+from communicator import Communicator
+from threading import Thread
 
 # Command string constants
 DRIVE = "DRIVE"
@@ -12,10 +12,6 @@ KICK = "KICK"
 READY = "READY"
 STATUS = "STATUS"
 CMD_DELIMITER = ' '
-CMD_TERMINAL = '\n'
-
-UPDATE_FREQ = 150  # How often (in ms) we may update state (prevents flooding)
-ACK_LEN = 8
 
 # Robot constants
 ROTARY_SENSOR_RESOLUTION = 2.0
@@ -27,153 +23,104 @@ WHEELBASE_CIRC_CM = WHEELBASE_DIAM_CM * math.pi
 
 class Robot(object):
     """
-    Serial connection, IO, and robot actions.
+    Robot actions and feedback.
     """
 
-    def __init__(self, port="/dev/ttyACM0", timeout=0.1,
-                 rate=115200, comms=True):
+    def __init__(self, port="/dev/ttyACM0", comms=True):
         """
-        Create a robot object which provides action methods and opens a serial
-        connection.
+        Create a robot object which provides action methods and robot feedback.
 
         :param port: Default is "/dev/ttyACM0". This changes based on
         platform, etc. The default should correspond to what shows on the DICE
         machines.
-        :type port: str
-        :param timeout: Serial read timeout - used for alternating bit protocol.
-        :type timeout: int
-        :param rate: Baud rate
-        :type rate: int
-        :param comms: Whether to start serial communications.
-        :type comms: bool
-        :return: A robot object used to initialize the robot and send commands
-        :rtype: Robot
+        :param comms: Whether to communicate with the robot.
         """
 
         self._queued_command = None  # Next command to be sent
-        self._current_command = None  # Command currently processing
+        self.waiting_for_ack = False  # Waiting for update from communicator
         self.ready = False  # True if ready to receive a command
         self.grabber_open = True  # Assume open
         self.is_grabbing = False  # Performing a grab
         self.is_moving = False  # Performing a drive/turn
         self.is_kicking = False  # Kick motor is running
         self.ball_grabbed = False  # Ball sensor is pressed
-        self.last_state_update = time.time()*1000 - UPDATE_FREQ
+
+        # Start command thread
+        t = Thread(target=self._commander, args=comms)
+        t.start()
+        self._commander(comms)
 
         if comms:
-            self._ack_bit = '0'
-            self.serial = Serial(port, rate, timeout=timeout)
-            t = threading.Thread(target=self.ack_listener)
-            t.start()
+            # Start communicator subprocess
+            self.comm_pipe, sub_pipe = Pipe()
+            comm = Communicator(sub_pipe, port)
+            p = Process(target=comm.runner)
+            p.start()
+
             self._initialize()
-        else:
-            self.serial = None
-            self.ready = True
-
-    @property
-    def current_command(self):
-        """
-        Build the command string.
-        :return: Command string for passing to the arduino.
-        """
-        if self._current_command is not None:
-            cmd, args = self._current_command
-            if args is not None:  # Append arguments
-                for arg in args:
-                    cmd += CMD_DELIMITER + arg
-            cmd += CMD_DELIMITER + self._ack_bit  # Ack bit
-            cmd += CMD_TERMINAL  # Append terminal char
-            return cmd
-
-    def get_queued_command(self):
-        """
-        Set current command to the queued command.
-        """
-        self._current_command = self._queued_command
-        self._queued_command = None
 
     @property
     def queued_command(self):
-        return self._queued_command
+        if self._queued_command is not None:
+            cmd, arguments = self._queued_command
+            for arg in arguments:
+                cmd += CMD_DELIMITER + arg
+            return cmd
+        else:
+            return None
 
     @queued_command.setter
     def queued_command(self, val):
         """
-        Set the current command.
+        Set the current command. Can only set if it is currently none.
         :param val: Iterable/tuple - cmd [args]
         """
         try:
-            cmd, args = val
+            cmd, arguments = val
         except ValueError:
             raise ValueError("Pass an iterable (cmd, [args])")
         else:
-            self._queued_command = cmd, args
+            self._queued_command = cmd, arguments
 
-    @property
-    def is_busy(self):
+    def reset_queued_command(self):
+        self._queued_command = None
+
+    def _commander(self, comms):
         """
-        Whether the communicator is currently dealing with a command.
-        :return: True if current command is none, else false
+        Reads queued commands, sends them to the communicator, then waits for
+        the ack/status update.
+
+        If comms is false then just print the queued command and clear it.
         """
-        return self._current_command is None
+        if self.waiting_for_ack:
+            if self.comm_pipe.poll():
+                state_str = self.comm_pipe.recv()  # TODO exit on exception
+                self._update_state_bits(state_str)
+                self.waiting_for_ack = False
+                self.reset_queued_command()
 
-    def ack_listener(self):
-        """
-        Listener for acks and status updates.
-
-        Wait for the robot to acknowledge the most recent command. Resend
-        this command if no acknowledgement is received within the serial port
-        timeout.
-
-        The acknowledge packet is of the following format:
-        [ack_bit][grabber_open][is_grabbing][is_moving][is_kicking]
-        """
-        while self.serial is not None:
-            if self.current_command is not None:  # Dealing with a command
-                ack = self.serial.readline()
-
-                if self.ack_test_and_update(ack):  # Successful ack
-                    self.get_queued_command()
-
-                else:  # Failed ack
-                    self._command()
-
-            elif self.queued_command is not None:  # There is a queued command
-                # New command
-                self.get_queued_command()
-                self._command()
-
+        elif self.queued_command is not None:  # There is a queued command
+            if comms:
+                self.comm_pipe.send(self.queued_command)
+                self.waiting_for_ack = True
             else:
-                self.update_state()
+                print self.queued_command[0]
+                self.reset_queued_command()
 
-    def _command(self):
-        """
-        Send the current command to the robot.
-        """
-        cmd = self.current_command
-        if cmd is not None:
-            # Send and wait for ack
-            if self.serial is not None:
-                self.serial.write(cmd)
-                self.serial.flush()
-            else:
-                print cmd
+        elif self.ready:  # If there is no queued command, request status
+            self.update_state()
 
-    def ack_test_and_update(self, ack):
+    def _update_state_bits(self, string):
         """
-        If the given ack is valid, update the robot state bits.
-        :param ack: Ack string received from robot
-        :return: Whether the act is valid.
+        Given the state part of an ack string, update the robot's state bits.
+        :param string: State part of an ack string received from the robot.
         """
-        test = len(ack) == ACK_LEN and ack[0] == self._ack_bit
-        if test:
-            self._ack_bit = '1' if self._ack_bit == '0' else '0'  # Flip
-            self.grabber_open = ack[1] == '1'
-            self.is_grabbing = ack[2] == '1'
-            self.is_moving = ack[3] == '1'
-            self.is_kicking = ack[4] == '1'
-            self.ball_grabbed = ack[5] == '1'
-        return test
+        self.grabber_open = string[0] == '1'
+        self.is_grabbing = string[1] == '1'
+        self.is_moving = string[2] == '1'
+        self.is_grabbing = string[3] == '1'
+        self.is_kicking = string[4] == '1'
+        self.ball_grabbed = string[5] == '1'
 
     def _initialize(self):
         """
@@ -192,18 +139,21 @@ class Robot(object):
         Stop robot motors, set grabber to default position, then close the
         serial port.
         """
-        if self.serial is not None:
-            while self.is_moving:
-                self.stop()  # Stop drive motors
-            while self.grabber_open:
-                if self.is_grabbing:
-                    self.update_state()
-                else:
-                    self.close_grabber()
-            self.serial.flush()
-            self.serial.close()
-            self.serial = None
-            print "Robot teardown complete. Serial connection is closed."
+        while self.is_moving:
+            self.stop()  # Stop drive motors
+        while self.grabber_open:
+            if self.is_grabbing:
+                self.update_state()
+            else:
+                self.close_grabber()
+        # TODO stop subprocess
+        print "Robot teardown complete."
+
+    def update_state(self):
+        """
+        Dummy action to get an ack with updated state from the bot.
+        """
+        self.queued_command = (STATUS, [])
 
     def drive(self, l_dist, r_dist, l_power=70, r_power=70):
         """
@@ -215,13 +165,10 @@ class Robot(object):
 
         :param l_dist: Distance travelled by the left wheel in centimetres. A
         negative value runs the motor in reverse (drive backward).
-        :type l_dist: float
         :param r_dist: Distance travelled by the right wheel in centimetres. A
         negative value runs the motor in reverse (drive backward).
-        :type r_dist: float
         :param l_power: Motor power from 0-100 - note that low values may not
         provide enough torque for movement.
-        :type l_power: int
         :param r_power: Motor power from 0-100 - low values may not provide
         enough torque for drive.
         """
@@ -247,9 +194,7 @@ class Robot(object):
 
         :param radians: Radians to turn from current orientation. Sign indicates
                         direction (negative -> leftward, positive -> rightward)
-        :type radians: float
         :param power: Motor power
-        :type power: int
         """
         wheel_dist = WHEELBASE_CIRC_CM * radians / (2 * math.pi)
         self.drive(wheel_dist, -wheel_dist, power, power)
@@ -260,9 +205,7 @@ class Robot(object):
         milliseconds at the given motor power.
 
         :param time: Time to run the motor in milliseconds.
-        :type time: int
         :param power: Motor power from 0-100
-        :type power: int
         """
         self.queued_command = (OPEN_GRABBER, [str(time), str(power)])
 
@@ -272,9 +215,7 @@ class Robot(object):
         milliseconds at the given motor power.
 
         :param time: Time to run the motor in milliseconds.
-        :type time: int
         :param power: Motor power from 0-100
-        :type power: int
         """
         self.queued_command = (CLOSE_GRABBER, [str(time), str(power)])
 
@@ -284,21 +225,9 @@ class Robot(object):
         given motor speed.
 
         :param time: Time to run the motor in milliseconds
-        :type time: int
         :param power: Motor power from 0-100
-        :type power: int
         """
         self.queued_command = (KICK, [str(time), str(power)])
-
-    def update_state(self):
-        """
-        Dummy action to get an ack with updated state from the bot.
-        """
-        current_time_ms = time.time()*1000
-        if not self.ready \
-                or current_time_ms >= self.last_state_update + UPDATE_FREQ:
-            self.last_state_update = current_time_ms
-            self.queued_command = (STATUS, [])
 
 
 class ManualController(object):
@@ -312,16 +241,11 @@ class ManualController(object):
     See manual_controls.txt for controls.
     """
 
-    def __init__(self, port="/dev/ttyACM0", rate=115200):
+    def __init__(self, port="/dev/ttyACM0"):
         """
         :param port: Serial port to be used. Default is fine for DICE
-        :type port: str
-        :param rate: Baudrate. Default is 115200
-        :type rate: int
-        :return: A manualcontroller with an initialised robot object
-        :rtype: ManualController
         """
-        self.robot = Robot(port=port, rate=rate)
+        self.robot = Robot(port)
         self.root = None
 
     def start(self):
