@@ -3,24 +3,26 @@ import math
 import threading
 import time
 
-# Command string constants
-_DRIVE = "DRIVE"
-_OPEN_GRABBER = "O_GRAB"
-_CLOSE_GRABBER = "C_GRAB"
-_KICK = "KICK"
-_READY = "READY"
-_STATUS = "STATUS"
-_COMM_DELIMITER = ' '
-_COMM_TERMINAL = '\n'
 
-_UPDATE_FREQ = 100  # How often (in ms) we may update state (prevents flooding)
+# Command string constants
+DRIVE = "DRIVE"
+OPEN_GRABBER = "O_GRAB"
+CLOSE_GRABBER = "C_GRAB"
+KICK = "KICK"
+READY = "READY"
+STATUS = "STATUS"
+CMD_DELIMITER = ' '
+CMD_TERMINAL = '\n'
+
+UPDATE_FREQ = 150  # How often (in ms) we may update state (prevents flooding)
+ACK_LEN = 8
 
 # Robot constants
-_ROTARY_SENSOR_RESOLUTION = 2.0
-_WHEEL_DIAM_CM = 8.16
-_TICK_DIST_CM = math.pi * _WHEEL_DIAM_CM * _ROTARY_SENSOR_RESOLUTION / 360.0
-_WHEELBASE_DIAM_CM = 10.93
-_WHEELBASE_CIRC_CM = _WHEELBASE_DIAM_CM * math.pi
+ROTARY_SENSOR_RESOLUTION = 2.0
+WHEEL_DIAM_CM = 8.16
+TICK_DIST_CM = math.pi * WHEEL_DIAM_CM * ROTARY_SENSOR_RESOLUTION / 360.0
+WHEELBASE_DIAM_CM = 10.93
+WHEELBASE_CIRC_CM = WHEELBASE_DIAM_CM * math.pi
 
 
 class Robot(object):
@@ -47,78 +49,123 @@ class Robot(object):
         :return: A robot object used to initialize the robot and send commands
         :rtype: Robot
         """
-        self._current_command = None
+
+        self._queued_command = None  # Next command to be sent
+        self._current_command = None  # Command currently processing
         self.ready = False  # True if ready to receive a command
-        self.grabber_open = True
-        self.is_grabbing = False
-        self.is_moving = False
-        self.is_kicking = False
-        self.ball_grabbed = False
-        self.last_state_update = time.time()*1000 - _UPDATE_FREQ
-        self.waiting_for_ack = False
+        self.grabber_open = True  # Assume open
+        self.is_grabbing = False  # Performing a grab
+        self.is_moving = False  # Performing a drive/turn
+        self.is_kicking = False  # Kick motor is running
+        self.ball_grabbed = False  # Ball sensor is pressed
+        self.last_state_update = time.time()*1000 - UPDATE_FREQ
 
         if comms:
-            t = threading.Thread(target=self.ack_listener)
-            t.daemon = True
-            t.start()
             self._ack_bit = '0'
-            self._serial = Serial(port, rate, timeout=timeout)
+            self.serial = Serial(port, rate, timeout=timeout)
+            t = threading.Thread(target=self.ack_listener)
+            t.start()
             self._initialize()
         else:
-            self._serial = None
+            self.serial = None
             self.ready = True
-            self._ack_bit = '0'
 
     @property
     def current_command(self):
+        """
+        Build the command string.
+        :return: Command string for passing to the arduino.
+        """
         if self._current_command is not None:
             cmd, args = self._current_command
             if args is not None:  # Append arguments
                 for arg in args:
-                    cmd += _COMM_DELIMITER + arg
-            cmd += _COMM_DELIMITER + self._ack_bit  # Append ack bit
-            cmd += _COMM_TERMINAL  # Append terminal
+                    cmd += CMD_DELIMITER + arg
+            cmd += CMD_DELIMITER + self._ack_bit  # Ack bit
+            cmd += CMD_TERMINAL  # Append terminal char
             return cmd
-        else:
-            return None
 
-    @current_command.setter
-    def current_command(self, val):
+    def get_queued_command(self):
+        """
+        Set current command to the queued command.
+        """
+        self._current_command = self._queued_command
+        self._queued_command = None
+
+    @property
+    def queued_command(self):
+        return self._queued_command
+
+    @queued_command.setter
+    def queued_command(self, val):
         """
         Set the current command.
         :param val: Iterable/tuple - cmd [args]
-        :return:
         """
         try:
             cmd, args = val
         except ValueError:
             raise ValueError("Pass an iterable (cmd, [args])")
         else:
-            self._current_command = cmd, args
+            self._queued_command = cmd, args
 
-    def reset_command(self):
+    def ack_listener(self):
         """
-        Set the current command to None. Used by the ack thread once a command
-        has been deemed successful.
+        Listener for acks and status updates.
+
+        Wait for the robot to acknowledge the most recent command. Resend
+        this command if no acknowledgement is received within the serial port
+        timeout.
+
+        The acknowledge packet is of the following format:
+        [ack_bit][grabber_open][is_grabbing][is_moving][is_kicking]
         """
-        self._current_command = None
+        while self.serial is not None:
+            if self.current_command is not None:  # Dealing with a command
+                ack = self.serial.readline()
+
+                if self.ack_test_and_update(ack):  # Successful ack
+                    self.get_queued_command()
+
+                else:  # Failed ack
+                    self._command()
+
+            elif self.queued_command is not None:  # There is a queued command
+                # New command
+                self.get_queued_command()
+                self._command()
+
+            else:
+                self.update_state()
 
     def _command(self):
         """
-        Send a command to the robot then wait for acknowledgement. Resend
-        the command if no acknowledgement is received within the serial read
-        timeout.
-
-        send the current command to the robot
+        Send the current command to the robot.
         """
-        if self.current_command is not None:
+        cmd = self.current_command
+        if cmd is not None:
             # Send and wait for ack
-            if self._serial is not None:
-                self._serial.write(self.current_command)
-                self._serial.flush()
-                self.waiting_for_ack = True
+            if self.serial is not None:
+                self.serial.write(cmd)
+                self.serial.flush()
             else:
-                print self.current_command
+                print cmd
+
+    def ack_test_and_update(self, ack):
+        """
+        If the given ack is valid, update the robot state bits.
+        :param ack: Ack string received from robot
+        :return: Whether the act is valid.
+        """
+        test = len(ack) == ACK_LEN and ack[0] == self._ack_bit
+        if test:
+            self._ack_bit = '1' if self._ack_bit == '0' else '0'  # Flip
+            self.grabber_open = ack[1] == '1'
+            self.is_grabbing = ack[2] == '1'
+            self.is_moving = ack[3] == '1'
+            self.is_kicking = ack[4] == '1'
+            self.ball_grabbed = ack[5] == '1'
+        return test
 
     def _initialize(self):
         """
@@ -131,6 +178,24 @@ class Robot(object):
             else:
                 self.update_state()
         self.ready = True
+
+    def teardown(self):
+        """
+        Stop robot motors, set grabber to default position, then close the
+        serial port.
+        """
+        if self.serial is not None:
+            while self.is_moving:
+                self.stop()  # Stop drive motors
+            while self.grabber_open:
+                if self.is_grabbing:
+                    self.update_state()
+                else:
+                    self.close_grabber()
+            self.serial.flush()
+            self.serial.close()
+            self.serial = None
+            print "Robot teardown complete. Serial connection is closed."
 
     def drive(self, l_dist, r_dist, l_power=70, r_power=70):
         """
@@ -153,11 +218,11 @@ class Robot(object):
         enough torque for drive.
         """
         # Currently rounding down strictly as too little is better than too much
-        cm_to_ticks = lambda cm: int(cm / _TICK_DIST_CM)
+        cm_to_ticks = lambda cm: int(cm / TICK_DIST_CM)
         l_dist = str(cm_to_ticks(l_dist))
         r_dist = str(cm_to_ticks(r_dist))
-        self.current_command = \
-            (_DRIVE, [l_dist, r_dist, str(l_power), str(r_power)])
+        self.queued_command = \
+            (DRIVE, [l_dist, r_dist, str(l_power), str(r_power)])
 
     def stop(self):
         """
@@ -165,7 +230,7 @@ class Robot(object):
         """
         self.drive(0, 0)
 
-    def turn(self, radians, power=65):
+    def turn(self, radians, power=70):
         """
         Turn the robot at the given motor power. The radians should be relative
         to the current orientation of the robot, where the robot is facing 0 rad
@@ -178,7 +243,7 @@ class Robot(object):
         :param power: Motor power
         :type power: int
         """
-        wheel_dist = _WHEELBASE_CIRC_CM * radians / (2 * math.pi)
+        wheel_dist = WHEELBASE_CIRC_CM * radians / (2 * math.pi)
         self.drive(wheel_dist, -wheel_dist, power, power)
 
     def open_grabber(self, time=250, power=100):
@@ -191,7 +256,7 @@ class Robot(object):
         :param power: Motor power from 0-100
         :type power: int
         """
-        self.current_command = (_OPEN_GRABBER, [str(time), str(power)])
+        self.queued_command = (OPEN_GRABBER, [str(time), str(power)])
 
     def close_grabber(self, time=250, power=100):
         """
@@ -203,7 +268,7 @@ class Robot(object):
         :param power: Motor power from 0-100
         :type power: int
         """
-        self.current_command = (_CLOSE_GRABBER, [str(time), str(power)])
+        self.queued_command = (CLOSE_GRABBER, [str(time), str(power)])
 
     def kick(self, time=600, power=100):
         """
@@ -215,24 +280,7 @@ class Robot(object):
         :param power: Motor power from 0-100
         :type power: int
         """
-        self.current_command = (_KICK, [str(time), str(power)])
-
-    def teardown(self):
-        """
-        Stop robot motors, set grabber to default position, then close the
-        serial port.
-        """
-        if self._serial is not None:
-            while self.is_moving:
-                self.stop()  # Stop drive motors
-            while self.grabber_open:
-                if self.is_grabbing:
-                    self.update_state()
-                else:
-                    self.close_grabber()
-            self._serial.flush()
-            self._serial.close()
-            print "Robot teardown complete. Serial connection is closed."
+        self.queued_command = (KICK, [str(time), str(power)])
 
     def update_state(self):
         """
@@ -240,40 +288,9 @@ class Robot(object):
         """
         current_time_ms = time.time()*1000
         if not self.ready \
-                or current_time_ms >= self.last_state_update + _UPDATE_FREQ:
+                or current_time_ms >= self.last_state_update + UPDATE_FREQ:
             self.last_state_update = current_time_ms
-            self.current_command = (_STATUS, [])
-
-    def ack_listener(self):
-        """
-        Listener for acks and status updates.
-
-        Wait for the robot to acknowledge the most recent command. Resend
-        this command if no acknowledgement is received within the serial port
-        timeout.
-
-        The acknowledge packet is of the following format:
-        [ack_bit][grabber_open][is_grabbing][is_moving][is_kicking]
-        """
-        while True:
-            if self.waiting_for_ack:
-                ack = self._serial.readline()
-                if len(ack) == 8 and ack[0] == self._ack_bit:  # Successful ack
-                    self._ack_bit = '1' if self._ack_bit == '0' else '0'  # Flip
-                    self.grabber_open = ack[1] == '1'
-                    self.is_grabbing = ack[2] == '1'
-                    self.is_moving = ack[3] == '1'
-                    self.is_kicking = ack[4] == '1'
-                    self.ball_grabbed = ack[5] == '1'
-
-                    self.waiting_for_ack = False
-                    self.reset_command()
-                else:
-                    # Ack failed, send command again
-                    self._command()
-            elif self.current_command is not None:
-                # New command
-                self._command()
+            self.queued_command = (STATUS, [])
 
 
 class ManualController(object):
