@@ -1,4 +1,5 @@
 from Tkinter import *
+import cv2
 
 
 class Launcher(Frame):
@@ -26,13 +27,12 @@ class Launcher(Frame):
         self.create_widgets()
 
     def create_widgets(self):
-        """
+        """        table_setup.run()
+
         Creates a drop-down menu for:
         Pitch, Colour, Side, Profile, and Comms
         Creates buttons to:
         Launch the system, calibrate the pitch
-
-        :return:
         """
         # Launcher controls/values for...
         # Pitch

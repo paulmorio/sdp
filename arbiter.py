@@ -65,7 +65,7 @@ class Arbiter(object):
 
     def run(self):
         """
-
+        Creates a GUI wrapper for the vision system, cleanly exits when finished.
         """
 
         try:
