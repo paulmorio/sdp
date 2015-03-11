@@ -109,14 +109,6 @@ class Robot(object):
         else:
             self._queued_command = cmd, args
 
-    @property
-    def is_busy(self):
-        """
-        Whether the communicator is currently dealing with a command.
-        :return: True if current command is none, else false
-        """
-        return self._current_command is None
-
     def ack_listener(self):
         """
         Listener for acks and status updates.
