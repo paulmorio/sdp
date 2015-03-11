@@ -69,7 +69,6 @@ class Robot(object):
         else:
             self.serial = None
             self.ready = True
-            self._ack_bit = '0'  # TODO necessary?
 
     @property
     def current_command(self):
@@ -161,6 +160,11 @@ class Robot(object):
                 print cmd
 
     def ack_test_and_update(self, ack):
+        """
+        If the given ack is valid, update the robot state bits.
+        :param ack: Ack string received from robot
+        :return: Whether the act is valid.
+        """
         test = len(ack) == ACK_LEN and ack[0] == self._ack_bit
         if test:
             self._ack_bit = '1' if self._ack_bit == '0' else '0'  # Flip
@@ -183,7 +187,7 @@ class Robot(object):
                 self.update_state()
         self.ready = True
 
-    def _teardown(self):
+    def teardown(self):
         """
         Stop robot motors, set grabber to default position, then close the
         serial port.
@@ -363,7 +367,7 @@ class ManualController(object):
         """
         Start robot teardown then destroy window.
         """
-        self.robot._teardown()
+        self.robot.teardown()
         self.root.quit()
 
 

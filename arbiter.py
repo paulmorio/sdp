@@ -103,7 +103,7 @@ class Arbiter(object):
         except:
             raise
         finally:
-            self.robot_controller._teardown()
+            self.robot_controller.teardown()
             self.camera.release()
             tools.save_colors(self.pitch, self.calibration)
 
