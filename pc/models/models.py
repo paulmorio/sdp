@@ -4,17 +4,36 @@ from ..vision.tools import get_croppings
 
 # Width measures the front and back of an object
 # Length measures along the sides of an object
-ROBOT_WIDTH = 30
-ROBOT_LENGTH = 45
-ROBOT_HEIGHT = 10
+ROBOT_WIDTH_CM = 16
+ROBOT_LENGTH_CM = 20
+ROBOT_HEIGHT_CM = 17
 
-BALL_WIDTH = 5
-BALL_LENGTH = 5
-BALL_HEIGHT = 5
+GRABBER_LENGTH_CM = 13.5
+GRABBER_WIDTH_CM = 17
+GRABBER_OFFSET_CM = 10
 
-GOAL_WIDTH = 140
-GOAL_LENGTH = 1
-GOAL_HEIGHT = 10
+BALL_WIDTH_CM = 4.7
+BALL_LENGTH_CM = 4.7
+BALL_HEIGHT_CM = 4.7
+
+GOAL_WIDTH_CM = 60
+GOAL_HEIGHT_CM = 10
+GOAL_LENGTH_CM = 1
+
+CM_PER_PX = 38.4 / 91
+
+# In px
+ROBOT_WIDTH = ROBOT_WIDTH_CM / CM_PER_PX
+ROBOT_LENGTH = ROBOT_LENGTH_CM / CM_PER_PX
+ROBOT_HEIGHT = ROBOT_HEIGHT_CM / CM_PER_PX
+
+BALL_WIDTH = BALL_WIDTH_CM / CM_PER_PX
+BALL_HEIGHT = BALL_HEIGHT_CM / CM_PER_PX
+BALL_LENGTH = BALL_LENGTH_CM / CM_PER_PX
+
+GOAL_WIDTH = GOAL_WIDTH_CM / CM_PER_PX
+GOAL_HEIGHT = GOAL_HEIGHT_CM / CM_PER_PX
+GOAL_LENGTH = GOAL_LENGTH_CM / CM_PER_PX
 
 
 class Coordinate(object):
@@ -85,7 +104,7 @@ class Vector(Coordinate):
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) \
-               and (self.__dict__ == other.__dict__)
+            and (self.__dict__ == other.__dict__)
 
     def __repr__(self):
         return ('x: %s, y: %s, angle: %s, velocity: %s\n' %
@@ -158,10 +177,16 @@ class PitchObject(object):
                                   new_vector.angle - self._angle_offset,
                                   new_vector.velocity)
 
+    def overlaps(self, poly):
+        """
+        True if this object overlaps the given polygon
+        """
+        return self.get_polygon().overlaps(poly)
+
     def get_generic_polygon(self, width, length):
         """
         Get polygon drawn around the current object, but with some
-        custom width and length:
+        custom width and length.
         """
         front_left = (self.x + length/2, self.y + width/2)
         front_right = (self.x + length/2, self.y - width/2)
@@ -169,7 +194,7 @@ class PitchObject(object):
         back_right = (self.x - length/2, self.y - width/2)
         poly = Polygon((front_left, front_right, back_left, back_right))
         poly.rotate(self.angle, self.x, self.y)
-        return poly[0]
+        return poly
 
     def get_polygon(self):
         """
@@ -192,7 +217,7 @@ class Robot(PitchObject):
         super(Robot, self).__init__(x, y, angle, velocity, width, length,
                                     height, angle_offset)
         self._zone = zone
-        self._catcher = 'open'
+        self._catcher_centre = None
 
     @property
     def zone(self):
@@ -216,38 +241,16 @@ class Robot(PitchObject):
 
         area = Polygon((front_left, front_right, back_left, back_right))
         area.rotate(self.angle, self.x, self.y)
+
         return area
 
     @catcher_area.setter
     def catcher_area(self, area_dict):
         self._catcher_area = area_dict
 
-    @property
-    def catcher(self):
-        return self._catcher
-
-    @catcher.setter
-    def catcher(self, new_position):
-        assert new_position in ['open', 'closed']
-        self._catcher = new_position
-
-    def can_catch_ball(self, ball):
-        """
-        Get if the ball is in the catcher zone but may not have possession
-        """
-        return self.catcher_area.isInside(ball.x, ball.y)
-
-    def has_ball(self, ball):
-        """
-        Gets if the robot has possession of the ball
-        """
-        return (self._catcher == 'closed') and self.can_catch_ball(ball)
-
     def get_rotation_to_point(self, x, y):
         """
-        This method returns an angle by which the robot needs to
-        rotate to achieve alignment. It takes either an x, y coordinate of the
-        object that we want to rotate to
+        Get the angle by which the robot needs to rotate to attain alignment.
         """
         delta_x = x - self.x
         delta_y = y - self.y
@@ -255,8 +258,8 @@ class Robot(PitchObject):
         if displacement == 0:
             theta = 0
         else:
-            theta = atan2(delta_y, delta_x) - atan2(sin(self.angle),
-                                                    cos(self.angle))
+            theta = atan2(delta_y, delta_x) - \
+                atan2(sin(self.angle), cos(self.angle))
             if theta > pi:
                 theta -= 2*pi
             elif theta < -pi:
@@ -266,32 +269,55 @@ class Robot(PitchObject):
 
     def get_displacement_to_point(self, x, y):
         """
-        This method returns the displacement between the robot
-        and the (x, y) coordinate.
+        This method returns the displacement (CM) between the robot and the
+        (x, y) coordinate.
         """
         delta_x = x - self.x
         delta_y = y - self.y
-        displacement = hypot(delta_x, delta_y)
-
-        displacement *= 0.4
-
+        displacement = hypot(delta_x, delta_y) * CM_PER_PX  # To CM
         return displacement
 
     def get_direction_to_point(self, x, y):
         """
-        This method returns the displacement (in cm) and angle to coordinate x, y.
+        This method returns the displacement (CM) and angle (RAD) to
+        coordinate x, y.
         """
         return (self.get_displacement_to_point(x, y),
                 self.get_rotation_to_point(x, y))
 
+    def dist_from_grabber(self, x, y):
+        """
+        Get the distance CM from the center of the robot's grabber.
+        Note that the robot must have a grabber defined.
+        """
+        grab_centre = self.catcher_area.center()  # Centre of gravity
+        delta_x = x - grab_centre[0]
+        delta_y = y - grab_centre[1]
+        dist = hypot(delta_x, delta_y) * CM_PER_PX
+        return dist
+
     def get_pass_path(self, target):
         """
-            Gets a path represented by a Polygon for the area for passing ball
-            between two robots
+        Gets a path represented by a Polygon for the area for passing ball
+        between two robots
         """
-        robot_poly = self.get_polygon()
-        target_poly = target.get_polygon()
-        return Polygon(robot_poly[0], robot_poly[1], target_poly[0], target_poly[1])
+        robot_poly = self.get_polygon()[0]
+        target_poly = target.get_polygon()[0]
+        return Polygon((robot_poly[0], robot_poly[1],
+                        target_poly[0], target_poly[1]))
+
+    def is_facing_point(self, x, y, rad_threshold=0.17):
+        """
+        True if the robot is facing a given point given some threshold.
+        """
+        return -rad_threshold < self.get_rotation_to_point(x, y) < rad_threshold
+
+    def is_at_point(self, x, y, cm_threshold=1):
+        """
+        True if the point is less that cm_threshold centimetres from the robot
+        center
+        """
+        return self.get_displacement_to_point(x, y) < cm_threshold
 
     def __repr__(self):
         return ('zone: %s\nx: %s\ny: %s\nangle: %s'
@@ -327,9 +353,8 @@ class Goal(PitchObject):
 
 class Pitch(object):
     """
-    Class that describes the pitch
+    Describe the pitch given the table setup results.
     """
-
     def __init__(self, pitch_num):
         config_json = get_croppings(pitch=pitch_num)
         self._width = max([point[0] for point in config_json['outline']]) \

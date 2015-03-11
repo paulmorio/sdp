@@ -1,9 +1,7 @@
-from pc.models.worldmodel import WorldUpdater, World
-from pc.vision import tools, calibrationgui, visiongui, camera, vision
+from pc.models.world import WorldUpdater, World
+from pc.vision import tools, camera, vision
 from pc.planning.planner import Planner
 from pc.robot import Robot
-import cv2
-import time
 
 
 class Arbiter(object):
@@ -11,7 +9,7 @@ class Arbiter(object):
     Ties vision/state to planning/communication.
     """
 
-    def __init__(self, pitch, colour, our_side, profile=None,
+    def __init__(self, pitch, colour, our_side, profile="None",
                  video_src=0, comm_port='/dev/ttyACM0', comms=False):
         """
         Entry point for the SDP system. Initialises all components
@@ -55,47 +53,22 @@ class Arbiter(object):
         self.robot_controller = Robot(port=comm_port, comms=comms)
 
         # Set up the planner
-        if profile is not None:
+        if profile != "None":
             self.planner = Planner(self.world, self.robot_controller, profile)
         else:
             self.planner = None
 
         # Set up GUI
-        self.gui = visiongui.VisionGUI(self.pitch)
-        self.calibration_gui = calibrationgui.CalibrationGUI(self.calibration)
+        self.gui_wrapper = wrapper.Wrapper(self.camera, self.planner, self.pitch, self.world_updater,
+                                           self.calibration, self.colour, self.side)
 
     def run(self):
         """
-        Main loop of the system. Grabs frames and passes them to the GUIs and
-        the world state.
-        Also captures keys for exit (escape) and for the calibration gui.
+        Creates a GUI wrapper for the vision system, cleanly exits when finished.
         """
-        counter = 1L
-        timer = time.clock()
 
-        key = True
         try:
-            while key != 27:  # escape to quit
-                # Get frame
-                frame = self.camera.get_frame()
-
-                # Find object positions, update world model
-                model_positions, regular_positions, grabbers = \
-                    self.world_updater.update_world(frame)
-
-                # Act on the updated world model
-                if self.planner is not None:
-                    self.planner.plan()
-
-                fps = float(counter) / (time.clock() - timer)
-
-                # Draw GUIs
-                self.calibration_gui.show(frame, key=key)
-                self.gui.draw(frame, model_positions, regular_positions,
-                              grabbers, fps, self.colour, self.side)
-
-                counter += 1
-                key = cv2.waitKey(1) & 0xFF  # Capture keypress
+            self.gui_wrapper.render()
         except:
             raise
         finally:
@@ -108,58 +81,14 @@ if __name__ == '__main__':
     # Set capture card settings
     import subprocess
     subprocess.call(['./v4lctl.sh'])
-    # Parse args
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "pitch", help="[0] Main pitch, [1] Secondary pitch"
-    )
-    parser.add_argument(
-        "colour", help="The colour of our team - ['yellow', 'blue'] allowed."
-    )
-    parser.add_argument(
-        "side", help="The side of our defender ['left', 'right'] allowed."
-    )
-    parser.add_argument(
-        "profile", help="The planning profile - ['passer', 'receiver']"
-    )
-    parser.add_argument(
-        "-t", "--tablesetup",
-        help="Bring up the table setup window",
-        action="store_true"
-    )
-    parser.add_mutually_exclusive_group()
-    parser.add_argument(
-        "-v", "--visiononly",
-        help="Run the vision system without the planner or robot/comms",
-        action="store_true"
-    )
-    parser.add_argument(
-        "-n", "--nocomms",
-        help="Run without comms.",
-        action="store_true"
-    )
 
-    args = parser.parse_args()
-    assert(int(args.pitch) in [0, 1])
-    assert(args.colour in ["blue", "yellow"])
-    assert(args.side in ["left", "right"])
+    # Create a launcher
+    from pc.gui import launcher, wrapper
+    app = launcher.Launcher()
+    app.mainloop()
 
-    if args.tablesetup:
-        from pc.vision.table_setup import TableSetup
-        tablesetup = TableSetup(int(args.pitch))
-        tablesetup.run()
-
-    if args.visiononly:
-        arb = Arbiter(int(args.pitch), args.colour, args.side,
-                      profile=None, comms=False)
-    elif args.nocomms:
-        assert args.profile in ['receiver', 'passer']
-        arb = Arbiter(int(args.pitch), args.colour, args.side,
-                      profile=args.profile, comms=False)
-
-    else:
-        assert args.profile in ['receiver', 'passer']
-        arb = Arbiter(int(args.pitch), args.colour, args.side,
-                      profile=args.profile, comms=True)
-    arb.run()
+    # Checks if the launcher flag was set to "launch", and if so, runs Arbiter
+    if app.launching:
+        arb = Arbiter(int(app.pitch.get()), app.colour.get(), app.side.get(),
+                      profile=app.profile.get(), comms=app.comms.get())
+        arb.run()

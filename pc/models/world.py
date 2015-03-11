@@ -4,6 +4,8 @@ import warnings
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+PX_PER_CM = 91 / 38.4
+
 
 class World(object):
     """
@@ -72,12 +74,14 @@ class World(object):
         if (self._our_side == 'left' and
                 not(self.our_defender.x < self.their_attacker.x
                     < self.our_attacker.x < self.their_defender.x)):
-            print "WARNING: The sides are probably wrong!"
+            #print "WARNING: The sides are probably wrong!"
+            pass
 
         if (self._our_side == 'right' and
                 not(self.our_defender.x > self.their_attacker.x
                     > self.our_attacker.x > self.their_defender.x)):
-            print "WARNING: The sides are probably wrong!"
+            #print "WARNING: The sides are probably wrong!"
+            pass
 
     def ball_in_area(self, robots):
         """
@@ -97,6 +101,63 @@ class World(object):
         :return boolean: True if ball is in play, else False.
         """
         return self.ball_in_area(self._robots)
+
+    def ball_at_wall(self, threshold=10):
+        """
+        True if the ball is within threshold cm of the wall. Intended use is to
+        determine when the robot must take a careful approach to the ball.
+        """
+        threshold_px = cm_to_px(threshold)
+        return self.ball.x < threshold_px or \
+            self.ball.y < threshold_px or \
+            self.ball.x > self.pitch.width - threshold_px or \
+            self.ball.y > self.pitch.height - threshold_px
+
+    def ball_too_close(self, robot, threshold=23):
+        """
+        True if the ball is within threshold cm of the robot. Intended use is to
+        determine if it is safe for the robot to turn, open grabbers, etc.
+        Note that we calculate the distance from the robot's center, and so
+        this is dependent on the dimensions of the robot.
+        """
+        threshold_px = cm_to_px(threshold)
+        r_x, r_y = robot.x, robot.y
+        b_x, b_y = self.ball.x, self.ball.y
+        too_close_x = r_x - threshold_px < b_x < r_x + threshold_px
+        too_close_y = r_y - threshold_px < b_y < r_y + threshold_px
+        return too_close_x and too_close_y
+
+    # TODO generalize
+    def find_line_of_sight(self, robot):
+        """
+        Get a point where we have line of sight to a given target (i.e. for
+        passing). Not yet implemented, this provides a solution for milestone
+        3 though.
+        """
+        our_center_x, our_center_y = \
+            self.pitch.zones[robot.zone].center()
+        their_center_x, their_center_y = \
+            self.pitch.zones[self.their_attacker.zone].center()
+
+        if self.their_attacker.y > their_center_y:
+            los_y = (2.0/10) * self.pitch.height
+        else:
+            los_y = (8.0/10) * self.pitch.height
+
+        # TODO add an offset to make it move to the edge of the margin
+        if self._our_side == 'right':
+            los_x = int(our_center_x-25)
+        else:
+            los_x = int(our_center_x+25)
+
+        return los_x, los_y
+
+    def can_catch_ball(self, robot):
+        """
+        True if the given robot can catch the ball. Note that this requires
+        that the given robot has a grabber area defined.
+        """
+        return robot.catcher_area.isInside(self.ball.x, self.ball.y)
 
 
 class WorldUpdater:
@@ -142,14 +203,24 @@ class WorldUpdater:
         model_positions, regular_positions = self.vision.locate(frame)
         model_positions = self.postprocessing.analyze(model_positions)
 
-        # These are really hacked together -- TODO
         # Grabber areas - TODO should be adjusted once the robot is finalised
+        # Note that due to how the setter is written, these things need to be
+        # set on every frame - bit hacked together.
         self.world.our_defender.catcher_area = \
-            {'width': 30, 'height': 25, 'front_offset': 10}  # In pixels???
+            {'width': 30, 'height': 30, 'front_offset': 20}  # In pixels???
         self.world.our_attacker.catcher_area = \
-            {'width': 30, 'height': 25, 'front_offset': 10}
+            {'width': 30, 'height': 20, 'front_offset': 15}
         grabbers = {'our_defender': self.world.our_defender.catcher_area,
                     'our_attacker': self.world.our_attacker.catcher_area}
 
         self.world.update_positions(model_positions)
         return model_positions, regular_positions, grabbers
+
+
+def cm_to_px(cm):
+    """
+    Use the constant ratio CM_PX_RATIO to convert from cm to px
+    :param cm: Centimetre valued to be converted.
+    :return: Pixel equivalent
+    """
+    return PX_PER_CM * cm

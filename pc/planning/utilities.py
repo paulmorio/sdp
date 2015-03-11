@@ -1,51 +1,28 @@
-# Top-level planner state constants
-NO_BALL = 'no_ball'  # Ball not yet seen, not in play areas (init state)
-BALL_THEIR_A_ZONE = 'ball_their_attacker_zone'  # Ball in their attacker zone
-BALL_THEIR_D_ZONE = 'ball_their_defender_zone'  # Ball in their defender zone
-BALL_OUR_D_ZONE = 'ball_our_defender_zone'  # Ball in our defender zone
-BALL_OUR_A_ZONE = 'ball_our_attacker_zone'  # Ball in our attacker zone
-POSSESSION = 'have_possession'  # Our robot has the ball in its grabber
+# Planner Constants
+BALL_NOT_VISIBLE = 'ball_unreachable'
+BALL_OUR_ZONE = 'ball_our_zone'
+BALL_OUR_ZONE_AT_WALL = 'ball_our_zone_at_wall'
+POSSESSION = 'possession'
+BALL_NOT_IN_OUR_ZONE = 'ball_not_in_our_zone'
+FOLLOWING_BALL = 'following ball'
 
-# Strategy state constants
-DUMMY = 'dummy'
-REPOSITION = 'reposition'
-REORIENT = 'reorient'
-TURN_TO_BALL = 'turn_to_ball'
-MOVE_TO_BALL = 'move_to_ball'
+# Strategy State Constants
+INIT = 'init'
 IDLE = 'idle'
-NONE = "no_state"
-INIT_VARS = "init_variables"
-ROTATE_TO_FREESPOT = "reorient_freespot"
-ROTATE_TO_DEFENDER = "reorient_defender"
-ROTATE_TO_PASSER = 'rotate_passer'
-REPOSITION_TO_FREESPOT = 'reposition_defender'
-REORIENT_PASSER = "reorient_passer"
-OPEN_GRABBER = 'open_grabber'
-CLOSE_GRABBER = 'close_grabber'
-ROTATE = 'rotate'
-PASS = 'pass'
-PASSED = 'passed'
-PASS_TO_DEFENDER = 'pass_to_defender'
-SHOOT = 'shoot'
-FACE_GOAL = 'face_goal'
+GRABBER_CLOSED = 'grabber_closed'
+MOVING_TO_BALL = 'moving_to_ball'
+KICKING = 'kicking'
+GRABBING_BALL = 'grabbing_ball'
+FACING_GOAL = 'facing_goal'
+BALL_IN_GRABBER_AREA = 'ball_in_grabber_area'
+TURNING_TO_DEFENDER = 'turning_to_def'
+TURNING_TO_BALL = 'turning_to_ball'
+TURNING_TO_GOAL = 'turning_to_goal'
+FACING_BALL = 'facing_ball'
+OPENING_GRABBER = 'opening_grabber'
+CLOSING_GRABBER = 'closing_grabber'
+TURNING_TO_DEST = 'turning_to_dest'
+MOVING_TO_DEST = 'moving_to_dest'
+DONE = 'done'
 
-WAIT_O_GRAB = 'wait_for_grabber_open'
-WAIT_C_GRAB = 'wait_for_grabber_closed'
-WAIT_REORIENT = 'wait_for_reorient'
-WAIT_REORIENT_DEFENDER = 'wait_for_reorient_defender'
-WAIT_REPOSITION = 'wait_for_reposition'
-WAIT_FACE_GOAL = 'wait_for_face_goal'
-WAIT_REORIENT_FREESPOT = 'wait_for_reorient_freespot'
-WAIT_REORIENT_PASSER = 'wait_for_reorient_passer'
-
-# Catcher state constants
-OPENED = "open"
-CLOSED = "closed"
-
-# Margin constants
-ROTATE_MARGIN = 0.3  # in radians
-DISPLACEMENT_MARGIN = 20  # in centimetres
-GRAB_AREA_MARGIN = 10  # in centimetres
-
-# Threshold constants
-ANGLE_THRESH = 0.2  # in radians
+FINDING_PATH = 'finding path'

@@ -3,22 +3,21 @@ from colours import BGR_COMMON
 import numpy as np
 import tools
 import warnings
+from PIL import Image, ImageTk
 
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 TEAM_COLORS = set(['yellow', 'blue'])
-VISION = 'Lucky Number Seven'
 
 
 class VisionGUI(object):
 
-    def __init__(self, pitch):
+    def __init__(self, wrapper, pitch):
+        self.wrapper = wrapper
         self.pitch = pitch
         self.zones = None
-        cv2.namedWindow(VISION)
-
 
     def to_info(self, args):
         """
@@ -46,7 +45,7 @@ class VisionGUI(object):
         return {'x': x, 'y': y, 'angle': angle, 'velocity': velocity}
 
     def draw(self, frame, model_positions, regular_positions,
-             grabbers, fps, our_color, our_side):
+             grabbers, fps, our_color, our_side, p_state, s_state):
         """
         Draw information onto the GUI given positions from the vision and
         post processing.
@@ -81,6 +80,9 @@ class VisionGUI(object):
         blank = np.zeros_like(frame)[:200, :, :]
         frame_with_blank = np.vstack((frame, blank))
 
+        self.draw_states(frame_with_blank, p_state, s_state,
+                         (frame_width, frame_height))
+
         if model_positions and regular_positions:
             for key in ['ball', 'our_defender', 'our_attacker',
                         'their_defender', 'their_attacker']:
@@ -96,7 +98,11 @@ class VisionGUI(object):
                         model_positions[key].angle,
                         model_positions[key].velocity)
 
-        cv2.imshow(VISION, frame_with_blank)
+        # Convert the image to Tkinter format, and display
+        img = Image.fromarray(cv2.cvtColor(frame_with_blank, cv2.COLOR_BGR2RGBA))
+        img_tk = ImageTk.PhotoImage(image=img)
+        self.wrapper.vision_frame.img_tk = img_tk
+        self.wrapper.vision_frame.configure(image=img_tk)
 
     def draw_zones(self, frame, width, height):
         # Re-initialize zones in case they have not been initialized
@@ -106,6 +112,27 @@ class VisionGUI(object):
         for zone in self.zones:
             cv2.line(frame, (zone[1], 0), (zone[1], height),
                      BGR_COMMON['orange'], 1)
+
+    def draw_states(self, frame, planner_state, strat_state, frame_offset):
+        frame_width, frame_height = frame_offset
+        x_main = lambda zz: (frame_width/4)*zz
+        x_offset = 20
+        y_offset = frame_height+140
+
+        if strat_state is None:
+            strat_state = 'none'
+        if planner_state is None:
+            planner_state = 'none'
+
+        self.draw_text(frame, "Planner state:", x_main(1) - x_offset, y_offset,
+                       size=0.6)
+        self.draw_text(frame, planner_state, x_main(1) - x_offset,
+                       y_offset + 15, size=0.6)
+
+        self.draw_text(frame, "Strategy state:", x_main(2) + x_offset,
+                       y_offset, size=0.6)
+        self.draw_text(frame, strat_state, x_main(2) + x_offset, y_offset + 15,
+                       size=0.6)
 
     def draw_ball(self, frame, position_dict):
         if position_dict and position_dict['x'] and position_dict['y']:

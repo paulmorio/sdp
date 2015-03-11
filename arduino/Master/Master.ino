@@ -21,10 +21,13 @@
 // Rotary encoder
 #define ROTARY_SLAVE_ADDRESS 5
 #define ROTARY_COUNT 2
+#define SENSOR_COUNT 1
+#define ROTARY_TIMEOUT 1000  // cycles
 
 int rotaryMotor[] = {MOTOR_L, MOTOR_R};  // Rotary encoder motor numbers
 int rotaryCounter[ROTARY_COUNT] = {0};  // Counters for rotary encoders
 int motorDir[ROTARY_COUNT] = {0};  // Track direction of rotary encoder motors
+int rotaryTimeout[ROTARY_COUNT] = {-1};  // Counters for rotary timeout
 
 // Communications
 SerialCommand comm;
@@ -34,6 +37,7 @@ boolean grabberOpen = true;  // Assume open on startup
 boolean isMoving = false;
 boolean isKicking = false;
 boolean isGrabbing = false;
+boolean ballGrabbed = false;
 unsigned long grabTimer = 0;
 unsigned long kickTimer = 0;
 
@@ -49,7 +53,7 @@ void setup() {
 
 void loop() {
   checkTimers();
-  checkRotaryMotors();
+  checkSensors();
   comm.readSerial();
 }
 
@@ -105,9 +109,11 @@ void closeGrabber() {
    */
   int time = atoi(comm.next());
   int power = atoi(comm.next());
-  motorBackward(MOTOR_G, power);
-  grabTimer = millis() + time;
-  isGrabbing = true;
+  if (grabberOpen && !isGrabbing) {
+    motorBackward(MOTOR_G, power);
+    grabTimer = millis() + time;
+    isGrabbing = true;
+  }
   ack();
 }
 
@@ -118,9 +124,11 @@ void openGrabber() {
    */
   int time = atoi(comm.next());
   int power = atoi(comm.next());
-  motorForward(MOTOR_G, power);
-  grabTimer = millis() + time;
-  isGrabbing = true;
+  if (!grabberOpen && !isGrabbing) {
+    motorForward(MOTOR_G, power);
+    grabTimer = millis() + time;
+    isGrabbing = true;
+  }
   ack();
 }
 
@@ -132,40 +140,58 @@ void kick() {
    */
   int time = atoi(comm.next());
   int power = atoi(comm.next());
-  motorForward(MOTOR_K, power);
-  kickTimer = millis() + time;
+  if (!isKicking) {
+    motorForward(MOTOR_K, power);
+    kickTimer = millis() + time;
+    isKicking = true;
+  }
   ack();
 }
 
 void checkTimers() {
   /* Check kicker and grabber timers */
   unsigned long time = millis();
-  if (grabTimer && time >= grabTimer) {  // Grab timer test
+  if (isGrabbing && time >= grabTimer) {  // Grab timer test
     motorStop(MOTOR_G);
     grabTimer = 0;
     grabberOpen = !grabberOpen;
     isGrabbing = false;
   }
-  if (kickTimer && time >= kickTimer) {  // Kick timer test
+  if (isKicking && time >= kickTimer) {  // Kick timer test
     kickTimer = 0;
     isKicking = false;
     motorStop(MOTOR_K);
   }
 }
 
-void checkRotaryMotors() {
-  /* Update the rotary counters and stop motors when necessary. */
-  // Get rotary diffs from slave
-  Wire.requestFrom(ROTARY_SLAVE_ADDRESS, ROTARY_COUNT);
+void checkSensors() {
+  /* Update the sensor states/counters and stop motors if necessary */
+  // Get sensor status from slave
+  Wire.requestFrom(ROTARY_SLAVE_ADDRESS, ROTARY_COUNT + SENSOR_COUNT);
   
   // Update counters and check for completion
   for (int i = 0; i < ROTARY_COUNT; i++) {
     int8_t diff = Wire.read();
+    /* Set timeout counter if diff is 0 and there is not
+       already a counter. If there is already a counter 
+       then decrement. */
+    if (diff == 0 && motorDir[i] != 0) {
+      if (rotaryTimeout[i] == -1) rotaryTimeout[i] = ROTARY_TIMEOUT;
+      else if (--rotaryTimeout[i] == 0) rotaryCounter[i] = 0;
+    }
+    /* Subtract diff and check */
     if (motorDir[i] * (rotaryCounter[i]  -= diff) <= 0) {
       motorStop(rotaryMotor[i]);
       motorDir[i] = 0;
+      rotaryTimeout[i] = -1;
     }
   }
+  // Update grabbed state
+  uint8_t grabberSwitchState = Wire.read();  // non-zero if not grabbed
+  if (grabberSwitchState) ballGrabbed = false;
+  else ballGrabbed = true;
+  
+  // Update moving state
   if (motorDir[0] == 0 && motorDir[1] == 0) isMoving = false;
 }
 
@@ -178,12 +204,12 @@ void ack() {
   else Serial.print(0);
   if (isMoving) Serial.print(1);
   else Serial.print(0);
-  if (isKicking) Serial.println(1);
+  if (isKicking) Serial.print(1);
+  else Serial.print(0);
+  if (ballGrabbed) Serial.println(1);
   else Serial.println(0);
   Serial.flush();
 }
 
 void invalidCommand(const char* command) {
-  Serial.print("Invalid command: ");
-  Serial.println(command);
 }
