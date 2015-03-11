@@ -27,8 +27,7 @@ class Launcher(Frame):
         self.create_widgets()
 
     def create_widgets(self):
-        """        table_setup.run()
-
+        """
         Creates a drop-down menu for:
         Pitch, Colour, Side, Profile, and Comms
         Creates buttons to:
@@ -57,7 +56,7 @@ class Launcher(Frame):
         profile_select.grid(row=4, column=1)
         # Comms
         Label(self.gui_root, text="Comms:").grid(row=5, column=0)
-        self.comms.set(False)
+        self.comms.set(True)
         comms_select = OptionMenu(self.gui_root, self.comms, True, False)
         comms_select.grid(row=5, column=1)
         # Pitch calibration

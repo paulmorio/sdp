@@ -145,10 +145,10 @@ class World(object):
             los_y = (8.0/10) * self.pitch.height
 
         # TODO add an offset to make it move to the edge of the margin
-        if self._our_side == 'left':
-            los_x = int(our_center_x-40)
+        if self._our_side == 'right':
+            los_x = int(our_center_x-25)
         else:
-            los_x = int(our_center_x+40)
+            los_x = int(our_center_x+25)
 
         return los_x, los_y
 

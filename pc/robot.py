@@ -132,7 +132,7 @@ class Robot(object):
                 self.update_state()
         self.ready = True
 
-    def drive(self, l_dist, r_dist, l_power=60, r_power=60):
+    def drive(self, l_dist, r_dist, l_power=70, r_power=70):
         """
         Drive the robot for the giving left and right wheel distances at the
         given powers. There is some loss of precision as the unit of distance
@@ -165,7 +165,7 @@ class Robot(object):
         """
         self.drive(0, 0)
 
-    def turn(self, radians, power=60):
+    def turn(self, radians, power=65):
         """
         Turn the robot at the given motor power. The radians should be relative
         to the current orientation of the robot, where the robot is facing 0 rad
