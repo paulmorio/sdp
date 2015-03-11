@@ -46,7 +46,7 @@ class Strategy(object):
         self.state_map[self.state]()
 
     def do_nothing(self):
-        self.robot_ctl.update_state()
+        pass
 
 
 class Idle(Strategy):
@@ -76,48 +76,43 @@ class GetBall(Strategy):
         self.ball = self.world.ball
 
     def face_ball(self):
-        if self.world.can_catch_ball(self.robot_mdl) \
-                and self.robot_ctl.grabber_open:
-            self.state = GRABBING_BALL
-        elif self.robot_mdl.is_facing_point(self.ball.x, self.ball.y):
-            self.state = OPENING_GRABBER
-        elif not self.robot_ctl.is_moving:
-            angle = self.robot_mdl.get_rotation_to_point(self.ball.x,
-                                                         self.ball.y)
-            self.robot_ctl.turn(angle)
-        else:
-            self.robot_ctl.update_state()
+        if not self.robot_ctl.is_moving:
+            if self.world.can_catch_ball(self.robot_mdl) \
+                    and self.robot_ctl.grabber_open:
+                self.state = GRABBING_BALL
+            elif self.robot_mdl.is_facing_point(self.ball.x, self.ball.y):
+                self.state = OPENING_GRABBER
+            else:
+                angle = self.robot_mdl.get_rotation_to_point(self.ball.x,
+                                                             self.ball.y)
+                self.robot_ctl.turn(angle)
 
     def open_grabber(self):
-
-        if self.robot_ctl.grabber_open:
-            self.state = MOVING_TO_BALL
-        elif self.world.ball_too_close(self.robot_mdl):
-            self.robot_ctl.drive(-1, -1)
-        elif not self.robot_ctl.is_grabbing:
-            self.robot_ctl.open_grabber()
-        else:
-            self.robot_ctl.update_state()
+        if not self.robot_ctl.is_grabbing:
+            if self.robot_ctl.grabber_open:
+                self.state = MOVING_TO_BALL
+            elif self.world.ball_too_close(self.robot_mdl):
+                self.robot_ctl.drive(-1, -1)
+            else:
+                self.robot_ctl.open_grabber()
 
     def move_to_ball(self):
-        if self.world.can_catch_ball(self.robot_mdl):
-            self.state = GRABBING_BALL
-        elif not self.robot_mdl.is_facing_point(self.ball.x, self.ball.y):
-            self.state = TURNING_TO_BALL
-        elif not self.robot_ctl.is_moving:
-            dist = self.robot_mdl.get_displacement_to_point(self.ball.x,
-                                                            self.ball.y)
-            self.robot_ctl.drive(dist*0.1, dist*0.1)
-        else:
-            self.robot_ctl.update_state()
+        if not self.robot_ctl.is_moving:
+            if self.world.can_catch_ball(self.robot_mdl):
+                self.state = GRABBING_BALL
+            elif not self.robot_mdl.is_facing_point(self.ball.x, self.ball.y):
+                self.state = TURNING_TO_BALL
+            else:
+                dist = self.robot_mdl.get_displacement_to_point(self.ball.x,
+                                                                self.ball.y)
+                self.robot_ctl.drive(dist*0.1, dist*0.1)
 
     def close_grabber(self):
-        if self.robot_ctl.grabber_open and not self.robot_ctl.is_grabbing:
-            self.robot_ctl.close_grabber()
-        elif not self.world.can_catch_ball(self.robot_mdl):
-            self.state = TURNING_TO_BALL
-        else:
-            self.robot_ctl.update_state()
+        if not self.robot_ctl.is_grabbing:
+            if self.robot_ctl.grabber_open:
+                self.robot_ctl.close_grabber()
+            elif not self.world.can_catch_ball(self.robot_mdl):
+                self.state = TURNING_TO_BALL
 
 
 class FaceBall(Strategy):
@@ -132,12 +127,11 @@ class FaceBall(Strategy):
         super(FaceBall, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
 
     def open_grabber(self):
-        if self.robot_ctl.grabber_open:
-            self.state = FOLLOWING_BALL
-        elif not self.robot_ctl.is_grabbing:
-            self.robot_ctl.open_grabber()
-        else:
-            self.robot_ctl.update_state()
+        if not self.robot_ctl.is_grabbing:
+            if self.robot_ctl.grabber_open:
+                self.state = FOLLOWING_BALL
+            else:
+                self.robot_ctl.open_grabber()
 
     def follow_ball(self):
         if not self.robot_mdl.is_facing_point(self.ball.x, self.ball.y) \
@@ -145,8 +139,6 @@ class FaceBall(Strategy):
             angle = self.robot_mdl.get_rotation_to_point(self.ball.x,
                                                          self.ball.y)
             self.robot_ctl.turn(angle)
-        else:
-            self.robot_ctl.update_state()
 
 
 class PassBall(Strategy):
@@ -170,67 +162,56 @@ class PassBall(Strategy):
         self.their_attacker = self.world.their_attacker
         self.dest = None
 
-    def close_grabber(self):
-        if not self.robot_ctl.grabber_open:
-            self.state = FINDING_PATH
-        elif self.robot_ctl.grabber_open and not self.robot_ctl.is_grabbing:
-            self.robot_ctl.close_grabber()
-        else:
-            self.robot_ctl.update_state()
-
     def find_path(self):
         path = self.robot_mdl.get_pass_path(self.target)
-        if path.overlaps(self.their_attacker.get_polygon()):
+        if path.overlaps(self.their_attacker.get_polygon()):  # TODO SLOW
             self.dest = self.world.find_line_of_sight(self.robot_mdl)
             self.state = MOVING_TO_DEST
         else:
             self.state = TURNING_TO_DEFENDER
 
     def move_to_dest(self):
-        if self.robot_mdl.is_at_point(self.dest[0], self.dest[1]):
-            self.state = TURNING_TO_DEFENDER
-        elif self.robot_mdl.is_facing_point(self.dest[0], self.dest[1], 0.1):
-            dist = self.robot_mdl.get_displacement_to_point(self.dest[0],
-                                                            self.dest[1])
-            if not self.robot_ctl.is_moving:
+        if not self.robot_ctl.is_moving:
+            if self.robot_mdl.is_at_point(self.dest[0], self.dest[1]):
+                self.state = TURNING_TO_DEFENDER
+            elif self.robot_mdl.is_facing_point(self.dest[0], self.dest[1]):
+                dist = self.robot_mdl.get_displacement_to_point(self.dest[0],
+                                                                self.dest[1])
                 self.robot_ctl.drive(dist, dist)
             else:
-                self.robot_ctl.update_state()
-        else:
-            angle = self.robot_mdl.get_rotation_to_point(self.dest[0],
-                                                         self.dest[1])
-            if not self.robot_ctl.is_moving:
+                angle = self.robot_mdl.get_rotation_to_point(self.dest[0],
+                                                             self.dest[1])
                 self.robot_ctl.turn(angle)
-            else:
-                self.robot_ctl.update_state()
 
     def turn_to_def(self):
-        if self.robot_mdl.is_facing_point(self.target.x, self.target.y, 0.05) and\
-            not self.robot_ctl.is_moving:
-            self.state = OPENING_GRABBER
-        else:
-            angle = self.robot_mdl.get_rotation_to_point(self.target.x,
-                                                         self.target.y)
-            if not self.robot_ctl.is_moving:
-                self.robot_ctl.turn(angle)
+        if not self.robot_ctl.is_moving:
+            if self.robot_mdl.is_facing_point(self.target.x, self.target.y):
+                self.state = OPENING_GRABBER
             else:
-                self.robot_ctl.update_state()
+                angle = self.robot_mdl.get_rotation_to_point(self.target.x,
+                                                             self.target.y)
+                self.robot_ctl.turn(angle)
 
     def open_grabber(self):
-        if self.robot_ctl.grabber_open:
-            self.state = KICKING
-        elif not self.robot_ctl.is_grabbing:
-            self.robot_ctl.open_grabber()
-        else:
-            self.robot_ctl.update_state()
+        if not self.robot_ctl.is_grabbing:
+            if self.robot_ctl.grabber_open:
+                self.state = KICKING
+            else:
+                self.robot_ctl.open_grabber()
+
+    def close_grabber(self):
+        if not self.robot_ctl.is_grabbing:
+            if not self.robot_ctl.grabber_open:
+                self.state = FINDING_PATH
+            else:
+                self.robot_ctl.close_grabber()
 
     def kick(self):
         if not self.robot_ctl.ball_grabbed:
             self.state = DONE
         elif not self.robot_ctl.is_kicking:
             self.robot_ctl.kick()
-        else:
-            self.robot_ctl.update_state()
+
 
 class ShootGoal(Strategy):
     """
@@ -253,14 +234,6 @@ class ShootGoal(Strategy):
         self.their_defender = self.world.their_defender
         self.dest = None
 
-    def close_grabber(self):
-        if not self.robot_ctl.grabber_open:
-            self.state = FINDING_PATH
-        elif self.robot_ctl.grabber_open and not self.robot_ctl.is_grabbing:
-            self.robot_ctl.close_grabber()
-        else:
-            self.robot_ctl.update_state()
-
     def find_path(self):
         path = self.robot_mdl.get_pass_path(self.target)
         if path.overlaps(self.their_defender.get_polygon()):
@@ -270,47 +243,43 @@ class ShootGoal(Strategy):
             self.state = TURNING_TO_GOAL
 
     def move_to_dest(self):
-        if self.robot_mdl.is_at_point(self.dest[0], self.dest[1]):
-            self.state = TURNING_TO_GOAL
-        elif self.robot_mdl.is_facing_point(self.dest[0], self.dest[1], 0.1):
-            dist = self.robot_mdl.get_displacement_to_point(self.dest[0],
-                                                            self.dest[1])
-            if not self.robot_ctl.is_moving:
+        if not self.robot_ctl.is_moving:
+            if self.robot_mdl.is_at_point(self.dest[0], self.dest[1]):
+                self.state = TURNING_TO_GOAL
+            elif self.robot_mdl.is_facing_point(self.dest[0], self.dest[1]):
+                dist = self.robot_mdl.get_displacement_to_point(self.dest[0],
+                                                                self.dest[1])
                 self.robot_ctl.drive(dist, dist)
             else:
-                self.robot_ctl.update_state()
-        else:
-            angle = self.robot_mdl.get_rotation_to_point(self.dest[0],
-                                                         self.dest[1])
-            if not self.robot_ctl.is_moving:
+                angle = self.robot_mdl.get_rotation_to_point(self.dest[0],
+                                                             self.dest[1])
                 self.robot_ctl.turn(angle)
-            else:
-                self.robot_ctl.update_state()
 
     def turn_to_goal(self):
-        if self.robot_mdl.is_facing_point(self.target.x, self.target.y, 0.05) and\
-            not self.robot_ctl.is_moving:
-            self.state = OPENING_GRABBER
-        else:
-            angle = self.robot_mdl.get_rotation_to_point(self.target.x,
-                                                         self.target.y)
-            if not self.robot_ctl.is_moving:
-                self.robot_ctl.turn(angle)
+        if not self.robot_ctl.is_moving:
+            if self.robot_mdl.is_facing_point(self.target.x, self.target.y):
+                self.state = OPENING_GRABBER
             else:
-                self.robot_ctl.update_state()
+                angle = self.robot_mdl.get_rotation_to_point(self.target.x,
+                                                             self.target.y)
+                self.robot_ctl.turn(angle)
 
     def open_grabber(self):
-        if self.robot_ctl.grabber_open:
-            self.state = KICKING
-        elif not self.robot_ctl.is_grabbing:
-            self.robot_ctl.open_grabber()
-        else:
-            self.robot_ctl.update_state()
+        if not self.robot_ctl.is_grabbing:
+            if self.robot_ctl.grabber_open:
+                self.state = KICKING
+            else:
+                self.robot_ctl.open_grabber()
+
+    def close_grabber(self):
+        if not self.robot_ctl.is_grabbing:
+            if not self.robot_ctl.grabber_open:
+                self.state = FINDING_PATH
+            elif self.robot_ctl.grabber_open:
+                self.robot_ctl.close_grabber()
 
     def kick(self):
         if not self.robot_ctl.ball_grabbed:
             self.state = DONE
         elif not self.robot_ctl.is_kicking:
             self.robot_ctl.kick()
-        else:
-            self.robot_ctl.update_state()
