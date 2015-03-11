@@ -1,7 +1,8 @@
 from serial import Serial
 
 ACK_LEN = 8  # Length of ack string received from robot
-
+CMD_DELIMITER = ' '
+CMD_TERMINAL = '\n'
 
 class Communicator(object):
     """
@@ -16,7 +17,7 @@ class Communicator(object):
     forwards the status string to the Robot object.
     """
 
-    def __init__(self, pipe_end, port="/dev/ttyACM0", timeout=0.1, rate=115200):
+    def __init__(self, pipe_end, port="/dev/ttyACM0", rate=115200):
         """
         Create a Communicator object.
         :param port: Serial port used. The default corresponds to that on DICE.
@@ -25,7 +26,7 @@ class Communicator(object):
         """
         self.comm_pipe = pipe_end
         self.current_command = None  # The command currently being dealt with
-        self.serial = Serial(port, rate, timeout=timeout)
+        self.serial = Serial(port, rate)
         self.ack_bit = '0'
 
     def runner(self):
@@ -33,17 +34,18 @@ class Communicator(object):
         The main communicator loop.
         """
         while True:
-            if self.current_command is None:  # No current command
-                # TODO read/build a new command - can block here
-                pass
+            if self.current_command is None:  # No current command, get
+                self.current_command = self.comm_pipe.recv()
+                self.current_command += CMD_DELIMITER + self.ack_bit
 
             else:  # Have a current command, get ack/state
                 self.serial.write(self.current_command)
                 ack = self.serial.readline()
-                if self.ack_test_update(ack):
+                print ack
+                if self.ack_test_and_update(ack):
                     self.current_command = None  # Successful ack, we're done
 
-    def ack_test_update(self, ack):
+    def ack_test_and_update(self, ack):
         """
         Test the ack string for validity. If this is a successful ack then
         flip the bit, send the state string to the parent process, and return
@@ -52,7 +54,9 @@ class Communicator(object):
         test = len(ack) == ACK_LEN and ack[0] == self.ack_bit
         if test:
             self.ack_bit = '0' if self.ack_bit == '1' else '1'  # Flip
-            # TODO update / send state
+
+            # send state
             state_str = ack[1:]
+            self.comm_pipe.send(state_str)
             self.current_command = None
         return test

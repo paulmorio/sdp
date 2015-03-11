@@ -1,5 +1,4 @@
 import math
-import time
 from multiprocessing import Process, Pipe
 from communicator import Communicator
 from threading import Thread
@@ -46,9 +45,8 @@ class Robot(object):
         self.ball_grabbed = False  # Ball sensor is pressed
 
         # Start command thread
-        t = Thread(target=self._commander, args=comms)
+        t = Thread(target=self._commander, args=[comms])
         t.start()
-        self._commander(comms)
 
         if comms:
             # Start communicator subprocess
@@ -56,7 +54,6 @@ class Robot(object):
             comm = Communicator(sub_pipe, port)
             p = Process(target=comm.runner)
             p.start()
-
             self._initialize()
 
     @property
@@ -92,23 +89,25 @@ class Robot(object):
 
         If comms is false then just print the queued command and clear it.
         """
-        if self.waiting_for_ack:
-            if self.comm_pipe.poll():
-                state_str = self.comm_pipe.recv()  # TODO exit on exception
-                self._update_state_bits(state_str)
-                self.waiting_for_ack = False
-                self.reset_queued_command()
+        while True:
+            if self.waiting_for_ack:
+                if self.comm_pipe.poll():
+                    print 'polled'
+                    state_str = self.comm_pipe.recv()  # TODO exit on exception
+                    self._update_state_bits(state_str)
+                    self.waiting_for_ack = False
 
-        elif self.queued_command is not None:  # There is a queued command
-            if comms:
-                self.comm_pipe.send(self.queued_command)
-                self.waiting_for_ack = True
-            else:
-                print self.queued_command[0]
-                self.reset_queued_command()
+            elif self.queued_command is not None:  # There is a queued command
+                if comms:
+                    self.comm_pipe.send(self.queued_command)
+                    self.waiting_for_ack = True
+                    self.reset_queued_command()
+                else:
+                    print self.queued_command[0]
+                    self.reset_queued_command()
 
-        elif self.ready:  # If there is no queued command, request status
-            self.update_state()
+            elif self.ready:  # If there is no queued command, request status
+                self.update_state()
 
     def _update_state_bits(self, string):
         """
