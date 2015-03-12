@@ -197,26 +197,23 @@ void checkSensors() {
   }
 
   ballGrabbed = Wire.read();
-  
-  // Update moving state
-  if (motorDir[0] == 0 && motorDir[1] == 0) isMoving = false;
+  isMoving = !(motorDir[0] == 0 && motorDir[1] == 0)
 }
 
 void ack() {
   char ack_bit = comm.next()[0];
   Serial.print(ack_bit);
-  if (grabberOpen) Serial.print(1);
-  else Serial.print(0);
-  if (isGrabbing) Serial.print(1);
-  else Serial.print(0);
-  if (isMoving) Serial.print(1);
-  else Serial.print(0);
-  if (isKicking) Serial.print(1);
-  else Serial.print(0);
-  if (ballGrabbed) Serial.println(1);
-  else Serial.println(0);
+  Serial.print(castToChar(grabberOpen));
+  Serial.print(castToChar(isGrabbing));
+  Serial.print(castToChar(isMoving));
+  Serial.print(castToChar(isKicking));
+  Serial.println(castToChar(ballGrabbed));
   Serial.flush();
 }
 
+char castToChar(boolean b) {
+  if (b) return '1';
+  else return '0'
+}
 void invalidCommand(const char* command) {
 }
