@@ -89,6 +89,7 @@ class Robot(object):
 
         If comms is false then just print the queued command and clear it.
         """
+        # TODO tie to main loop/planner
         while True:
             if self.waiting_for_ack:
                 if self.comm_pipe.poll():
