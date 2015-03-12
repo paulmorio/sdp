@@ -11,6 +11,8 @@ READY = "READY"
 STATUS = "STATUS"
 CMD_DELIMITER = ' '
 
+EXIT_CODE = "EXIT"
+
 # Robot constants
 ROTARY_SENSOR_RESOLUTION = 2.0
 WHEEL_DIAM_CM = 8.16
@@ -142,6 +144,13 @@ class Robot(object):
             else:
                 self.close_grabber()
         # TODO stop subprocess
+        self.comm_pipe.write(EXIT_CODE)
+        while True:
+            try:
+                self.comm_pipe.readline()
+            except EOFError:
+                # Pipe closed, we're done!
+                break
         print "Robot teardown complete."
 
     def update_state(self):
