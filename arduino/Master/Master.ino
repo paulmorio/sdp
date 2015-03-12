@@ -196,8 +196,8 @@ void checkSensors() {
     }
   }
 
-  ballGrabbed = Wire.read();
-  isMoving = !(motorDir[0] == 0 && motorDir[1] == 0)
+  ballGrabbed = !Wire.read();
+  isMoving = !(motorDir[0] == 0 && motorDir[1] == 0);
 }
 
 void ack() {
@@ -213,7 +213,7 @@ void ack() {
 
 char castToChar(boolean b) {
   if (b) return '1';
-  else return '0'
+  else return '0';
 }
 void invalidCommand(const char* command) {
 }
