@@ -41,6 +41,9 @@ boolean ballGrabbed = false;
 unsigned long grabTimer = 0;
 unsigned long kickTimer = 0;
 
+// TODO check the ack bit on incoming commands
+// TODO braking
+// TODO tidy 
 void setup() {
   SDPsetup();
   comm.addCommand("DRIVE", drive);
@@ -59,14 +62,11 @@ void loop() {
 
 void drive() {
   /*
-   * Run drive motors L and R for given number of 'ticks' at
-   * the given motor speeds.
-   * Note that I haven't looped this code because we're probably
-   * going to add rotary encoders to the kicker and grabber.
+   * Run drive motors L and R for given number of 'ticks' at the given motor speeds.
    * ARGS: [L_ticks] [R_ticks][L_power] [R_power] [ack]
    */  
   rotaryCounter[0] = atoi(comm.next());
-  rotaryCounter[1] = atoi(comm.next());  // Sensor is mounted backward
+  rotaryCounter[1] = atoi(comm.next());
   int lPower = atoi(comm.next());
   int rPower = atoi(comm.next());
   
@@ -106,6 +106,7 @@ void closeGrabber() {
   /*
    * Close the grabber with the hardcoded time and motor power
    * ARGS: [time] [power] [ack]
+   * TODO: rotary grabber
    */
   int time = atoi(comm.next());
   int power = atoi(comm.next());
@@ -121,6 +122,7 @@ void openGrabber() {
   /*
    * Open the grabber with the hardcoded time and motor power
    * ARGS: [time] [power] [ack]
+   * TODO rotary grabber
    */
   int time = atoi(comm.next());
   int power = atoi(comm.next());
@@ -137,6 +139,7 @@ void kick() {
    * Run the kicker with the hardcoded time and motor power.
    * Grabber must be open.
    * ARGS: [ack] [time] [power]
+   * TODO: rotary kicker
    */
   int time = atoi(comm.next());
   int power = atoi(comm.next());
@@ -166,30 +169,34 @@ void checkTimers() {
 
 void checkSensors() {
   /* Update the sensor states/counters and stop motors if necessary */
-  // Get sensor status from slave
+
+  // Poll sensor board
   Wire.requestFrom(ROTARY_SLAVE_ADDRESS, ROTARY_COUNT + SENSOR_COUNT);
   
   // Update counters and check for completion
   for (int i = 0; i < ROTARY_COUNT; i++) {
-    int8_t diff = Wire.read();
-    /* Set timeout counter if diff is 0 and there is not
-       already a counter. If there is already a counter 
-       then decrement. */
+    int8_t diff = Wire.read();  // Read i-th value
+
+    /* 
+      We set a timeout upon receiving a diff of 0 on an active motor.
+      This is to allow the motor to stop moving when it is, e.g., running
+      against a wall.
+    */
     if (diff == 0 && motorDir[i] != 0) {
       if (rotaryTimeout[i] == -1) rotaryTimeout[i] = ROTARY_TIMEOUT;
       else if (--rotaryTimeout[i] == 0) rotaryCounter[i] = 0;
     }
+
     /* Subtract diff and check */
+    // TODO stop motors in one call
     if (motorDir[i] * (rotaryCounter[i]  -= diff) <= 0) {
       motorStop(rotaryMotor[i]);
       motorDir[i] = 0;
       rotaryTimeout[i] = -1;
     }
   }
-  // Update grabbed state
-  uint8_t grabberSwitchState = Wire.read();  // non-zero if not grabbed
-  if (grabberSwitchState) ballGrabbed = false;
-  else ballGrabbed = true;
+
+  ballGrabbed = Wire.read();
   
   // Update moving state
   if (motorDir[0] == 0 && motorDir[1] == 0) isMoving = false;
