@@ -18,7 +18,8 @@ class Communicator(object):
     forwards the status string to the Robot object.
     """
 
-    def __init__(self, pipe_end, port="/dev/ttyACM0", rate=115200):
+    def __init__(self, pipe_end, port="/dev/ttyACM0",
+                 timeout=0.075, rate=115200):
         """
         Create a Communicator object.
         :param port: Serial port used. The default corresponds to that on DICE.
@@ -27,7 +28,7 @@ class Communicator(object):
         """
         self.comm_pipe = pipe_end
         self.current_command = None  # The command currently being dealt with
-        self.serial = Serial(port, rate)
+        self.serial = Serial(port, rate, timeout=timeout)
         self.ack_bit = '0'
 
     def runner(self):
@@ -42,7 +43,6 @@ class Communicator(object):
             else:  # Have a current command, get ack/state
                 self.serial.write(self.current_command)
                 ack = self.serial.readline()
-                print ack
                 if self.ack_test_and_update(ack):
                     self.current_command = None  # Successful ack, we're done
 

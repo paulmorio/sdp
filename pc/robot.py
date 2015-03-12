@@ -1,7 +1,6 @@
 import math
 from multiprocessing import Process, Pipe
 from communicator import Communicator
-from threading import Thread
 
 # Command string constants
 DRIVE = "DRIVE"
@@ -43,12 +42,9 @@ class Robot(object):
         self.is_moving = False  # Performing a drive/turn
         self.is_kicking = False  # Kick motor is running
         self.ball_grabbed = False  # Ball sensor is pressed
+        self.comms = comms
 
-        # Start command thread
-        t = Thread(target=self._commander, args=[comms])
-        t.start()
-
-        if comms:
+        if self.comms:
             # Start communicator subprocess
             self.comm_pipe, sub_pipe = Pipe()
             comm = Communicator(sub_pipe, port)
@@ -82,32 +78,31 @@ class Robot(object):
     def reset_queued_command(self):
         self._queued_command = None
 
-    def _commander(self, comms):
+    def act(self):
         """
-        Reads queued commands, sends them to the communicator, then waits for
-        the ack/status update.
+        If we're waiting for an ack then poll and deal with it. Otherwise
+        send the queued command.
 
         If comms is false then just print the queued command and clear it.
         """
-        while True:
-            if self.waiting_for_ack:
-                if self.comm_pipe.poll():
-                    print 'polled'
-                    state_str = self.comm_pipe.recv()  # TODO exit on exception
-                    self._update_state_bits(state_str)
-                    self.waiting_for_ack = False
+        if self.waiting_for_ack:
+            if self.comm_pipe.poll():
+                state_str = self.comm_pipe.recv()
+                self._update_state_bits(state_str)
+                self.waiting_for_ack = False
 
-            elif self.queued_command is not None:  # There is a queued command
-                if comms:
-                    self.comm_pipe.send(self.queued_command)
-                    self.waiting_for_ack = True
-                    self.reset_queued_command()
-                else:
-                    print self.queued_command[0]
-                    self.reset_queued_command()
+        elif self.queued_command is not None:  # There is a queued command
+            if self.comms:
+                self.comm_pipe.send(self.queued_command)
+                self.waiting_for_ack = True
+                self.reset_queued_command()
+            else:
+                print self.queued_command
+                self.reset_queued_command()
 
-            elif self.ready:  # If there is no queued command, request status
-                self.update_state()
+        elif self.ready:  # If there is no queued command, request state update
+            self.update_state()
+        # TODO return state to caller for passing to world
 
     def _update_state_bits(self, string):
         """
@@ -127,6 +122,7 @@ class Robot(object):
         for acknowledgement before setting the ready flag.
         """
         while self.grabber_open:
+            self.act()  # No planner initialized to do this right now
             if not self.is_grabbing:
                 self.close_grabber()
             else:
