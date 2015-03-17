@@ -70,35 +70,30 @@ void drive() {
   int lPower = atoi(comm.next());
   int rPower = atoi(comm.next());
   
+  // Start motors if necessary
   // Motor L
-  if (rotaryCounter[0] < 0) {
+  if (motorDir[0] != -1 && rotaryCounter[0] < 0) {
     isMoving = true;
     motorDir[0] = -1;  // Bwd
     motorBackward(MOTOR_L, lPower);
   } 
-  else if (rotaryCounter[0] > 0) {
+  else if (motorDir[0] != 1 && rotaryCounter[0] > 0) {
     isMoving = true;
     motorDir[0] = 1;  // Fwd
     motorForward(MOTOR_L, lPower);
   } 
-  else { 
-    motorDir[0] = 0;  // stop on next test
-  }
   
   // Motor R 
-  if (rotaryCounter[1] < 0) {
+  if (motorDir[1] != -1 && rotaryCounter[1] < 0) {
     isMoving = true;
     motorDir[1] = -1;
     motorBackward(MOTOR_R, rPower);
   } 
-  else if (rotaryCounter[1] > 0) {
+  else if (motorDir[1] != 1 && rotaryCounter[1] > 0) {
     isMoving = true;
     motorDir[1] = 1;
     motorForward(MOTOR_R, rPower);
   } 
-  else {
-    motorDir[1] = 0;
-  }
   ack();
 }
 
@@ -186,10 +181,13 @@ void checkSensors() {
       if (rotaryTimeout[i] == -1) rotaryTimeout[i] = ROTARY_TIMEOUT;
       else if (--rotaryTimeout[i] == 0) rotaryCounter[i] = 0;
     }
+    else {  // Reset timeout upon receiving non-zero
+      rotaryTimeout[i] = -1;
+    }
 
     /* Subtract diff and check */
     // TODO stop motors in one call
-    if (motorDir[i] * (rotaryCounter[i]  -= diff) <= 0) {
+    if (motorDir[i] && motorDir[i] * (rotaryCounter[i]  -= diff) <= 0) {
       motorStop(rotaryMotor[i]);
       motorDir[i] = 0;
       rotaryTimeout[i] = -1;
