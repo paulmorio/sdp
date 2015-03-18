@@ -50,7 +50,8 @@ class Planner(object):
         if new_strategy is not self._strategy:
             if self._strategy is not None:
                 self._strategy.reset()
-            self._strategy = new_strategy
+            else:
+                self._strategy = new_strategy
 
     def ms3_transition(self):
         """
