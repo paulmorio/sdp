@@ -52,7 +52,7 @@ class Launcher(Frame):
         # Profile
         Label(self.gui_root, text="Profile:").grid(row=4, column=0)
         self.profile.set("ms3")
-        profile_select = OptionMenu(self.gui_root, self.profile, "ms3", "None")
+        profile_select = OptionMenu(self.gui_root, self.profile, "ms3", "penalty", "None")
         profile_select.grid(row=4, column=1)
         # Comms
         Label(self.gui_root, text="Comms:").grid(row=5, column=0)

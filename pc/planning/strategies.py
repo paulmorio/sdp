@@ -283,3 +283,51 @@ class ShootGoal(Strategy):
             self.state = DONE
         elif not self.robot_ctl.is_kicking:
             self.robot_ctl.kick()
+
+
+class PenaltyKick(Strategy):
+    """
+    Turn to the enemy goal and kick into it
+    Intended use is when the ball is in our possession during penalty mode.
+    """
+    def __init__(self, world, robot_ctl):
+        _STATES = [TURNING_TO_GOAL, OPENING_GRABBER, KICKING,
+                   DONE]
+        _STATE_MAP = {TURNING_TO_GOAL: self.turn_to_goal,
+                      OPENING_GRABBER: self.open_grabber,
+                      KICKING: self.kick,
+                      DONE: self.do_nothing}
+        super(PenaltyKick, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
+        self.target = self.world.their_goal
+        self.their_defender = self.world.their_defender
+        self.dest = None
+
+    def turn_to_goal(self):
+        print "turning turning turning tuuuurning.."
+        if not self.robot_ctl.is_moving:
+            if self.robot_mdl.is_facing_point(self.target.x, self.target.y):
+                self.state = OPENING_GRABBER
+            else:
+                angle = self.robot_mdl.get_rotation_to_point(self.target.x,
+                                                             self.target.y)
+                self.robot_ctl.turn(angle)
+
+    def open_grabber(self):
+        if not self.robot_ctl.is_grabbing:
+            if self.robot_ctl.grabber_open:
+                self.state = KICKING
+            else:
+                self.robot_ctl.open_grabber()
+
+    def close_grabber(self):
+        if not self.robot_ctl.is_grabbing:
+            if not self.robot_ctl.grabber_open:
+                self.state = FINDING_PATH
+            elif self.robot_ctl.grabber_open:
+                self.robot_ctl.close_grabber()
+
+    def kick(self):
+        if not self.robot_ctl.ball_grabbed:
+            self.state = DONE
+        elif not self.robot_ctl.is_kicking:
+            self.robot_ctl.kick()

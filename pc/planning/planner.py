@@ -14,7 +14,7 @@ class Planner(object):
         :param profile: Planning profile.
         :type profile: str
         """
-        assert (profile in ['ms3'])
+        assert (profile in ['ms3', 'penalty'])
         self._world = world
         self._profile = profile
         self._robot_mdl = world.our_attacker
@@ -27,6 +27,10 @@ class Planner(object):
                 BALL_OUR_ZONE: GetBall(self._world, self._robot_ctl),
                 POSSESSION: ShootGoal(self._world, self._robot_ctl),
                 BALL_NOT_IN_OUR_ZONE: FaceBall(self._world, self._robot_ctl)}
+        elif self._profile == 'penalty':
+            self._strat_map = {
+                BALL_NOT_VISIBLE: Idle(self._world, self._robot_ctl),
+                POSSESSION: PenaltyKick(self._world, self._robot_ctl)}
 
         # Choose initial strategy
         self._state = BALL_NOT_VISIBLE
@@ -37,7 +41,11 @@ class Planner(object):
         """
         Update the planner and strategy states before acting.
         """
-        self.ms3_transition()
+        if self._profile == 'ms3':
+            self.ms3_transition()
+        elif self._profile == 'penalty':
+            self.penalty_transition()
+
         self._strategy.act()
 
     def update_strategy(self):
@@ -75,5 +83,17 @@ class Planner(object):
         # Ball in play but not in our margin
         else:
             self._state = BALL_NOT_IN_OUR_ZONE
+
+        self.update_strategy()
+
+    def penalty_transition(self):
+
+        # Holding the ball
+        if self._robot_ctl.ball_grabbed:
+            self._state = POSSESSION
+
+        # NOT Holding the ball
+        else:
+            self._state = BALL_NOT_VISIBLE
 
         self.update_strategy()
