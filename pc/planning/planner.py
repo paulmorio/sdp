@@ -38,7 +38,8 @@ class Planner(object):
         Update the planner and strategy states before acting.
         """
         self.ms3_transition()
-        self._strategy.act()
+        self._strategy.act()  # Set the queued action of the robot
+        self._robot_ctl.act()  # Send the action to the robot, if possible
 
     def update_strategy(self):
         """
