@@ -75,6 +75,10 @@ class Wrapper:
         self.calibration_gui = calibrationgui.CalibrationGUI(self, self._calibration)
         self.gui = visiongui.VisionGUI(self, self._pitch)
 
+        # FPS counter init
+        self.counter = 1L
+        self.timer = time.clock()
+
     def key_press(self, event):
         """
         Sets the value of self.key upon a keypress
@@ -88,9 +92,6 @@ class Wrapper:
         Main loop of the system. Grabs frames and passes them to the GUIs and
         the world state.
         """
-        counter = 1L
-        timer = time.clock()
-
         # Get frame
         frame = self._camera.get_frame()
 
@@ -105,11 +106,7 @@ class Wrapper:
             p_state = self._planner._state
             s_state = self._planner._strategy.state
 
-        # TODO: this seems to have lost some of its accuracy..
-        if time.clock() - timer != 0:
-            fps = float(counter) / (time.clock() - timer)
-        else:
-            fps = 999999
+        fps = float(self.counter) / (time.clock() - self.timer)
 
         # Draw GUIs
         self.calibration_gui.show(frame, self.key_event, key=self.key)
@@ -117,7 +114,8 @@ class Wrapper:
                       grabbers, fps, self._colour, self._side, p_state,
                       s_state)
 
-        counter += 1
+        self.counter += 1
+
         # Reset the key_event flag
         self.key_event = False
         self.root.after(1, self.tick)

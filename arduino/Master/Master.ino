@@ -8,7 +8,7 @@
   code as failing to acknowledge commands will result in very bad things.
 */
 
-#include <SDPArduino.h>
+#include <SDPArduinoBrake.h>
 #include <SerialCommand.h>
 #include <Wire.h>
 

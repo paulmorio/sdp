@@ -46,7 +46,9 @@ class Planner(object):
         elif self._profile == 'penalty':
             self.penalty_transition()
 
-        self._strategy.act()
+        self._strategy.act()  # Set the queued action of the robot
+        self._robot_ctl.act()  # Send the action to the robot, if possible
+
 
     def update_strategy(self):
         """
