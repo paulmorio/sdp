@@ -109,6 +109,7 @@ class Robot(object):
         Given the state part of an ack string, update the robot's state bits.
         :param string: State part of an ack string received from the robot.
         """
+        print string
         self.grabber_open = string[0] == '1'
         self.is_grabbing = string[1] == '1'
         self.is_moving = string[2] == '1'
@@ -133,14 +134,30 @@ class Robot(object):
         """
         Stop robot motors, set grabber to default position, then close the
         serial port.
+
+        Note that we have act calls in here in case the higher level has stopped
+        calling act (usually the case as this is called once the planner is
+        done.
         """
-        while self.is_moving:
-            self.stop()  # Stop drive motors
-        while self.grabber_open:
-            if self.is_grabbing:
-                self.update_state()
+        while True:
+            # Stop movement
+            if self.is_moving:
+                self.stop()  # Stop drive motors
+
+            # Close grabber
+            elif self.grabber_open:
+                if self.is_grabbing:
+                    self.update_state()
+                else:
+                    self.close_grabber()
+
+            # Robot is stopped and grabber is closed, we're done
             else:
-                self.close_grabber()
+                break
+
+            # Run command
+            self.act()
+
         self.p.terminate()  # Stop subprocess
         print "Robot teardown complete."
 
@@ -150,7 +167,7 @@ class Robot(object):
         """
         self.queued_command = (STATUS, [])
 
-    def drive(self, l_dist, r_dist, l_power=70, r_power=70):
+    def drive(self, l_dist, r_dist, l_power=100, r_power=100):
         """
         Drive the robot for the giving left and right wheel distances at the
         given powers. There is some loss of precision as the unit of distance
@@ -180,7 +197,7 @@ class Robot(object):
         """
         self.drive(0, 0)
 
-    def turn(self, radians, power=70):
+    def turn(self, radians, power=100):
         """
         Turn the robot at the given motor power. The radians should be relative
         to the current orientation of the robot, where the robot is facing 0 rad
@@ -261,9 +278,9 @@ class ManualController(object):
         text.pack()
 
         # Set up key bindings
-        self.root.bind('w', lambda event: self.robot.drive(20, 20))
+        self.root.bind('w', lambda event: self.robot.drive(10, 10))
         self.root.bind('<Up>', lambda event: self.robot.drive(20, 20, 70, 70))
-        self.root.bind('x', lambda event: self.robot.drive(-20, -20))
+        self.root.bind('x', lambda event: self.robot.drive(-10, -10))
         self.root.bind('<Down>', lambda event: self.robot.drive(-20, -20,
                                                                 70, 70))
         self.root.bind('<Left>', lambda event: self.robot.turn(-math.pi))
