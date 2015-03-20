@@ -68,7 +68,7 @@ class Planner(object):
         Update the planner state and strategy given the current state of the
         world model.
 
-        For the attacker profile.
+        For the attacker (ms3) profile.
         """
         # Successfully grabbed ball
         if self._robot_ctl.ball_grabbed:
@@ -89,7 +89,12 @@ class Planner(object):
         self.update_strategy()
 
     def penalty_transition(self):
+        """
+        Update the planner state and strategy given the current state of the
+        world model.
 
+        For the penalty profile
+        """
         # Holding the ball
         if self._robot_ctl.ball_grabbed:
             self._state = POSSESSION

@@ -303,7 +303,6 @@ class PenaltyKick(Strategy):
         self.dest = None
 
     def turn_to_goal(self):
-        print "turning turning turning tuuuurning.."
         if not self.robot_ctl.is_moving:
             if self.robot_mdl.is_facing_point(self.target.x, self.target.y):
                 self.state = OPENING_GRABBER
