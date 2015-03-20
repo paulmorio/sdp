@@ -109,7 +109,6 @@ class Robot(object):
         Given the state part of an ack string, update the robot's state bits.
         :param string: State part of an ack string received from the robot.
         """
-        print string
         self.grabber_open = string[0] == '1'
         self.is_grabbing = string[1] == '1'
         self.is_moving = string[2] == '1'
