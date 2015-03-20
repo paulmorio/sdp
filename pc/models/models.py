@@ -267,6 +267,24 @@ class Robot(PitchObject):
         assert -pi <= theta <= pi
         return -theta
 
+    def get_rotation_to_point_via_wall(self, x, y, pitch_height, top=True):
+        """
+        Get the angle by which the robot needs to rotate in order to look at the target
+        WALL-BOUNCE PASS EDITION
+
+        x = target x-pos
+        y = target y-pos
+        top = pass via bottom wall or top wall (true = top)
+        """
+        if top:
+            y_mirror = y + 2*(pitch_height - y)
+        else:
+            y_mirror = -y
+
+        return self.get_rotation_to_point(x, y_mirror)
+
+
+
     def get_displacement_to_point(self, x, y):
         """
         This method returns the displacement (CM) between the robot and the
