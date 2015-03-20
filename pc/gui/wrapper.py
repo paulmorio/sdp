@@ -106,7 +106,10 @@ class Wrapper:
             s_state = self._planner._strategy.state
 
         # TODO: this seems to have lost some of its accuracy..
-        fps = float(counter) / (time.clock() - timer)
+        if time.clock() - timer != 0:
+            fps = float(counter) / (time.clock() - timer)
+        else:
+            fps = 999999
 
         # Draw GUIs
         self.calibration_gui.show(frame, self.key_event, key=self.key)
