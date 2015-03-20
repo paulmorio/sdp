@@ -48,8 +48,8 @@ class Robot(object):
             # Start communicator subprocess
             self.comm_pipe, sub_pipe = Pipe()
             comm = Communicator(sub_pipe, port)
-            p = Process(target=comm.runner)
-            p.start()
+            self.p = Process(target=comm.runner)
+            self.p.start()
             self._initialize()
 
     @property
@@ -141,7 +141,7 @@ class Robot(object):
                 self.update_state()
             else:
                 self.close_grabber()
-        # TODO stop subprocess
+        self.p.terminate()  # Stop subprocess
         print "Robot teardown complete."
 
     def update_state(self):
@@ -280,7 +280,14 @@ class ManualController(object):
         self.root.geometry('400x400')
         self.root.wm_title("Manual Control")
         self.root.wm_attributes("-topmost", 1)
+
+        self.root.after(1, self.run_comms_loop)  # Run comms update in loop
+
         self.root.mainloop()
+
+    def run_comms_loop(self):
+        self.robot.act()
+        self.root.after(1, self.run_comms_loop)
 
     def quit(self):
         """
