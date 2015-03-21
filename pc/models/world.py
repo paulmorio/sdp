@@ -19,8 +19,8 @@ class World(object):
         self._their_side = 'left' if our_side == 'right' else 'right'
         self._ball = Ball(0, 0, 0, 0)
         self._robots = [
-            Robot(0, 0, 0, 0, 0), Robot(1, 0, 0, 0, 0),
-            Robot(2, 0, 0, 0, 0), Robot(3, 0, 0, 0, 0)
+            Robot(0, 0, 0, 0, 0, self), Robot(1, 0, 0, 0, 0, self),
+            Robot(2, 0, 0, 0, 0, self), Robot(3, 0, 0, 0, 0, self)
         ]
         self._goals = [
             Goal(0, 0, self._pitch.height/2.0, 0),  # Leftmost, facing angle 0

@@ -212,12 +212,13 @@ class PitchObject(object):
 
 class Robot(PitchObject):
 
-    def __init__(self, zone, x, y, angle, velocity, width=ROBOT_WIDTH,
+    def __init__(self, zone, x, y, angle, velocity, world, width=ROBOT_WIDTH,
                  length=ROBOT_LENGTH, height=ROBOT_HEIGHT, angle_offset=0):
         super(Robot, self).__init__(x, y, angle, velocity, width, length,
                                     height, angle_offset)
         self._zone = zone
         self._catcher_centre = None
+        self._world = world
 
     @property
     def zone(self):
@@ -267,7 +268,7 @@ class Robot(PitchObject):
         assert -pi <= theta <= pi
         return -theta
 
-    def get_rotation_to_point_via_wall(self, x, y, pitch_height, top=True):
+    def get_rotation_to_point_via_wall(self, x, y, top=True):
         """
         Get the angle by which the robot needs to rotate in order to look at the target
         WALL-BOUNCE PASS EDITION
@@ -276,6 +277,8 @@ class Robot(PitchObject):
         y = target y-pos
         top = pass via bottom wall or top wall (true = top)
         """
+        pitch_height = self._world._pitch._zones[self._zone].height
+
         if top:
             y_mirror = y + 2*(pitch_height - y)
         else:
