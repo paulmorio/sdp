@@ -1,6 +1,8 @@
 import math
 from multiprocessing import Process, Pipe
-from communicator import Communicator
+
+from pc.comms.communicator import Communicator
+
 
 # Command string constants
 DRIVE = "DRIVE"

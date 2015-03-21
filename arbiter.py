@@ -1,7 +1,7 @@
 from pc.models.world import WorldUpdater, World
 from pc.vision import tools, camera, vision
 from pc.planning.planner import Planner
-from pc.robot import Robot
+from pc.comms.robot import Robot
 
 
 class Arbiter(object):
@@ -33,6 +33,7 @@ class Arbiter(object):
         self.colour = colour
         self.side = our_side
         self.calibration = tools.get_colors(pitch)
+        self.comms = comms
 
         # Set up capture device
         self.camera = camera.Camera(pitch, video_src=video_src)
@@ -59,14 +60,15 @@ class Arbiter(object):
             self.planner = None
 
         # Set up GUI
-        self.gui_wrapper = wrapper.Wrapper(self.camera, self.planner, self.pitch, self.world_updater,
-                                           self.calibration, self.colour, self.side)
+        self.gui_wrapper = wrapper.Wrapper(self.camera, self.planner,
+                                           self.pitch, self.world_updater,
+                                           self.calibration, self.colour,
+                                           self.side)
 
     def run(self):
         """
         Creates a GUI wrapper for the vision system, cleanly exits when finished.
         """
-
         try:
             self.gui_wrapper.render()
         except:

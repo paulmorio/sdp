@@ -3,7 +3,6 @@ from utilities import *
 
 
 class Planner(object):
-
     def __init__(self, world, robot_ctl, profile):
         """
         Create a planner object.
@@ -14,41 +13,51 @@ class Planner(object):
         :param profile: Planning profile.
         :type profile: str
         """
-        assert (profile in ['ms3', 'penalty'])
-        self._world = world
-        self._profile = profile
-        self._robot_mdl = world.our_attacker
-        self._robot_ctl = robot_ctl
+        assert (profile in ['attacker', 'ms3', 'penalty'])
+        self.world = world
+        self.profile = profile
+        self.robot_mdl = world.our_attacker
+        self.robot_ctl = robot_ctl
 
         # Strategy dictionaries return a strategy given a state.
-        if self._profile == 'ms3':
+        if self.profile == 'attacker':
             self._strat_map = {
-                BALL_NOT_VISIBLE: Idle(self._world, self._robot_ctl),
-                BALL_OUR_ZONE: GetBall(self._world, self._robot_ctl),
-                POSSESSION: ShootGoal(self._world, self._robot_ctl),
-                BALL_NOT_IN_OUR_ZONE: FaceBall(self._world, self._robot_ctl)}
-        elif self._profile == 'penalty':
+                BALL_NOT_VISIBLE: Idle(self.world, self.robot_ctl),
+                BALL_OUR_ZONE: GetBall(self.world, self.robot_ctl),
+                POSSESSION: ShootGoal(self.world, self.robot_ctl),
+                BALL_OUR_DEFENDER_ZONE: Idle(self.world, self.robot_ctl),
+                BALL_THEIR_ATTACKER_ZONE: Idle(self.world, self.robot_ctl),
+                BALL_THEIR_DEFENDER_ZONE: Idle(self.world, self.robot_ctl)
+            }
+        elif self.profile == 'ms3':
             self._strat_map = {
-                BALL_NOT_VISIBLE: Idle(self._world, self._robot_ctl),
-                POSSESSION: PenaltyKick(self._world, self._robot_ctl)}
+                BALL_NOT_VISIBLE: Idle(self.world, self.robot_ctl),
+                BALL_OUR_ZONE: GetBall(self.world, self.robot_ctl),
+                POSSESSION: PassBall(self.world, self.robot_ctl),
+                BALL_NOT_IN_OUR_ZONE: FaceBall(self.world, self.robot_ctl)}
+        elif self.profile == 'penalty':
+            self._strat_map = {
+                BALL_NOT_VISIBLE: Idle(self.world, self.robot_ctl),
+                POSSESSION: PenaltyKick(self.world, self.robot_ctl)}
 
         # Choose initial strategy
-        self._state = BALL_NOT_VISIBLE
-        self._strategy = None
+        self.state = BALL_NOT_VISIBLE
+        self.strategy = None
         self.update_strategy()
 
     def plan(self):
         """
         Update the planner and strategy states before acting.
         """
-        if self._profile == 'ms3':
+        if self.profile == 'attacker':
+            self.attacker_transition()
+        elif self.profile == 'ms3':
             self.ms3_transition()
-        elif self._profile == 'penalty':
+        elif self.profile == 'penalty':
             self.penalty_transition()
 
-        self._strategy.act()  # Set the queued action of the robot
-        self._robot_ctl.act()  # Send the action to the robot, if possible
-
+        self.strategy.act()  # Strategy transition, queue robot action
+        self.robot_ctl.act()  # Send the queued action if possible
 
     def update_strategy(self):
         """
@@ -56,12 +65,20 @@ class Planner(object):
         If you wish to switch to a 'fresh' copy of the current
         strategy then you must explicitly call its reset method.
         """
-        new_strategy = self._strat_map[self._state]
-        if new_strategy is not self._strategy:
-            if self._strategy is not None:
-                self._strategy.reset()
+        new_strategy = self._strat_map[self.state]
+        if new_strategy is not self.strategy:
+            if self.strategy is not None:
+                self.strategy.reset()
             else:
-                self._strategy = new_strategy
+                self.strategy = new_strategy
+
+    def attacker_transition(self):
+        """
+        Generic attacker transition model.
+
+        Updates the planner state and current strategy based on the world state
+        """
+        pass
 
     def ms3_transition(self):
         """
@@ -71,20 +88,20 @@ class Planner(object):
         For the attacker (ms3) profile.
         """
         # Successfully grabbed ball
-        if self._robot_ctl.ball_grabbed:
-            self._state = POSSESSION
+        if self.robot_ctl.ball_grabbed:
+            self.state = POSSESSION
 
         # If ball is in our margin - move to possession state if ball grabbed
-        elif self._world.ball_in_area([self._robot_mdl]):
-            self._state = BALL_OUR_ZONE
+        elif self.world.ball_in_area([self.robot_mdl]):
+            self.state = BALL_OUR_ZONE
 
         # If the ball is not visible
-        elif not self._world.ball_in_play():
-            self._state = BALL_NOT_VISIBLE
+        elif not self.world.ball_in_play():
+            self.state = BALL_NOT_VISIBLE
 
         # Ball in play but not in our margin
         else:
-            self._state = BALL_NOT_IN_OUR_ZONE
+            self.state = BALL_NOT_IN_OUR_ZONE
 
         self.update_strategy()
 
@@ -96,11 +113,11 @@ class Planner(object):
         For the penalty profile
         """
         # Holding the ball
-        if self._robot_ctl.ball_grabbed:
-            self._state = POSSESSION
+        if self.robot_ctl.ball_grabbed:
+            self.state = POSSESSION
 
         # NOT Holding the ball
         else:
-            self._state = BALL_NOT_VISIBLE
+            self.state = BALL_NOT_VISIBLE
 
         self.update_strategy()

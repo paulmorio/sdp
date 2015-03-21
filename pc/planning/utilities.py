@@ -5,6 +5,9 @@ BALL_OUR_ZONE_AT_WALL = 'ball_our_zone_at_wall'
 POSSESSION = 'possession'
 BALL_NOT_IN_OUR_ZONE = 'ball_not_in_our_zone'
 FOLLOWING_BALL = 'following ball'
+BALL_OUR_DEFENDER_ZONE = 'ball_their_defender_zone'
+BALL_THEIR_ATTACKER_ZONE = 'ball_their_attacker_zone'
+BALL_THEIR_DEFENDER_ZONE = 'ball_their_defender_zone'
 
 # Strategy State Constants
 INIT = 'init'
