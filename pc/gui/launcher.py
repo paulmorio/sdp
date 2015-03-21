@@ -88,8 +88,7 @@ class Launcher(Frame):
         """
         Run the table calibration tool from the launcher
         """
-        # TODO: this crashes the program - seems to fail to
-        # close the calibration window
         from pc.vision.table_setup import TableSetup
+        self.gui_root.destroy()
         table_setup = TableSetup(int(self.pitch.get()))
         table_setup.run()

@@ -58,7 +58,7 @@ class TableSetup(object):
 
         print 'Press any key to finish.'
         cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        cv2.destroyWindow(FRAME_NAME)
         self.camera.release()
         # Write out the data
         tools.save_croppings(pitch=self.pitch, data=self.data)
