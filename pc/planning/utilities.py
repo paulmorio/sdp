@@ -8,6 +8,7 @@ FOLLOWING_BALL = 'following ball'
 BALL_OUR_DEFENDER_ZONE = 'ball_their_defender_zone'
 BALL_THEIR_ATTACKER_ZONE = 'ball_their_attacker_zone'
 BALL_THEIR_DEFENDER_ZONE = 'ball_their_defender_zone'
+AWAITING_PASS = 'awaiting_pass'
 
 # Strategy State Constants
 INIT = 'init'

@@ -82,25 +82,34 @@ class Planner(object):
         if self.robot_ctl.ball_grabbed:
             self.state = POSSESSION
 
+        # If the ball is in their defender's margin, shadow the def/ball
+        elif self.world.ball_in_area([self.world.their_defender]):
+            self.state = BALL_THEIR_DEFENDER_ZONE
+
         # If ball is in our margin, go get it
         elif self.world.ball_in_area([self.robot_mdl]):
             self.state = BALL_OUR_ZONE
 
-        # If the ball is in our defender's margin, await pass
+        # Awaiting pass, ball not yet in our area
+        elif self.state == AWAITING_PASS:
+            pass
+
+        # If the ball is in our defender's margin, await pass or rebound
         elif self.world.ball_in_area([self.world.our_defender]):
-            pass
+            if self.world.can_catch_ball(self.world.our_defender):
+                self.state = AWAITING_PASS
+            else:
+                self.state = BALL_OUR_DEFENDER_ZONE
 
-        # If the ball is in their attacker's margin, velocity/dir cases?
+        # The ball is in their attacker's margin and we're not awaiting a pass
         elif self.world.ball_in_area([self.world.their_attacker]):
-            pass
-
-        # If the ball is in their defender's margin, shadow the def/ball?
-        elif self.world.ball_in_area([self.world.their_defender]):
-            pass
+            self.state = BALL_THEIR_ATTACKER_ZONE  # Await rebound
 
         # If the ball is not visible, do nothing
         elif not self.world.ball_in_play():
             self.state = BALL_NOT_VISIBLE
+
+        self.update_strategy()
 
     def ms3_transition(self):
         """

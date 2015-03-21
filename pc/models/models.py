@@ -286,8 +286,6 @@ class Robot(PitchObject):
 
         return self.get_rotation_to_point(x, y_mirror)
 
-
-
     def get_displacement_to_point(self, x, y):
         """
         This method returns the displacement (CM) between the robot and the
