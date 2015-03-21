@@ -217,7 +217,6 @@ class Robot(PitchObject):
         super(Robot, self).__init__(x, y, angle, velocity, width, length,
                                     height, angle_offset)
         self._zone = zone
-        self._catcher_centre = None
         self._world = world
 
     @property
@@ -270,8 +269,8 @@ class Robot(PitchObject):
 
     def get_rotation_to_point_via_wall(self, x, y, top=True):
         """
-        Get the angle by which the robot needs to rotate in order to look at the target
-        WALL-BOUNCE PASS EDITION
+        Get the angle by which the robot needs to rotate in order to look at the
+        target WALL-BOUNCE PASS EDITION
 
         x = target x-pos
         y = target y-pos
@@ -285,6 +284,18 @@ class Robot(PitchObject):
             y_mirror = -y
 
         return self.get_rotation_to_point(x, y_mirror)
+
+    def get_point_via_wall(self, x, y, zone_height, top=True):
+        """
+        Given a target, return the point at which we should shoot
+        to have the ball bounce and reach the target.
+        """
+        if top:
+            y_mirror = y + 2*(zone_height - y)
+        else:
+            y_mirror = -y
+        return x, y_mirror
+
 
     def get_displacement_to_point(self, x, y):
         """

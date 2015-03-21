@@ -27,7 +27,8 @@ class Planner(object):
                 POSSESSION: ShootGoal(self.world, self.robot_ctl),
                 BALL_OUR_DEFENDER_ZONE: Idle(self.world, self.robot_ctl),
                 BALL_THEIR_ATTACKER_ZONE: Idle(self.world, self.robot_ctl),
-                BALL_THEIR_DEFENDER_ZONE: Idle(self.world, self.robot_ctl)
+                BALL_THEIR_DEFENDER_ZONE: Idle(self.world, self.robot_ctl),
+                AWAITING_PASS: Idle(self.world, self.robot_ctl)
             }
         elif self.profile == 'ms3':
             self._strat_map = {

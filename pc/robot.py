@@ -1,8 +1,6 @@
 import math
 from multiprocessing import Process, Pipe
-
-from pc.comms.communicator import Communicator
-
+from communicator import Communicator
 
 # Command string constants
 DRIVE = "DRIVE"
@@ -17,7 +15,7 @@ CMD_DELIMITER = ' '
 ROTARY_SENSOR_RESOLUTION = 2.0
 WHEEL_DIAM_CM = 8.16
 TICK_DIST_CM = math.pi * WHEEL_DIAM_CM * ROTARY_SENSOR_RESOLUTION / 360.0
-WHEELBASE_DIAM_CM = 10.93
+WHEELBASE_DIAM_CM = 17.93  # TODO not correct but adjusted as hack (closer to 13-14cm)
 WHEELBASE_CIRC_CM = WHEELBASE_DIAM_CM * math.pi
 
 

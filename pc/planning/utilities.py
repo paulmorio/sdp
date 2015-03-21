@@ -28,5 +28,7 @@ CLOSING_GRABBER = 'closing_grabber'
 TURNING_TO_DEST = 'turning_to_dest'
 MOVING_TO_DEST = 'moving_to_dest'
 DONE = 'done'
+GOTO_SHOOT_SPOT = 'go_to_shoot_spot'
+CHOOSING_SHOT_ANGLE = 'choosing_spot'
 
 FINDING_PATH = 'finding path'
