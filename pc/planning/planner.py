@@ -78,7 +78,29 @@ class Planner(object):
 
         Updates the planner state and current strategy based on the world state
         """
-        pass
+        # Successfully grabbed ball
+        if self.robot_ctl.ball_grabbed:
+            self.state = POSSESSION
+
+        # If ball is in our margin, go get it
+        elif self.world.ball_in_area([self.robot_mdl]):
+            self.state = BALL_OUR_ZONE
+
+        # If the ball is in our defender's margin, await pass
+        elif self.world.ball_in_area([self.world.our_defender]):
+            pass
+
+        # If the ball is in their attacker's margin, velocity/dir cases?
+        elif self.world.ball_in_area([self.world.their_attacker]):
+            pass
+
+        # If the ball is in their defender's margin, shadow the def/ball?
+        elif self.world.ball_in_area([self.world.their_defender]):
+            pass
+
+        # If the ball is not visible, do nothing
+        elif not self.world.ball_in_play():
+            self.state = BALL_NOT_VISIBLE
 
     def ms3_transition(self):
         """
@@ -91,7 +113,7 @@ class Planner(object):
         if self.robot_ctl.ball_grabbed:
             self.state = POSSESSION
 
-        # If ball is in our margin - move to possession state if ball grabbed
+        # If ball is in our margin
         elif self.world.ball_in_area([self.robot_mdl]):
             self.state = BALL_OUR_ZONE
 

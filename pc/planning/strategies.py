@@ -291,8 +291,7 @@ class PenaltyKick(Strategy):
     Intended use is when the ball is in our possession during penalty mode.
     """
     def __init__(self, world, robot_ctl):
-        _STATES = [TURNING_TO_GOAL, OPENING_GRABBER, KICKING,
-                   DONE]
+        _STATES = [TURNING_TO_GOAL, OPENING_GRABBER, KICKING, DONE]
         _STATE_MAP = {TURNING_TO_GOAL: self.turn_to_goal,
                       OPENING_GRABBER: self.open_grabber,
                       KICKING: self.kick,
