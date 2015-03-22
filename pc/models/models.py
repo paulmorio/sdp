@@ -296,7 +296,6 @@ class Robot(PitchObject):
             y_mirror = -y
         return x, y_mirror
 
-
     def get_displacement_to_point(self, x, y):
         """
         This method returns the displacement (CM) between the robot and the
@@ -336,13 +335,17 @@ class Robot(PitchObject):
         return Polygon((robot_poly[0], robot_poly[1],
                         target_poly[0], target_poly[1]))
 
-    def is_facing_point(self, x, y, rad_threshold=0.17):
+    def is_facing_point(self, x, y, rad_thresh=0.17, backward=False):
         """
         True if the robot is facing a given point given some threshold.
         """
-        return -rad_threshold < self.get_rotation_to_point(x, y) < rad_threshold
+        if not backward:
+            return -rad_thresh < self.get_rotation_to_point(x, y) < rad_thresh
+        else:
+            return -rad_thresh < self.get_rotation_to_point(x, y) + pi \
+                < rad_thresh
 
-    def is_at_point(self, x, y, cm_threshold=1):
+    def is_at_point(self, x, y, cm_threshold=2):
         """
         True if the point is less that cm_threshold centimetres from the robot
         center

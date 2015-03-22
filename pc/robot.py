@@ -196,18 +196,23 @@ class Robot(object):
         """
         self.drive(0, 0)
 
-    def turn(self, radians, power=100):
+    def turn(self, radians, power=100, long=False):
         """
-        Turn the robot at the given motor power. The radians should be relative
-        to the current orientation of the robot, where the robot is facing 0 rad
-        and radians in (0,inf) indicate a rightward turn while radians in
-        (-inf,-0) indicate a leftward turn.
+        Turn the robot the given radians at the given motor power.
 
-        :param radians: Radians to turn from current orientation. Sign indicates
-                        direction (negative -> leftward, positive -> rightward)
+        :param radians: Radians to turn from current orientation.
         :param power: Motor power
+        :param long: Take the long turn regardless.
         """
-        wheel_dist = WHEELBASE_CIRC_CM * radians / (2 * math.pi)
+
+        # Turn left
+        if radians < math.pi or long:
+            wheel_dist = WHEELBASE_CIRC_CM * radians / (2 * math.pi)
+
+        else:  # Turn right
+            wheel_dist = \
+                -WHEELBASE_CIRC_CM * (2*math.pi - radians) / (2 * math.pi)
+
         self.drive(wheel_dist, -wheel_dist, power, power)
 
     def open_grabber(self, time=250, power=100):
@@ -282,10 +287,14 @@ class ManualController(object):
         self.root.bind('x', lambda event: self.robot.drive(-10, -10))
         self.root.bind('<Down>', lambda event: self.robot.drive(-20, -20,
                                                                 70, 70))
-        self.root.bind('<Left>', lambda event: self.robot.turn(-math.pi))
-        self.root.bind('<Right>', lambda event: self.robot.turn(math.pi))
-        self.root.bind('a', lambda event: self.robot.turn(-math.pi))
-        self.root.bind('d', lambda event: self.robot.turn(math.pi))
+        self.root.bind('<Left>', lambda event: self.robot.turn(-math.pi,
+                                                               long=True))
+        self.root.bind('<Right>', lambda event: self.robot.turn(math.pi,
+                                                                long=True))
+        self.root.bind('a', lambda event: self.robot.turn(-math.pi,
+                                                          long=True))
+        self.root.bind('d', lambda event: self.robot.turn(math.pi,
+                                                          long=True))
         self.root.bind('o', lambda event: self.robot.open_grabber())
         self.root.bind('c', lambda event: self.robot.close_grabber())
         self.root.bind('<space>', lambda event: self.robot.kick())

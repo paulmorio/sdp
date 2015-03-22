@@ -1,4 +1,5 @@
 from utilities import *
+import math
 
 
 class Strategy(object):
@@ -14,7 +15,6 @@ class Strategy(object):
         self._state = self.states[0]
         self.robot_mdl = world.our_attacker
         self.ball = world.ball
-        self.dest = None  # For shoot and pass strategies, reset on transition
 
     @property
     def state(self):
@@ -162,6 +162,7 @@ class PassBall(Strategy):
         super(PassBall, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
         self.target = self.world.our_defender
         self.their_attacker = self.world.their_attacker
+        self.dest = None
 
     def find_path(self):
         path = self.robot_mdl.get_pass_path(self.target)
@@ -212,6 +213,10 @@ class PassBall(Strategy):
             self.state = DONE
         elif not self.robot_ctl.is_kicking:
             self.robot_ctl.kick()
+
+    def reset(self):
+        super(PassBall, self).reset()
+        self.dest = None
 
 
 class ShootGoal(Strategy):
@@ -309,6 +314,188 @@ class ShootGoal(Strategy):
         """
         super(ShootGoal, self).reset()
         self.shot_target = None
+
+
+class Defend(Strategy):
+    """
+    Sit in front of their defender. Very annoying.
+
+    Intended use is where their defender possesses the ball.
+    """
+    def __init__(self, world, robot_ctl):
+        _STATES = [MOVING_TO_DEST]
+        _STATE_MAP = {MOVING_TO_DEST: self.move_to_destination}
+        super(Defend, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
+        self.their_defender = self.world.their_defender
+        self.dest = None
+
+    def get_destination(self):
+        """
+        Set destination.
+
+        Get equation of 'shot-line' from their defender and then find
+        intersection with our margin's x-center line.
+        """
+        center_x, center_y = self.world.pitch.zones[self.robot_mdl].center
+        our_zone_height = self.world.pitch.zones[self.robot_mdl].height
+
+        # We don't move outwith this margin to avoid being faked
+        y_max = center_y + our_zone_height*(1/6.0)
+        y_min = center_y - our_zone_height*(1/6.0)
+
+        # Find where their shot-line intercepts our margin center line
+        their_x, their_y = self.world.their_defender.center
+        slope = math.tan(self.world.their_defender.angle)
+        offset = their_y - slope * their_x
+        intersection_y = slope * center_x + offset
+
+        # set destination
+        dest_x = center_x
+        if intersection_y > y_max:
+            dest_y = y_max
+        elif intersection_y < y_min:
+            dest_y = y_min
+        else:
+            dest_y = intersection_y
+
+        self.dest = dest_x, dest_y
+
+    def move_to_destination(self):
+        # If we're at the destination or have no destination
+        if self.robot_mdl.is_at_point(self.dest[0], self.dest[1]) \
+                or self.dest is None:
+            self.get_destination()
+
+        # Command only if not moving
+        if not self.robot_ctl.is_moving:
+            angle, dist = self.robot_mdl.get_direction_to_point(self.dest[0],
+                                                                self.dest[1])
+            # Move forward
+            if angle < math.pi:
+                if self.robot_mdl.is_facing_point(self.dest[0], self.dest[1]):
+                    self.robot_ctl.drive(dist, dist)
+                else:
+                    self.robot_ctl.turn(angle)
+
+            # Move backward
+            else:
+                if self.robot_mdl.is_facing_point(self.dest[0], self.dest[1],
+                                                  backward=True):
+                    self.robot_ctl.drive(-dist, -dist)
+                else:
+                    self.robot_ctl.turn(angle - math.pi)
+
+    def reset(self):
+        super(Defend, self).reset()
+        self.dest = None
+
+
+class Intercept(Strategy):
+    """
+    Intercept a moving ball.
+
+    Intended use is where the ball is likely to move across our margin at such
+    a speed that it will not stop in the boundary. So likely cases are when
+    shots rebound/miss and when their defender attempts a pass.
+    """
+    def __init__(self, world, robot_ctl):
+        _STATES = [INIT]
+        _STATE_MAP = {INIT: self.move_to_destination}
+        super(Intercept, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
+        self.ball = self.world.ball
+        self.dest = None
+
+    def get_destination(self):
+        # TODO refactor intercept and defend - very similar
+        # TODO comment this properly after bollocks hacks
+        """
+        Get the predicted line of the ball and move to where it intersects
+        with our margin's center x.
+        """
+        center_x, center_y = self.world.pitch.zones[self.robot_mdl].center
+        our_zone_height = self.world.pitch.zones[self.robot_mdl].height
+        our_zone_width = self.world.pitch.zones[self.robot_mdl].width
+
+        # Choose the x on which our robot 'tracks'. This is either 1/3 along the
+        # margin or 2/3 along the margin, depending on which is further from the
+        # ball
+        if self.ball.x > center_x:
+            track_x = center_x - our_zone_width*(1/6.0)
+        else:
+            track_x = center_x + our_zone_width*(1/6.0)
+
+        # Stay within this margin to avoid walls and stuff.
+        # TODO tune based on bot dimensions
+        y_max = center_y + our_zone_height*(1/3.0)
+        y_min = center_y - our_zone_height*(1/3.0)
+
+        # Find where the ball path intercepts our margin center
+        their_x, their_y = self.ball.center
+        slope = math.tan(self.ball.angle)
+        offset = their_y - slope * their_x
+        intersection_y = slope * track_x + offset
+
+        # Set dest
+        if intersection_y > y_max:
+            dest_y = y_max
+        elif intersection_y < y_min:
+            dest_y = y_min
+        else:
+            dest_y = intersection_y
+
+        self.dest = track_x, dest_y
+
+    def move_to_destination(self):
+        # If we're at the destination or have no destination
+        if self.robot_mdl.is_at_point(self.dest[0], self.dest[1]) \
+                or self.dest is None:
+            self.get_destination()
+
+        # Command only if not moving
+        if not self.robot_ctl.is_moving:
+            angle, dist = self.robot_mdl.get_direction_to_point(self.dest[0],
+                                                                self.dest[1])
+            # Move forward
+            if angle < math.pi:
+                if self.robot_mdl.is_facing_point(self.dest[0], self.dest[1]):
+                    self.robot_ctl.drive(dist, dist)
+                else:
+                    self.robot_ctl.turn(angle)
+
+            # Move backward
+            else:
+                if self.robot_mdl.is_facing_point(self.dest[0], self.dest[1],
+                                                  backward=True):
+                    self.robot_ctl.drive(-dist, -dist)
+                else:
+                    self.robot_ctl.turn(angle - math.pi)
+
+    def reset(self):
+        super(Intercept, self).reset()
+        self.dest = None
+
+
+class AwaitPass(Strategy):
+    """
+    Go to the pass reception position and face the bounce point. The 'bounce
+    point' is the on the wall at the threshold between our margin and the
+    opposing attacker's margin. Which wall depends on where the attacker is -
+    we choose the wall furthest away from the attacker.
+
+    Intended use is where our defending has the ball and is setting up a pass.
+    Note that we must stick in this mode and NOT switch to, i.e., intercept
+    when the ball crosses into a different zone - this will cause some funky
+    bugs and as such it requires a lot of testing (at the planner level that is)
+    """
+    def __init__(self, world, robot_ctl):
+        _STATES = [INIT]
+        _STATE_MAP = {INIT: self.do_nothing}
+        super(AwaitPass, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
+        self.dest = None
+
+    def reset(self):
+        super(AwaitPass, self).reset()
+        self.dest = None
 
 
 class PenaltyKick(Strategy):
