@@ -114,9 +114,26 @@ class TestPitchObject(unittest.TestCase):
 		angles = ([0, pi/6, pi/4, pi/2, pi/2 + pi/6, pi/2 + pi/4,
 		pi/2 + pi/3, pi, pi + pi/6, pi + pi/4, pi + pi/3,
 		3*pi/2, 3*pi/2 + pi/6, 3*pi/2 + pi/4, 3*pi/2 + pi/3])
-		
+
 		for angle in angles:
 			p_object = PitchObject(50, 50, angle, 0, 40, 20, 10)
 			poly = Polygon(((60, 70), (60, 30), (40, 70), (40, 30)))
 			poly.rotate(angle, 50, 50)
 			assert_almost_equal(p_object.get_polygon(), poly[0])
+
+class TestPitch(unittest.TestCase):
+	'''
+	Tests the Pitch class
+	'''
+	def test_Pitch_initialisation(self):
+		'''
+		Tests if the zones don't overlap
+		'''
+		pitch = Pitch()
+		for zone1 in pitch.zones:
+			for zone2 in pitch.zones:
+				if not zone1 == zone2:
+					self.assertFalse(zone1.overlaps(zone2))
+
+if __name__ == '__main__':
+	unittest.main()
