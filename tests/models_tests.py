@@ -18,7 +18,7 @@ class TestCoordinate(unittest.TestCase):
 		self.assertRaises(ValueError, Coordinate, None, 5)
 		self.assertRaises(ValueError, Coordinate, 5, None)
 		self.assertRaises(ValueError, Coordinate, None, None)
-		
+
 	def test_wrong_assignment(self):
 		'''
 		This test checks if the Coordinate object can be assigned a wrong value
@@ -70,3 +70,53 @@ class TestVector(unittest.TestCase):
 		except ValueError:
 			#This should raise no errors!
 			self.assertTrue(False)
+
+class TestPitchObject(unittest.TestCase):
+	'''
+	Tests the PitchObject class.
+	The tests include the modification of the object and methods
+	for getting the polygons that bound the object.
+	'''
+	def setUp(self):
+		pass
+
+	def test_PitchObject_initialisation(self):
+		'''
+		Checks if width, length and height can't be set as negative.
+		Also checks if valid values are accepted.
+		'''
+		self.assertRaises(ValueError, PitchObject, *(2, 2, 0, 0, -1, 1, 1))
+		self.assertRaises(ValueError, PitchObject, *(2, 2, 0, 0, 1, -1, 1))
+		self.assertRaises(ValueError, PitchObject, *(2, 2, 0, 0, 1, 1, -1))
+		try:
+			p = PitchObject(2, 2, 1, 10, 20, 30, 10)
+		except ValueError:
+			#This should raise no errors!
+			self.assertTrue(False)
+
+	def test_PitchObject_modification(self):
+		'''
+		Checks if vector can't be set to None
+		'''
+		p = PitchObject(2, 2, 0, 0, 20, 20, 20)
+		self.assertRaises(ValueError, setattr, p, 'vector', None)
+		try:
+			p.vector = Vector(2, 2, 1, 10)
+		except ValueError:
+			#This should raise no errors!
+			self.assertTrue(False)
+
+	def test_generic_polygon(self):
+		'''
+		Checks if the points returned by the
+		generic polygon method are correct
+		'''
+		angles = ([0, pi/6, pi/4, pi/2, pi/2 + pi/6, pi/2 + pi/4,
+		pi/2 + pi/3, pi, pi + pi/6, pi + pi/4, pi + pi/3,
+		3*pi/2, 3*pi/2 + pi/6, 3*pi/2 + pi/4, 3*pi/2 + pi/3])
+		
+		for angle in angles:
+			p_object = PitchObject(50, 50, angle, 0, 40, 20, 10)
+			poly = Polygon(((60, 70), (60, 30), (40, 70), (40, 30)))
+			poly.rotate(angle, 50, 50)
+			assert_almost_equal(p_object.get_polygon(), poly[0])
