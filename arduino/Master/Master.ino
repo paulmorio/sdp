@@ -105,7 +105,7 @@ void closeGrabber() {
    */
   int time = atoi(comm.next());
   int power = atoi(comm.next());
-  if (grabberOpen && !isGrabbing) {
+  if (!isGrabbing) {
     motorBackward(MOTOR_G, power);
     grabTimer = millis() + time;
     isGrabbing = true;
@@ -121,7 +121,7 @@ void openGrabber() {
    */
   int time = atoi(comm.next());
   int power = atoi(comm.next());
-  if (!grabberOpen && !isGrabbing) {
+  if (!isGrabbing) {
     motorForward(MOTOR_G, power);
     grabTimer = millis() + time;
     isGrabbing = true;

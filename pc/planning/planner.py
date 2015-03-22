@@ -21,24 +21,26 @@ class Planner(object):
 
         # Strategy dictionaries return a strategy given a state.
         if self.profile == 'attacker':
-            self._strat_map = {
+            self._strategy_map = {
                 BALL_NOT_VISIBLE: Idle(self.world, self.robot_ctl),
-                BALL_OUR_ZONE: GetBall(self.world, self.robot_ctl),
+                GETTING_BALL: GetBall(self.world, self.robot_ctl),
                 POSSESSION: ShootGoal(self.world, self.robot_ctl),
-                BALL_OUR_DEFENDER_ZONE: Idle(self.world, self.robot_ctl),
-                BALL_THEIR_ATTACKER_ZONE: Idle(self.world, self.robot_ctl),
-                BALL_THEIR_DEFENDER_ZONE: Idle(self.world, self.robot_ctl)
+                INTERCEPT: Intercept(self.world, self.robot_ctl),
+                DEFENDING: Defend(self.world, self.robot_ctl),
+                AWAITING_PASS: AwaitPass(self.world, self.robot_ctl)
             }
         elif self.profile == 'ms3':
-            self._strat_map = {
+            self._strategy_map = {
                 BALL_NOT_VISIBLE: Idle(self.world, self.robot_ctl),
-                BALL_OUR_ZONE: GetBall(self.world, self.robot_ctl),
+                GETTING_BALL: GetBall(self.world, self.robot_ctl),
                 POSSESSION: PassBall(self.world, self.robot_ctl),
-                BALL_NOT_IN_OUR_ZONE: FaceBall(self.world, self.robot_ctl)}
+                BALL_NOT_IN_OUR_ZONE: FaceBall(self.world, self.robot_ctl)
+            }
         elif self.profile == 'penalty':
-            self._strat_map = {
+            self._strategy_map = {
                 BALL_NOT_VISIBLE: Idle(self.world, self.robot_ctl),
-                POSSESSION: PenaltyKick(self.world, self.robot_ctl)}
+                POSSESSION: PenaltyKick(self.world, self.robot_ctl)
+            }
 
         # Choose initial strategy
         self.state = BALL_NOT_VISIBLE
@@ -65,7 +67,7 @@ class Planner(object):
         If you wish to switch to a 'fresh' copy of the current
         strategy then you must explicitly call its reset method.
         """
-        new_strategy = self._strat_map[self.state]
+        new_strategy = self._strategy_map[self.state]
         if new_strategy is not self.strategy:
             if self.strategy is not None:
                 self.strategy.reset()
@@ -78,29 +80,53 @@ class Planner(object):
 
         Updates the planner state and current strategy based on the world state
         """
-        # Successfully grabbed ball
+        # Successfully grabbed ball, who cares what area it's in?
         if self.robot_ctl.ball_grabbed:
             self.state = POSSESSION
 
-        # If ball is in our margin, go get it
-        elif self.world.ball_in_area([self.robot_mdl]):
-            self.state = BALL_OUR_ZONE
-
-        # If the ball is in our defender's margin, await pass
-        elif self.world.ball_in_area([self.world.our_defender]):
-            pass
-
-        # If the ball is in their attacker's margin, velocity/dir cases?
-        elif self.world.ball_in_area([self.world.their_attacker]):
-            pass
-
-        # If the ball is in their defender's margin, shadow the def/ball?
+        # Ball is in their defender's area
         elif self.world.ball_in_area([self.world.their_defender]):
-            pass
+            # Assume their def has ball, stalk the defender's target
+            # TODO add estimated catch areas to opposition bots
+            if self.world.can_catch_ball(self.world.their_defender):
+                self.state = DEFENDING
+            # Ball is travelling. Either rebound or kick from defender
+            else:
+                self.state = INTERCEPT
 
-        # If the ball is not visible, do nothing
-        elif not self.world.ball_in_play():
+        # Ball in our defender's area
+        elif self.world.ball_in_area([self.world.our_defender]):
+            # Assume our defender has the ball
+            if self.world.can_catch_ball(self.world.our_defender):
+                self.state = AWAITING_PASS
+            # Could be a rebound, if so then prepare to intercept
+            elif not self.state == AWAITING_PASS:
+                self.state = INTERCEPT
+
+        # Ball in our margin
+        elif self.world.ball_in_area([self.robot_mdl]):
+            # The ball is heading at us (hopefully) or is slow
+            # TODO tune velocity threshold, ball smoothing (kalman)
+            # TODO distance from grabber center to ball
+            if self.state == AWAITING_PASS or self.world.ball.velocity < 2:
+                self.state = GETTING_BALL
+            else:  # Stay in intercept mode until the ball is slow enough
+                self.state = INTERCEPT
+
+        # Ball in their attacker's margin
+        elif self.world.ball_in_area([self.world.their_attacker]):
+            # If we're awaiting a pass then remain as such
+            if self.state == AWAITING_PASS:
+                pass
+            # Ball is not a pass, could be a rebound
+            else:
+                self.state = INTERCEPT
+
+        # Ball is not visible or is between zones (calibrate properly?)
+        else:
             self.state = BALL_NOT_VISIBLE
+
+        self.update_strategy()
 
     def ms3_transition(self):
         """
@@ -115,7 +141,7 @@ class Planner(object):
 
         # If ball is in our margin
         elif self.world.ball_in_area([self.robot_mdl]):
-            self.state = BALL_OUR_ZONE
+            self.state = GETTING_BALL
 
         # If the ball is not visible
         elif not self.world.ball_in_play():

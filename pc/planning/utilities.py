@@ -1,13 +1,11 @@
 # Planner Constants
 BALL_NOT_VISIBLE = 'ball_unreachable'
-BALL_OUR_ZONE = 'ball_our_zone'
-BALL_OUR_ZONE_AT_WALL = 'ball_our_zone_at_wall'
+GETTING_BALL = 'ball_our_zone'
 POSSESSION = 'possession'
 BALL_NOT_IN_OUR_ZONE = 'ball_not_in_our_zone'
-FOLLOWING_BALL = 'following ball'
-BALL_OUR_DEFENDER_ZONE = 'ball_their_defender_zone'
-BALL_THEIR_ATTACKER_ZONE = 'ball_their_attacker_zone'
-BALL_THEIR_DEFENDER_ZONE = 'ball_their_defender_zone'
+AWAITING_PASS = 'awaiting_pass'
+DEFENDING = 'defending'
+INTERCEPT = 'intercept'
 
 # Strategy State Constants
 INIT = 'init'
@@ -27,5 +25,8 @@ CLOSING_GRABBER = 'closing_grabber'
 TURNING_TO_DEST = 'turning_to_dest'
 MOVING_TO_DEST = 'moving_to_dest'
 DONE = 'done'
+GOTO_SHOOT_SPOT = 'go_to_shoot_spot'
+CHOOSING_SHOT_ANGLE = 'choosing_spot'
+FOLLOWING_BALL = 'following_ball'
 
 FINDING_PATH = 'finding path'

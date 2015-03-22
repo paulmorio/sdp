@@ -1,4 +1,5 @@
 from postprocessing import Postprocessing
+from Polygon.cPolygon import Polygon
 from models import *
 import warnings
 
@@ -127,12 +128,64 @@ class World(object):
         too_close_y = r_y - threshold_px < b_y < r_y + threshold_px
         return too_close_x and too_close_y
 
-    # TODO generalize
-    def find_line_of_sight(self, robot):
+    def get_shot_spot(self):
         """
-        Get a point where we have line of sight to a given target (i.e. for
-        passing). Not yet implemented, this provides a solution for milestone
-        3 though.
+        Return the closest designated "shot spot". This is a spot x,y where x is
+        the center of our margin and y is either 1/3 * height or 2/3 * height
+        """
+        our_center_x, our_center_y = \
+            self.pitch.zones[self.our_attacker].center()
+
+        if self.our_attacker.y > our_center_y:
+            return our_center_x, our_center_y * (4/3.0)
+        else:
+            return our_center_x, our_center_y * (2/3.0)
+
+    def get_shot_target(self):  # TODO refactor, lots of reuse here
+        """
+        Get the shot target. Ultimately we want to ball to go into the goal
+        1/5 * goal_width from either side. If there is a robot between ourselves
+        and the straightforward shot (far corner) then we will bounce shot off
+        of the closeby wall into the closeby corner of the goal.
+        """
+        our_center_x, our_center_y = \
+            self.pitch.zones[self.our_attacker].center()
+
+        zone_height = self.pitch.zones[self.our_attacker].height
+
+        upper_tgt = self.their_goal.x, \
+                    self.their_goal.y - self.their_goal.height * (4/10.0)
+        lower_tgt = self.their_goal.x,\
+                    self.their_goal.y - self.their_goal.height * (4/10.0)
+
+        if self.our_attacker.y > our_center_y:
+            # Check straight shot
+            straight_shot_poly = \
+                Polygon(lower_tgt, (self.our_attacker.x, self.our_attacker.y))
+
+            if not straight_shot_poly.overlaps(self.their_defender):
+                return lower_tgt
+            else:  # Bounce shot
+
+                return self.our_attacker.get_point_via_wall(upper_tgt[0],
+                                                            upper_tgt[1],
+                                                            zone_height)
+
+        else:
+            straight_shot_poly = \
+                Polygon(upper_tgt, (self.our_attacker.x, self.our_attacker.y))
+
+            if not straight_shot_poly.overlaps(self.their_defender):
+                return upper_tgt
+            else:  # Bounce shot
+                return self.our_attacker.get_point_via_wall(lower_tgt[0],
+                                                            lower_tgt[1],
+                                                            zone_height, False)
+
+    def find_pass_spot_ms3(self, robot):
+        """
+        Go to a point from which we can pass to our defender around the static
+        ms3 obstacle.
         """
         our_center_x, our_center_y = \
             self.pitch.zones[robot.zone].center()
@@ -144,11 +197,10 @@ class World(object):
         else:
             los_y = (8.0/10) * self.pitch.height
 
-        # TODO add an offset to make it move to the edge of the margin
         if self._our_side == 'right':
-            los_x = int(our_center_x-25)
+            los_x = int(our_center_x+25)  # TODO MAGIC NUMBERS WOOO
         else:
-            los_x = int(our_center_x+25)
+            los_x = int(our_center_x-25)
 
         return los_x, los_y
 
@@ -207,9 +259,14 @@ class WorldUpdater:
         # Note that due to how the setter is written, these things need to be
         # set on every frame - bit hacked together.
         self.world.our_defender.catcher_area = \
-            {'width': 30, 'height': 30, 'front_offset': 20}  # In pixels???
+            {'width': 30, 'height': 30, 'front_offset': 20}
         self.world.our_attacker.catcher_area = \
-            {'width': 30, 'height': 20, 'front_offset': 15}
+            {'width': 20, 'height': 20, 'front_offset': 15}
+        self.world.their_defender.catcher_area = \
+            {'width': 30, 'height': 30, 'front_offset': 20}
+        self.world.their_attacker.catcher_area = \
+            {'width': 30, 'height': 30, 'front_offset': 20}
+
         grabbers = {'our_defender': self.world.our_defender.catcher_area,
                     'our_attacker': self.world.our_attacker.catcher_area}
 

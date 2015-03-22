@@ -1,7 +1,7 @@
 from pc.models.world import WorldUpdater, World
 from pc.vision import tools, camera, vision
 from pc.planning.planner import Planner
-from pc.comms.robot import Robot
+from pc.robot import Robot
 
 
 class Arbiter(object):

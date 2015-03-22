@@ -217,7 +217,6 @@ class Robot(PitchObject):
         super(Robot, self).__init__(x, y, angle, velocity, width, length,
                                     height, angle_offset)
         self._zone = zone
-        self._catcher_centre = None
         self._world = world
 
     @property
@@ -270,8 +269,8 @@ class Robot(PitchObject):
 
     def get_rotation_to_point_via_wall(self, x, y, top=True):
         """
-        Get the angle by which the robot needs to rotate in order to look at the target
-        WALL-BOUNCE PASS EDITION
+        Get the angle by which the robot needs to rotate in order to look at the
+        target WALL-BOUNCE PASS EDITION
 
         x = target x-pos
         y = target y-pos
@@ -286,7 +285,16 @@ class Robot(PitchObject):
 
         return self.get_rotation_to_point(x, y_mirror)
 
-
+    def get_point_via_wall(self, x, y, zone_height, top=True):
+        """
+        Given a target, return the point at which we should shoot
+        to have the ball bounce and reach the target.
+        """
+        if top:
+            y_mirror = y + 2*(zone_height - y)
+        else:
+            y_mirror = -y
+        return x, y_mirror
 
     def get_displacement_to_point(self, x, y):
         """
@@ -327,13 +335,17 @@ class Robot(PitchObject):
         return Polygon((robot_poly[0], robot_poly[1],
                         target_poly[0], target_poly[1]))
 
-    def is_facing_point(self, x, y, rad_threshold=0.17):
+    def is_facing_point(self, x, y, rad_thresh=0.17, backward=False):
         """
         True if the robot is facing a given point given some threshold.
         """
-        return -rad_threshold < self.get_rotation_to_point(x, y) < rad_threshold
+        if not backward:
+            return -rad_thresh < self.get_rotation_to_point(x, y) < rad_thresh
+        else:
+            return -rad_thresh < self.get_rotation_to_point(x, y) + pi \
+                < rad_thresh
 
-    def is_at_point(self, x, y, cm_threshold=1):
+    def is_at_point(self, x, y, cm_threshold=2):
         """
         True if the point is less that cm_threshold centimetres from the robot
         center
