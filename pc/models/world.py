@@ -259,9 +259,14 @@ class WorldUpdater:
         # Note that due to how the setter is written, these things need to be
         # set on every frame - bit hacked together.
         self.world.our_defender.catcher_area = \
-            {'width': 30, 'height': 30, 'front_offset': 20}  # In pixels???
+            {'width': 30, 'height': 30, 'front_offset': 20}
         self.world.our_attacker.catcher_area = \
-            {'width': 30, 'height': 20, 'front_offset': 15}
+            {'width': 20, 'height': 20, 'front_offset': 15}
+        self.world.their_defender.catcher_area = \
+            {'width': 30, 'height': 30, 'front_offset': 20}
+        self.world.their_attacker.catcher_area = \
+            {'width': 30, 'height': 30, 'front_offset': 20}
+
         grabbers = {'our_defender': self.world.our_defender.catcher_area,
                     'our_attacker': self.world.our_attacker.catcher_area}
 
