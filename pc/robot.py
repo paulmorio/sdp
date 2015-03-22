@@ -15,7 +15,7 @@ CMD_DELIMITER = ' '
 ROTARY_SENSOR_RESOLUTION = 2.0
 WHEEL_DIAM_CM = 8.16
 TICK_DIST_CM = math.pi * WHEEL_DIAM_CM * ROTARY_SENSOR_RESOLUTION / 360.0
-WHEELBASE_DIAM_CM = 17.93  # TODO not correct but adjusted as hack (closer to 13-14cm)
+WHEELBASE_DIAM_CM = 15.93  # TODO not correct but adjusted as hack (closer to 13-14cm)
 WHEELBASE_CIRC_CM = WHEELBASE_DIAM_CM * math.pi
 
 
@@ -215,7 +215,7 @@ class Robot(object):
 
         self.drive(wheel_dist, -wheel_dist, power, power)
 
-    def open_grabber(self, time=250, power=100):
+    def open_grabber(self, time=300, power=100):
         """
         Run the grabber motor in the opening direction for the given number of
         milliseconds at the given motor power.
@@ -225,7 +225,7 @@ class Robot(object):
         """
         self.queued_command = (OPEN_GRABBER, [str(time), str(power)])
 
-    def close_grabber(self, time=250, power=100):
+    def close_grabber(self, time=300, power=100):
         """
         Run the grabber motor in the closing direction for the given number of
         milliseconds at the given motor power.
