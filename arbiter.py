@@ -280,7 +280,6 @@ class Arbiter(object):
         Main loop of the system. Grabs frames and passes them to the GUIs and
         the world state.
         """
-        print self.planner.profile
         # Get frame
         frame = self.camera.get_frame()
 

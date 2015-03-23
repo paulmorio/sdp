@@ -107,7 +107,7 @@ class GetBall(Strategy):
             else:
                 dist = self.robot_mdl.get_displacement_to_point(self.ball.x,
                                                                 self.ball.y)
-                self.robot_ctl.drive(dist*0.5, dist*0.5)  # TODO MAGIC
+                self.robot_ctl.drive(dist*0.1, dist*0.1)  # TODO MAGIC
 
     def close_grabber(self):
         if not self.robot_ctl.is_grabbing:
@@ -322,6 +322,7 @@ class Defend(Strategy):
 
     Intended use is where their defender possesses the ball.
     """
+    # TODO no detection of ball in grabber area?
     def __init__(self, world, robot_ctl):
         _STATES = [MOVING_TO_DEST]
         _STATE_MAP = {MOVING_TO_DEST: self.move_to_destination}
