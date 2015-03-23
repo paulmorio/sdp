@@ -196,7 +196,7 @@ class Robot(object):
         """
         self.drive(0, 0)
 
-    def turn(self, radians, power=70):
+    def turn(self, radians, power=100):
         """
         Turn the robot at the given motor power. The radians should be relative
         to the current orientation of the robot, where the robot is facing 0 rad

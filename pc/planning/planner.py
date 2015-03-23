@@ -106,12 +106,7 @@ class Planner(object):
         # Ball in our margin
         elif self.world.ball_in_area([self.robot_mdl]):
             # The ball is heading at us (hopefully) or is slow
-            # TODO tune velocity threshold, ball smoothing (kalman)
-            # TODO distance from grabber center to ball
-            if self.state == AWAITING_PASS or self.world.ball.velocity < 2:
-                self.state = GETTING_BALL
-            else:  # Stay in intercept mode until the ball is slow enough
-                self.state = INTERCEPT
+            self.state = GETTING_BALL
 
         # Ball in their attacker's margin
         elif self.world.ball_in_area([self.world.their_attacker]):
