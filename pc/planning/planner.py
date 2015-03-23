@@ -38,7 +38,6 @@ class Planner(object):
             }
         elif self.profile == 'penalty':
             self._strategy_map = {
-                BALL_NOT_VISIBLE: Idle(self.world, self.robot_ctl),
                 POSSESSION: PenaltyKick(self.world, self.robot_ctl)
             }
 
@@ -155,17 +154,21 @@ class Planner(object):
 
     def penalty_transition(self):
         """
+        IMPORTANT:  Ball must be grabbed before starting up robot
+                    Otherwise it will transition back to attacker state!
+
         Update the planner state and strategy given the current state of the
         world model.
 
         For the penalty profile
         """
-        # Holding the ball
+        # Holding the ball, ready to take penalty
         if self.robot_ctl.ball_grabbed:
             self.state = POSSESSION
 
-        # NOT Holding the ball
+        # NOT Holding the ball anymore (kicked!)
         else:
-            self.state = BALL_NOT_VISIBLE
+            # Set profile back to attacker
+            self.profile = 'attacker'
 
         self.update_strategy()
