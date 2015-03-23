@@ -52,9 +52,10 @@ class TestWorldUpdater(unittest.TestCase):
 		self.assertRaises(ValueError, WorldUpdater, 0, None, None, None, None)
 
 	def test_cm_to_px(self):
+		testValue = 15
 		world = World("right",0)
 		worldupdater = WorldUpdater(0,"yellow","left",)
-		self.assert_almost_equal(worldupdater.cm_to_px(15), 2.36979166667*15) 
+		self.assert_almost_equal(worldupdater.cm_to_px(testValue), 2.36979166667*testValue) 
 
 if __name__ == '__main__':
 	unittest.main()
