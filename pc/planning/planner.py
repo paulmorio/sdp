@@ -20,6 +20,18 @@ class Planner(object):
         self.robot_ctl = robot_ctl
 
         # Strategy dictionaries return a strategy given a state.
+        self._strategy_map = None
+        self.get_strategy_map()
+
+        # Choose initial strategy
+        self.state = BALL_NOT_VISIBLE
+        self.strategy = None
+        self.update_strategy()
+
+    def switch_sides(self):
+        self.robot_mdl = self.world.our_attacker
+
+    def get_strategy_map(self):
         if self.profile == 'attacker':
             self._strategy_map = {
                 BALL_NOT_VISIBLE: Idle(self.world, self.robot_ctl),
@@ -41,11 +53,6 @@ class Planner(object):
                 BALL_NOT_VISIBLE: Idle(self.world, self.robot_ctl),
                 POSSESSION: PenaltyKick(self.world, self.robot_ctl)
             }
-
-        # Choose initial strategy
-        self.state = BALL_NOT_VISIBLE
-        self.strategy = None
-        self.update_strategy()
 
     def plan(self):
         """
