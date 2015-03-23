@@ -12,7 +12,7 @@ STATUS = "STATUS"
 CMD_DELIMITER = ' '
 
 # Robot constants
-ROTARY_SENSOR_RESOLUTION = 3.0  # TODO update this after downgearing
+ROTARY_SENSOR_RESOLUTION = 2.0  # TODO update this after downgearing
 WHEEL_DIAM_CM = 8.16
 TICK_DIST_CM = math.pi * WHEEL_DIAM_CM * ROTARY_SENSOR_RESOLUTION / 360.0
 WHEELBASE_DIAM_CM = 16.2  # TODO not correct but adjusted as hack (closer to 13-14cm)
