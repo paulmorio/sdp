@@ -211,6 +211,9 @@ class World(object):
         """
         return robot.catcher_area.isInside(self.ball.x, self.ball.y)
 
+    def px_to_cm(self, px):
+        return px / PX_PER_CM
+
 
 class WorldUpdater:
     """
@@ -261,11 +264,11 @@ class WorldUpdater:
         self.world.our_defender.catcher_area = \
             {'width': 30, 'height': 30, 'front_offset': 20}
         self.world.our_attacker.catcher_area = \
-            {'width': 20, 'height': 20, 'front_offset': 15}
+            {'width': 20, 'height': 20, 'front_offset': 30}
         self.world.their_defender.catcher_area = \
-            {'width': 30, 'height': 30, 'front_offset': 20}
+            {'width': 40, 'height': 40, 'front_offset': 20}
         self.world.their_attacker.catcher_area = \
-            {'width': 30, 'height': 30, 'front_offset': 20}
+            {'width': 40, 'height': 40, 'front_offset': 20}
 
         grabbers = {'our_defender': self.world.our_defender.catcher_area,
                     'our_attacker': self.world.our_attacker.catcher_area}

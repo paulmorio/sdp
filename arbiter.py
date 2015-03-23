@@ -145,7 +145,7 @@ class Arbiter(object):
         # Penalty mode
         self.penalty_mode = False  # Flag to know what mode we're in
         penalty_mode = Button(self.root)
-        penalty_mode["text"] = "Toggle Penalty\nMode"
+        penalty_mode["text"] = "Take Penalty"
         penalty_mode["command"] = self.toggle_penalty_mode
         penalty_mode.grid(row=1, column=13, columnspan=3)
 
@@ -248,16 +248,17 @@ class Arbiter(object):
         self.vision.switch_attributes(None, our_new_colour)
 
     def toggle_penalty_mode(self):
-        # TODO: as above.
-        if not self.penalty_mode:
-            self.penalty_mode = True
-            self.previous_planner_profile = self.planner.profile
-            self.planner.profile = 'penalty'
-            self.planner.get_strategy_map()
-        else:
-            self.penalty_mode = False
-            self.planner.profile = self.previous_planner_profile
-            self.planner.get_strategy_map()
+        # TODO: broken upon merging. Fix!
+        # if not self.penalty_mode:
+        #     self.penalty_mode = True
+        #     self.previous_planner_profile = self.planner.profile
+        #     self.planner.profile = 'penalty'
+        #     self.planner.update_strategy_map()
+        # else:
+        #     self.penalty_mode = False
+        #     self.planner.profile = self.previous_planner_profile
+        #     self.planner.update_strategy_map()
+        print "Penalty!"
 
     def run(self):
         """

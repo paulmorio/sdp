@@ -218,6 +218,8 @@ class Robot(PitchObject):
                                     height, angle_offset)
         self._zone = zone
         self._world = world
+        self.last_angle = self.angle
+        self.last_pos = self.x, self.y
 
     @property
     def zone(self):
@@ -267,6 +269,17 @@ class Robot(PitchObject):
         assert -pi <= theta <= pi
         return -theta
 
+    def get_rotation_to_angle(self, rads):
+        """
+        Get the angle by which the robot needs to rotate to attain alignment.
+        """
+        theta = self.angle - rads
+        if theta > pi:
+            theta -= 2*pi
+        elif theta < -pi:
+            theta += 2*pi
+        return theta
+
     def get_rotation_to_point_via_wall(self, x, y, top=True):
         """
         Get the angle by which the robot needs to rotate in order to look at the
@@ -276,12 +289,8 @@ class Robot(PitchObject):
         y = target y-pos
         top = pass via bottom wall or top wall (true = top)
         """
-        pitch_height = self._world._pitch._zones[self._zone].height
-
-        if top:
-            y_mirror = y + 2*(pitch_height - y)
-        else:
-            y_mirror = -y
+        zone_height = self._world._pitch._zones[self._zone].height
+        (_, y_mirror) = self.get_point_via_wall(x, y, zone_height, top)
 
         return self.get_rotation_to_point(x, y_mirror)
 
@@ -351,6 +360,26 @@ class Robot(PitchObject):
         center
         """
         return self.get_displacement_to_point(x, y) < cm_threshold
+
+    def is_turning(self, threshold=0.1):  # TODO tune threshold
+        if self.angle - threshold < self.last_angle < self.angle + threshold:
+            self.last_angle = self.angle
+            return False
+        self.last_angle = self.angle
+        return True
+
+    def is_moving(self):
+        if self.is_at_point(self.last_pos[0], self.last_pos[1]):
+            self.last_pos = self.x, self.y
+            return False
+        self.last_pos = self.x, self.y
+        return True
+
+    def is_facing_angle(self, rads, threshold=0.1):
+        return rads - threshold < self.angle < rads + threshold
+
+    def is_square(self):
+        return self.is_facing_angle(pi/2) or self.is_facing_angle(3*pi/2)
 
     def __repr__(self):
         return ('zone: %s\nx: %s\ny: %s\nangle: %s'

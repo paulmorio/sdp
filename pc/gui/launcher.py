@@ -55,7 +55,7 @@ class Launcher(Frame):
 
         # Profile
         Label(self.gui_root, text="Profile:").grid(row=4, column=0)
-        self.profile.set("ms3")
+        self.profile.set("attacker")
         profile_select = OptionMenu(self.gui_root, self.profile,
                                     "attacker", "ms3", "penalty", "None")
         profile_select.grid(row=4, column=1)
