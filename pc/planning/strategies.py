@@ -428,7 +428,9 @@ class Intercept(Strategy):
         """
         Follow ball's y coordinate.
         """
-        if self.robot_mdl.is_square():
+        if self.top_fixated and self.robot_mdl.is_facing_angle(math.pi/2) or\
+                not self.top_fixated and \
+                        self.robot_mdl.is_facing_angle(3*math.pi/2):
             if not self.robot_ctl.is_moving and self.robot_mdl.is_moving():
                 ball_y = self.world.ball.y
                 bot_y = self.robot_mdl.y
