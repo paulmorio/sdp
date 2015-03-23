@@ -20,6 +20,16 @@ class Planner(object):
         self.robot_ctl = robot_ctl
 
         # Strategy dictionaries return a strategy given a state.
+        self._strategy_map = {}
+        self.update_strategy_map()
+
+        # Choose initial strategy
+        self.state = BALL_NOT_VISIBLE
+        self.strategy = None
+        self.update_strategy()
+
+    # Defining strategy map depending on the profile
+    def update_strategy_map(self):
         if self.profile == 'attacker':
             self._strategy_map = {
                 BALL_NOT_VISIBLE: Idle(self.world, self.robot_ctl),
@@ -41,11 +51,6 @@ class Planner(object):
                 BALL_NOT_VISIBLE: Idle(self.world, self.robot_ctl),
                 POSSESSION: PenaltyKick(self.world, self.robot_ctl)
             }
-
-        # Choose initial strategy
-        self.state = BALL_NOT_VISIBLE
-        self.strategy = None
-        self.update_strategy()
 
     def plan(self):
         """
@@ -150,17 +155,28 @@ class Planner(object):
 
     def penalty_transition(self):
         """
+        IMPORTANT:  Ball must be grabbed before starting up robot
+                    Otherwise it will transition back to attacker state!
+
         Update the planner state and strategy given the current state of the
         world model.
 
         For the penalty profile
         """
-        # Holding the ball
-        if self.robot_ctl.ball_grabbed:
+        # Holding the ball, ready to take penalty
+        if self.world.can_catch_ball(self.robot_mdl):
             self.state = POSSESSION
 
-        # NOT Holding the ball
+        # if self.robot_ctl.ball_grabbed:
+        #     self.state = POSSESSION
+
+        # NOT Holding the ball anymore (kicked!)
         else:
+            print "self.world.can_catch_ball(self.robot_mdl): "+str(self.world.can_catch_ball(self.robot_mdl))
+            print "PROFILE CHANGE TO ATTACKER"
+            # Set profile back to attacker
+            self.profile = 'attacker'
             self.state = BALL_NOT_VISIBLE
+            self.update_strategy_map()
 
         self.update_strategy()
