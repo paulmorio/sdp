@@ -362,8 +362,7 @@ class Defend(Strategy):
 
     def move_to_destination(self):
         # If we're at the destination or have no destination
-        if self.robot_mdl.is_at_point(self.dest[0], self.dest[1]) \
-                or self.dest is None:
+        if self.dest is None or self.robot_mdl.is_at_point(self.dest[0], self.dest[1]):
             self.get_destination()
 
         # Command only if not moving
@@ -475,12 +474,29 @@ class PenaltyKick(Strategy):
         self.dest = None
 
     def turn_to_goal(self):
+
+        # Decide to aim at the top or bottom wall
+        center_y = self.world.their_goal.y
+
+        if self.their_defender.y < center_y:
+            aim_top = True
+        else:
+            aim_top = False
+
+        print "Aim-top: "+str(aim_top)
+
+        # Convert coordinates to wall-bounce coordinates
+        (wall_x, wall_y) = self.robot_mdl.get_point_via_wall(self.target.x,
+                                                             self.target.y,
+                                                             aim_top)
+
+        # Rotate robot to point if required, otherwise new state: open grabber
         if not self.robot_ctl.is_moving:
-            if self.robot_mdl.is_facing_point(self.target.x, self.target.y):
+            if self.robot_mdl.is_facing_point(wall_x, wall_y):
                 self.state = OPENING_GRABBER
             else:
-                angle = self.robot_mdl.get_rotation_to_point(self.target.x,
-                                                             self.target.y)
+                angle = self.robot_mdl.get_rotation_to_point(wall_x,
+                                                             wall_y)
                 self.robot_ctl.turn(angle)
 
     def open_grabber(self):
