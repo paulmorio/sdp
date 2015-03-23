@@ -12,10 +12,10 @@ STATUS = "STATUS"
 CMD_DELIMITER = ' '
 
 # Robot constants
-ROTARY_SENSOR_RESOLUTION = 2.0
+ROTARY_SENSOR_RESOLUTION = 3.0  # TODO update this after downgearing
 WHEEL_DIAM_CM = 8.16
 TICK_DIST_CM = math.pi * WHEEL_DIAM_CM * ROTARY_SENSOR_RESOLUTION / 360.0
-WHEELBASE_DIAM_CM = 15.93  # TODO not correct but adjusted as hack (closer to 13-14cm)
+WHEELBASE_DIAM_CM = 16.2  # TODO not correct but adjusted as hack (closer to 13-14cm)
 WHEELBASE_CIRC_CM = WHEELBASE_DIAM_CM * math.pi
 
 
@@ -196,23 +196,17 @@ class Robot(object):
         """
         self.drive(0, 0)
 
-    def turn(self, radians, power=100, long=False):
+    def turn(self, radians, power=70):
         """
-        Turn the robot the given radians at the given motor power.
-
-        :param radians: Radians to turn from current orientation.
+        Turn the robot at the given motor power. The radians should be relative
+        to the current orientation of the robot, where the robot is facing 0 rad
+        and radians in (0,inf) indicate a rightward turn while radians in
+        (-inf,-0) indicate a leftward turn.
+        :param radians: Radians to turn from current orientation. Sign indicates
+                        direction (negative -> leftward, positive -> rightward)
         :param power: Motor power
-        :param long: Take the long turn regardless.
         """
-
-        # Turn left
-        if radians < math.pi or long:
-            wheel_dist = WHEELBASE_CIRC_CM * radians / (2 * math.pi)
-
-        else:  # Turn right
-            wheel_dist = \
-                -WHEELBASE_CIRC_CM * (2*math.pi - radians) / (2 * math.pi)
-
+        wheel_dist = WHEELBASE_CIRC_CM * radians / (2 * math.pi)
         self.drive(wheel_dist, -wheel_dist, power, power)
 
     def open_grabber(self, time=300, power=100):
@@ -225,7 +219,7 @@ class Robot(object):
         """
         self.queued_command = (OPEN_GRABBER, [str(time), str(power)])
 
-    def close_grabber(self, time=300, power=100):
+    def close_grabber(self, time=340, power=100):
         """
         Run the grabber motor in the closing direction for the given number of
         milliseconds at the given motor power.
@@ -287,14 +281,10 @@ class ManualController(object):
         self.root.bind('x', lambda event: self.robot.drive(-10, -10))
         self.root.bind('<Down>', lambda event: self.robot.drive(-20, -20,
                                                                 70, 70))
-        self.root.bind('<Left>', lambda event: self.robot.turn(-math.pi,
-                                                               long=True))
-        self.root.bind('<Right>', lambda event: self.robot.turn(math.pi,
-                                                                long=True))
-        self.root.bind('a', lambda event: self.robot.turn(-math.pi,
-                                                          long=True))
-        self.root.bind('d', lambda event: self.robot.turn(math.pi,
-                                                          long=True))
+        self.root.bind('<Left>', lambda event: self.robot.turn(-math.pi))
+        self.root.bind('<Right>', lambda event: self.robot.turn(math.pi))
+        self.root.bind('a', lambda event: self.robot.turn(-math.pi))
+        self.root.bind('d', lambda event: self.robot.turn(math.pi))
         self.root.bind('o', lambda event: self.robot.open_grabber())
         self.root.bind('c', lambda event: self.robot.close_grabber())
         self.root.bind('<space>', lambda event: self.robot.kick())

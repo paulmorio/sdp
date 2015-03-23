@@ -218,6 +218,8 @@ class Robot(PitchObject):
                                     height, angle_offset)
         self._zone = zone
         self._world = world
+        self.last_angle = self.angle
+        self.last_pos = self.x, self.y
 
     @property
     def zone(self):
@@ -265,6 +267,18 @@ class Robot(PitchObject):
             elif theta < -pi:
                 theta += 2*pi
         assert -pi <= theta <= pi
+        return -theta
+
+    def get_rotation_to_angle(self, rads):
+        """
+        Get the angle by which the robot needs to rotate to attain alignment.
+        """
+        # TODO test, can't remember how angles are reported by vision
+        theta = self.angle - rads
+        if theta > pi:
+            theta -= 2*pi
+        elif theta < -pi:
+            theta += 2*pi
         return -theta
 
     def get_rotation_to_point_via_wall(self, x, y, top=True):
@@ -351,6 +365,26 @@ class Robot(PitchObject):
         center
         """
         return self.get_displacement_to_point(x, y) < cm_threshold
+
+    def is_turning(self, threshold=0.1):  # TODO tune threshold
+        if self.angle - threshold < self.last_angle < self.angle + threshold:
+            self.last_angle = self.angle
+            return False
+        self.last_angle = self.angle
+        return True
+
+    def is_moving(self):
+        if self.is_at_point(self.last_pos[0], self.last_pos[1]):
+            self.last_pos = self.x, self.y
+            return False
+        self.last_pos = self.x, self.y
+        return True
+
+    def is_facing_angle(self, rads, threshold=0.1):
+        return rads - threshold < self.angle < rads + threshold
+
+    def is_square(self):
+        return self.is_facing_angle(pi/2) or self.is_facing_angle(3*pi/2)
 
     def __repr__(self):
         return ('zone: %s\nx: %s\ny: %s\nangle: %s'

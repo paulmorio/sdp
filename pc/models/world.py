@@ -211,6 +211,8 @@ class World(object):
         """
         return robot.catcher_area.isInside(self.ball.x, self.ball.y)
 
+    def px_to_cm(self, px):
+        return px / PX_PER_CM
 
 class WorldUpdater:
     """

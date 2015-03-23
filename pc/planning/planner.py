@@ -71,8 +71,8 @@ class Planner(object):
         if new_strategy is not self.strategy:
             if self.strategy is not None:
                 self.strategy.reset()
-            else:
-                self.strategy = new_strategy
+            # STOP PUTTING THIS IN A FUCKING ELSE BLOCK YOU FUCKS
+            self.strategy = new_strategy
 
     def attacker_transition(self):
         """

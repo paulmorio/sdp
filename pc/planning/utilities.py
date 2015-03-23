@@ -28,5 +28,6 @@ DONE = 'done'
 GOTO_SHOOT_SPOT = 'go_to_shoot_spot'
 CHOOSING_SHOT_ANGLE = 'choosing_spot'
 FOLLOWING_BALL = 'following_ball'
-
+GETTING_SQUARE = 'getting square'
+TRACKING_BALL = 'tracking ball'
 FINDING_PATH = 'finding path'
