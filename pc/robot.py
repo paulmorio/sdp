@@ -15,7 +15,7 @@ CMD_DELIMITER = ' '
 ROTARY_SENSOR_RESOLUTION = 2.0  # TODO update this after downgearing
 WHEEL_DIAM_CM = 8.16
 TICK_DIST_CM = math.pi * WHEEL_DIAM_CM * ROTARY_SENSOR_RESOLUTION / 360.0
-WHEELBASE_DIAM_CM = 16.2  # TODO not correct but adjusted as hack (closer to 13-14cm)
+WHEELBASE_DIAM_CM = 18.2  # TODO not correct but adjusted as hack (closer to 13-14cm)
 WHEELBASE_CIRC_CM = WHEELBASE_DIAM_CM * math.pi
 
 
@@ -196,7 +196,7 @@ class Robot(object):
         """
         self.drive(0, 0)
 
-    def turn(self, radians, power=70):
+    def turn(self, radians, power=100):
         """
         Turn the robot at the given motor power. The radians should be relative
         to the current orientation of the robot, where the robot is facing 0 rad
@@ -276,13 +276,13 @@ class ManualController(object):
         text.pack()
 
         # Set up key bindings
-        self.root.bind('w', lambda event: self.robot.drive(10, 10))
+        self.root.bind('w', lambda event: self.robot.drive(20, 20))
         self.root.bind('<Up>', lambda event: self.robot.drive(20, 20, 70, 70))
         self.root.bind('x', lambda event: self.robot.drive(-10, -10))
         self.root.bind('<Down>', lambda event: self.robot.drive(-20, -20,
                                                                 70, 70))
-        self.root.bind('<Left>', lambda event: self.robot.turn(-math.pi))
-        self.root.bind('<Right>', lambda event: self.robot.turn(math.pi))
+        self.root.bind('<Left>', lambda event: self.robot.turn(-math.pi/2))
+        self.root.bind('<Right>', lambda event: self.robot.turn(math.pi/2))
         self.root.bind('a', lambda event: self.robot.turn(-math.pi))
         self.root.bind('d', lambda event: self.robot.turn(math.pi))
         self.root.bind('o', lambda event: self.robot.open_grabber())
