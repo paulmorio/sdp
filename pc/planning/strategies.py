@@ -427,15 +427,15 @@ class AwaitPass(Strategy):
         if self.dest is None:
             self.dest = self.world.get_pass_receive_spot()
 
-        if not self.robot_ctl.is_moving:
+        if not self.robot_ctl.is_moving and not self.robot_mdl.is_moving():
             if self.robot_mdl.is_at_point(self.dest[0], self.dest[1]):
                 self.dest = None
                 self.state = TURNING_TO_WALL
-            if self.robot_mdl.is_facing_point(self.dest[0], self.dest[1]):
+            elif self.robot_mdl.is_facing_point(self.dest[0], self.dest[1]):
                 dist = self.robot_mdl.get_displacement_to_point(self.dest[0],
                                                                 self.dest[1])
                 self.robot_ctl.drive(dist, dist)
-            else:
+            elif not self.robot_mdl.is_turning():
                 angle = self.robot_mdl.get_rotation_to_point(self.dest[0],
                                                              self.dest[1])
                 self.robot_ctl.turn(angle, angle)
