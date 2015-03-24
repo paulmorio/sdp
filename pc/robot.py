@@ -112,9 +112,8 @@ class Robot(object):
         self.grabber_open = string[0] == '1'
         self.is_grabbing = string[1] == '1'
         self.is_moving = string[2] == '1'
-        self.is_grabbing = string[3] == '1'
-        self.is_kicking = string[4] == '1'
-        self.ball_grabbed = string[5] == '1'
+        self.is_kicking = string[3] == '1'
+        self.ball_grabbed = string[4] == '1'
 
     def _initialize(self):
         """

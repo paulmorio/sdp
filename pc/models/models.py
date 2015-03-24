@@ -273,13 +273,12 @@ class Robot(PitchObject):
         """
         Get the angle by which the robot needs to rotate to attain alignment.
         """
-        # TODO test, can't remember how angles are reported by vision
         theta = self.angle - rads
         if theta > pi:
             theta -= 2*pi
         elif theta < -pi:
             theta += 2*pi
-        return -theta
+        return theta
 
     def get_rotation_to_point_via_wall(self, x, y, top=True):
         """
@@ -290,12 +289,8 @@ class Robot(PitchObject):
         y = target y-pos
         top = pass via bottom wall or top wall (true = top)
         """
-        pitch_height = self._world._pitch._zones[self._zone].height
-
-        if top:
-            y_mirror = y + 2*(pitch_height - y)
-        else:
-            y_mirror = -y
+        zone_height = self._world._pitch._zones[self._zone].height
+        (_, y_mirror) = self.get_point_via_wall(x, y, zone_height, top)
 
         return self.get_rotation_to_point(x, y_mirror)
 
