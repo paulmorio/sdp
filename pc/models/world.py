@@ -186,7 +186,13 @@ class World(object):
         #                                                     lower_tgt[1],
         #                                                     zone_height, False)
 
-
+    def get_pass_receive_spot(self):
+        our_center_x, our_center_y = \
+            self.pitch.zones[self.our_attacker.zone].center()
+        our_center_y = \
+            our_center_y * 3/2 if self.their_attacker > our_center_y \
+                else our_center_y * 1/2
+        return our_center_x, our_center_y
 
     def find_pass_spot_ms3(self, robot):
         """
