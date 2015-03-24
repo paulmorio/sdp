@@ -85,6 +85,8 @@ class Planner(object):
 
         Updates the planner state and current strategy based on the world state
         """
+        print "ball-grabbed: "+str(self.robot_ctl.ball_grabbed)
+
         # Successfully grabbed ball, who cares what area it's in?
         if self.robot_ctl.ball_grabbed:
             self.state = POSSESSION
@@ -169,15 +171,15 @@ class Planner(object):
         For the penalty profile
         """
         # Holding the ball, ready to take penalty
-        if self.world.can_catch_ball(self.robot_mdl):
-            self.state = POSSESSION
-
-        # if self.robot_ctl.ball_grabbed:
+        # if self.world.can_catch_ball(self.robot_mdl):
         #     self.state = POSSESSION
+        #self.robot_ctl._update_state_bits
+        if self.robot_ctl.ball_grabbed:
+            self.state = POSSESSION
 
         # NOT Holding the ball anymore (kicked!)
         else:
-            print "self.world.can_catch_ball(self.robot_mdl): "+str(self.world.can_catch_ball(self.robot_mdl))
+            print "ball_grabbed: "+str(self.robot_ctl.ball_grabbed)
             print "PROFILE CHANGE TO ATTACKER"
             # Set profile back to attacker
             self.profile = 'attacker'
