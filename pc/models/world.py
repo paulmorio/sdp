@@ -141,14 +141,6 @@ class World(object):
         else:
             return our_center_x, our_center_y * (2/3.0)
 
-    def get_pass_receive_spot(self):
-        # TODO tidy this, basically the same as get_shot_spot
-        our_center_x, our_center_y = \
-        if self.their_attacker.y > our_center_y:
-            return our_center_x, our_center_y * (2/3.0)
-        else:
-            return our_center_x, our_center_y * (4/3.0)
-
     def get_shot_target(self):  # TODO refactor, lots of reuse here
         """
         Get the shot target. Ultimately we want to ball to go into the goal

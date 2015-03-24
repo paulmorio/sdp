@@ -11,11 +11,6 @@ READY = "READY"
 STATUS = "STATUS"
 CMD_DELIMITER = ' '
 
-# Robot constants
-WHEELBASE_DIAM_CM = 12.25  # TODO not correct but adjusted as hack (closer to 13-14cm)
-WHEELBASE_CIRC_CM = WHEELBASE_DIAM_CM * math.pi
-
-
 class Robot(object):
     """
     Robot actions and feedback.
