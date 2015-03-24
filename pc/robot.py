@@ -12,10 +12,7 @@ STATUS = "STATUS"
 CMD_DELIMITER = ' '
 
 # Robot constants
-ROTARY_SENSOR_RESOLUTION = 2.0  # TODO update this after downgearing
-WHEEL_DIAM_CM = 8.16
-TICK_DIST_CM = math.pi * WHEEL_DIAM_CM * ROTARY_SENSOR_RESOLUTION / 360.0
-WHEELBASE_DIAM_CM = 18.2  # TODO not correct but adjusted as hack (closer to 13-14cm)
+WHEELBASE_DIAM_CM = 12.25  # TODO not correct but adjusted as hack (closer to 13-14cm)
 WHEELBASE_CIRC_CM = WHEELBASE_DIAM_CM * math.pi
 
 
@@ -182,12 +179,22 @@ class Robot(object):
         :param r_power: Motor power from 0-100 - low values may not provide
         enough torque for drive.
         """
-        # Currently rounding down strictly as too little is better than too much
-        cm_to_ticks = lambda cm: int(cm / TICK_DIST_CM)
-        l_dist = str(cm_to_ticks(l_dist))
-        r_dist = str(cm_to_ticks(r_dist))
+        # TODO REFACTOR ME PLEASE OH DEAR
+        cm_to_ticks = \
+            lambda cm: 12.095 * cm - 39.472 if cm >= 6 else 4.3018 * cm + 1
+
+        if l_dist > 0:
+            l_dist = int(cm_to_ticks(l_dist))
+        elif l_dist < 0:
+            l_dist = -int(cm_to_ticks(-l_dist))
+
+        if r_dist > 0:
+            r_dist = int(cm_to_ticks(r_dist))
+        elif r_dist < 0:
+            r_dist = -int(cm_to_ticks(-r_dist))
+
         self.queued_command = \
-            (DRIVE, [l_dist, r_dist, str(l_power), str(r_power)])
+            (DRIVE, [str(l_dist), str(r_dist), str(l_power), str(r_power)])
 
     def stop(self):
         """
@@ -208,7 +215,7 @@ class Robot(object):
         wheel_dist = WHEELBASE_CIRC_CM * radians / (2 * math.pi)
         self.drive(wheel_dist, -wheel_dist, power, power)
 
-    def open_grabber(self, time=300, power=100):
+    def open_grabber(self, time=350, power=100):
         """
         Run the grabber motor in the opening direction for the given number of
         milliseconds at the given motor power.
@@ -218,7 +225,7 @@ class Robot(object):
         """
         self.queued_command = (OPEN_GRABBER, [str(time), str(power)])
 
-    def close_grabber(self, time=340, power=100):
+    def close_grabber(self, time=370, power=100):
         """
         Run the grabber motor in the closing direction for the given number of
         milliseconds at the given motor power.
@@ -275,7 +282,7 @@ class ManualController(object):
         text.pack()
 
         # Set up key bindings
-        self.root.bind('w', lambda event: self.robot.drive(20, 20))
+        self.root.bind('w', lambda event: self.robot.drive(10, 10))
         self.root.bind('<Up>', lambda event: self.robot.drive(20, 20, 70, 70))
         self.root.bind('x', lambda event: self.robot.drive(-10, -10))
         self.root.bind('<Down>', lambda event: self.robot.drive(-20, -20,

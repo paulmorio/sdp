@@ -87,14 +87,14 @@ class GetBall(Strategy):
             else:
                 angle = self.robot_mdl.get_rotation_to_point(self.ball.x,
                                                              self.ball.y)
-                self.robot_ctl.turn(angle*0.3)
+                self.robot_ctl.turn(angle*0.2)
 
     def open_grabber(self):
         if not self.robot_ctl.is_grabbing:
             if self.robot_ctl.grabber_open:
                 self.state = MOVING_TO_BALL
-            elif self.world.ball_too_close(self.robot_mdl):
-                self.robot_ctl.drive(-1, -1)
+            elif self.world.ball_too_close(self.robot_mdl):  # SAFE SPACE POLICY
+                self.robot_ctl.drive(-1, -1)               # TODO MAGIC
             else:
                 self.robot_ctl.open_grabber()
 
@@ -247,7 +247,7 @@ class ShootGoal(Strategy):
         if not self.robot_ctl.is_grabbing:
             if not self.robot_ctl.grabber_open:
                 self.state = GOTO_SHOOT_SPOT
-            elif self.robot_ctl.grabber_open:
+            else:
                 self.robot_ctl.close_grabber()
 
     def go_to_shoot_spot(self):
@@ -260,7 +260,6 @@ class ShootGoal(Strategy):
         if not self.robot_ctl.is_moving:
             # At the destination, move on
             if self.robot_mdl.is_at_point(self.dest[0], self.dest[1]):
-                self.robot_ctl.stop()
                 self.dest = None
                 self.state = CHOOSING_SHOT_ANGLE
 
@@ -274,7 +273,7 @@ class ShootGoal(Strategy):
             else:
                 dist = self.robot_mdl.get_displacement_to_point(self.dest[0],
                                                                 self.dest[1])
-                self.robot_ctl.drive(dist, dist)
+                self.robot_ctl.drive(dist*0.2, dist*0.2)
 
     def turn_to_shoot(self):
         """
@@ -393,10 +392,55 @@ class AwaitPass(Strategy):
     bugs and as such it requires a lot of testing (at the planner level that is)
     """
     def __init__(self, world, robot_ctl):
-        _STATES = [INIT]
-        _STATE_MAP = {INIT: self.do_nothing}
+        _STATES = [MOVING_TO_DEST, OPENING_GRABBER, TURNING_TO_BALL]
+        _STATE_MAP = {MOVING_TO_DEST: self.move_to_pass_point,
+                      OPENING_GRABBER: self.open_grabber,
+                      TURNING_TO_WALL: self.face_wall_point}
         super(AwaitPass, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
         self.dest = None
+        self.wall_point = None
+
+    def move_to_pass_point(self):
+        if self.dest is None:
+            self.dest = self.world.get_pass_receive_spot()
+
+        if not self.robot_ctl.is_moving:
+            if self.robot_mdl.is_at_point(self.dest[0], self.dest[1]):
+                self.dest = None
+                self.state = TURNING_TO_WALL
+            if self.robot_mdl.is_facing_point(self.dest[0], self.dest[1]):
+                dist = self.robot_mdl.get_displacement_to_point(self.dest[0],
+                                                                self.dest[1])
+                self.robot_ctl.drive(dist*0.2, dist*0.2)
+            else:
+                angle = self.robot_mdl.get_rotation_to_point(self.dest[0],
+                                                             self.dest[1])
+                self.robot_ctl.turn(angle*0.3, angle*0.3)
+
+    def face_wall_point(self):
+        if self.wall_point is None:
+            pitch_center_y = \
+                self.world.pitch.zones[self.robot_mdl.zone].center()[1]
+            x = self.world.pitch.width / 2.0
+            if self.robot_mdl.y > pitch_center_y:  # TODO oh oh oh it's magic
+                y = self.world.pitch.height - 10
+            else:
+                y = 10
+            self.wall_point = x, y
+
+        if not self.robot_ctl.is_moving:
+            if self.robot_mdl.is_facing_point(self.wall_point[0],
+                                              self.wall_point[1]):
+                self.state = OPENING_GRABBER
+                self.wall_point = None
+            else:
+                angle = self.robot_mdl.get_rotation_to_point(self.wall_point[0],
+                                                             self.wall_point[1])
+                self.robot_ctl.turn(angle)
+
+    def open_grabber(self):
+        if not self.robot_ctl.grabber_open and not self.robot_ctl.is_grabbing:
+            self.robot_ctl.open_grabber()
 
     def reset(self):
         super(AwaitPass, self).reset()

@@ -114,7 +114,7 @@ class World(object):
             self.ball.x > self.pitch.width - threshold_px or \
             self.ball.y > self.pitch.height - threshold_px
 
-    def ball_too_close(self, robot, threshold=23):
+    def ball_too_close(self, robot, threshold=18):
         """
         True if the ball is within threshold cm of the robot. Intended use is to
         determine if it is safe for the robot to turn, open grabbers, etc.
@@ -140,6 +140,14 @@ class World(object):
             return our_center_x, our_center_y * (4/3.0)
         else:
             return our_center_x, our_center_y * (2/3.0)
+
+    def get_pass_receive_spot(self):
+        # TODO tidy this, basically the same as get_shot_spot
+        our_center_x, our_center_y = \
+        if self.their_attacker.y > our_center_y:
+            return our_center_x, our_center_y * (2/3.0)
+        else:
+            return our_center_x, our_center_y * (4/3.0)
 
     def get_shot_target(self):  # TODO refactor, lots of reuse here
         """
