@@ -89,7 +89,7 @@ class GetBall(Strategy):
             else:
                 angle = self.robot_mdl.get_rotation_to_point(self.ball.x,
                                                              self.ball.y)
-                self.robot_ctl.turn(angle)
+                self.robot_ctl.turn(angle*0.3)
 
     def open_grabber(self):
         if not self.robot_ctl.is_grabbing:
@@ -142,7 +142,7 @@ class FaceBall(Strategy):
                 and not self.robot_moving():
             angle = self.robot_mdl.get_rotation_to_point(self.ball.x,
                                                          self.ball.y)
-            self.robot_ctl.turn(angle)
+            self.robot_ctl.turn(angle*0.3)
 
 
 class PassBall(Strategy):
@@ -185,7 +185,7 @@ class PassBall(Strategy):
             else:
                 angle = self.robot_mdl.get_rotation_to_point(self.dest[0],
                                                              self.dest[1])
-                self.robot_ctl.turn(angle)
+                self.robot_ctl.turn(angle*0.3)
 
     def turn_to_def(self):
         if not self.robot_moving():
@@ -194,7 +194,7 @@ class PassBall(Strategy):
             else:
                 angle = self.robot_mdl.get_rotation_to_point(self.target.x,
                                                              self.target.y)
-                self.robot_ctl.turn(angle)
+                self.robot_ctl.turn(angle*0.3)
 
     def open_grabber(self):
         if not self.robot_ctl.is_grabbing:
@@ -269,12 +269,14 @@ class ShootGoal(Strategy):
             elif not self.robot_mdl.is_facing_point(self.dest[0], self.dest[1]):
                 angle = self.robot_mdl.get_rotation_to_point(self.dest[0],
                                                              self.dest[1])
-                self.robot_ctl.turn(angle)
+                print "turning: "+str(angle*0.3)
+                self.robot_ctl.turn(angle*0.3) #note: 0.3 = slowing down turn
 
             # Facing the point, move forward
             else:
                 dist = self.robot_mdl.get_displacement_to_point(self.dest[0],
                                                                 self.dest[1])
+                print "driving: "+str(dist)
                 self.robot_ctl.drive(dist, dist)
 
     def turn_to_shoot(self):
@@ -290,7 +292,7 @@ class ShootGoal(Strategy):
                                               self.shot_target[1], 0.01):
             angle = self.robot_mdl.get_rotation_to_point(self.shot_target[0],
                                                          self.shot_target[1])
-            self.robot_ctl.turn(angle)
+            self.robot_ctl.turn(angle*0.3)
 
         else:
             self.state = KICKING
@@ -375,13 +377,13 @@ class Intercept(Strategy):
                     self.state = TRACKING_BALL
                 else:
                     angle = self.robot_mdl.get_rotation_to_angle(math.pi/2)
-                    self.robot_ctl.turn(angle)  # TODO MAGIC
+                    self.robot_ctl.turn(angle*0.3)  # TODO MAGIC <-- how is this useful?!
             else:
                 if self.robot_mdl.is_facing_angle(3*math.pi/2):
                     self.state = TRACKING_BALL
                 else:
                     angle = self.robot_mdl.get_rotation_to_angle(3*math.pi/2)
-                    self.robot_ctl.turn(angle)
+                    self.robot_ctl.turn(angle*0.3)
 
     def track_ball(self):
         """
@@ -430,6 +432,7 @@ class AwaitPass(Strategy):
         if self.dest is None:
             self.dest = self.world.get_pass_receive_spot()
 
+
         if not self.robot_moving():
             if self.robot_mdl.is_at_point(self.dest[0], self.dest[1]):
                 self.dest = None
@@ -457,7 +460,7 @@ class AwaitPass(Strategy):
             else:
                 angle = self.robot_mdl.get_rotation_to_point(self.wall_point[0],
                                                              self.wall_point[1])
-                self.robot_ctl.turn(angle)
+                self.robot_ctl.turn(angle*0.3)
 
     def open_grabber(self):
         if not self.robot_ctl.grabber_open and not self.robot_ctl.is_grabbing:
@@ -507,7 +510,8 @@ class PenaltyKick(Strategy):
             else:
                 angle = self.robot_mdl.get_rotation_to_point(wall_x,
                                                              wall_y)
-                self.robot_ctl.turn(angle)
+                print "giving task to turn: "+str(angle*0.3)+" deg"
+                self.robot_ctl.turn(angle*0.3)
 
     def open_grabber(self):
         if not self.robot_ctl.is_grabbing:
