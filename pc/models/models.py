@@ -328,11 +328,12 @@ class Robot(PitchObject):
         Get the distance CM from the center of the robot's grabber.
         Note that the robot must have a grabber defined.
         """
-        grab_centre = self.catcher_area.boundingBox.center()
+        #grab_centre = self.catcher_area.center()
+        grab_centre = self.x, self.y
         delta_x = x - grab_centre[0]
         delta_y = y - grab_centre[1]
         dist = hypot(delta_x, delta_y) * CM_PER_PX
-        return dist
+        return dist * 0.5
 
     def get_pass_path(self, target):
         """

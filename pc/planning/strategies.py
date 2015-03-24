@@ -359,6 +359,9 @@ class Intercept(Strategy):
         super(Intercept, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
         self.top_fixated = None
 
+        self.timerlimit = 5
+        self.timer = self.timerlimit
+
     def choose_wall(self):
         angle_top = self.robot_mdl.get_rotation_to_angle(math.pi / 2)
         angle_bottom = self.robot_mdl.get_rotation_to_angle(3*math.pi/2)
@@ -371,19 +374,23 @@ class Intercept(Strategy):
         """
         Make the robot face the fixated wall
         """
-        if not self.robot_moving():
-            if self.top_fixated:  # Face wall at pi/2
-                if self.robot_mdl.is_facing_angle(math.pi/2):
-                    self.state = TRACKING_BALL
+        self.timer-=1
+        if self.timer <= 0:
+            self.timer = self.timerlimit
+
+            if not self.robot_moving():
+                if self.top_fixated:  # Face wall at pi/2
+                    if self.robot_mdl.is_facing_angle(math.pi/2):
+                        self.state = TRACKING_BALL
+                    else:
+                        angle = self.robot_mdl.get_rotation_to_angle(math.pi/2)
+                        self.robot_ctl.turn(angle)
                 else:
-                    angle = self.robot_mdl.get_rotation_to_angle(math.pi/2)
-                    self.robot_ctl.turn(angle*0.3)  # TODO MAGIC <-- how is this useful?!
-            else:
-                if self.robot_mdl.is_facing_angle(3*math.pi/2):
-                    self.state = TRACKING_BALL
-                else:
-                    angle = self.robot_mdl.get_rotation_to_angle(3*math.pi/2)
-                    self.robot_ctl.turn(angle*0.3)
+                    if self.robot_mdl.is_facing_angle(3*math.pi/2):
+                        self.state = TRACKING_BALL
+                    else:
+                        angle = self.robot_mdl.get_rotation_to_angle(3*math.pi/2)
+                        self.robot_ctl.turn(angle)
 
     def track_ball(self):
         """
@@ -428,6 +435,9 @@ class AwaitPass(Strategy):
         self.dest = None
         self.wall_point = None
 
+        self.timerlimit = 5
+        self.timer = self.timerlimit
+
     def move_to_pass_point(self):
         if self.dest is None:
             self.dest = self.world.get_pass_receive_spot()
@@ -447,20 +457,25 @@ class AwaitPass(Strategy):
                 self.robot_ctl.turn(angle)
 
     def face_wall_point(self):
-        self.wall_point = self.robot_mdl.get_point_via_wall(
-            self.world.our_defender.x, self.world.our_defender.y,
-            self.world.pitch.height*2,
-            self.robot_mdl.y > self.world.pitch.height/2.0)
 
-        if not self.robot_moving():
-            if self.robot_mdl.is_facing_point(self.wall_point[0],
-                                              self.wall_point[1]):
-                self.state = OPENING_GRABBER
-                self.wall_point = None
-            else:
-                angle = self.robot_mdl.get_rotation_to_point(self.wall_point[0],
-                                                             self.wall_point[1])
-                self.robot_ctl.turn(angle*0.3)
+        self.timer-=1
+        if self.timer <= 0:
+            self.timer = self.timerlimit
+
+            self.wall_point = self.robot_mdl.get_point_via_wall(
+                self.world.our_defender.x, self.world.our_defender.y,
+                self.world.pitch.height*2,
+                self.robot_mdl.y > self.world.pitch.height/2.0)
+
+            if not self.robot_moving():
+                if self.robot_mdl.is_facing_point(self.wall_point[0],
+                                                  self.wall_point[1]):
+                    self.state = OPENING_GRABBER
+                    self.wall_point = None
+                else:
+                    angle = self.robot_mdl.get_rotation_to_point(self.wall_point[0],
+                                                                 self.wall_point[1])
+                    self.robot_ctl.turn(angle*0.3)
 
     def open_grabber(self):
         if not self.robot_ctl.grabber_open and not self.robot_ctl.is_grabbing:
