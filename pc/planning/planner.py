@@ -54,7 +54,7 @@ class Planner(object):
                 GETTING_BALL: GetBall(self.world, self.robot_ctl),
                 POSSESSION: ShootGoal(self.world, self.robot_ctl),
                 DEFENDING: Intercept(self.world, self.robot_ctl),
-                AWAITING_PASS: AwaitPass(self.world, self.robot_ctl)
+                AWAITING_PASS: Idle(self.world, self.robot_ctl)
             }
         elif self.profile == 'ms3':
             self._strategy_map = {
