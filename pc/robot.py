@@ -212,8 +212,19 @@ class Robot(object):
                         direction (negative -> leftward, positive -> rightward)
         :param power: Motor power
         """
-        wheel_dist = WHEELBASE_CIRC_CM * radians / (2 * math.pi)
-        self.drive(wheel_dist, -wheel_dist, power, power)
+        deg_to_tick = \
+            lambda deg: 1.1673*deg if deg >= 9 else 1.20730*deg - 9.7513
+        rad_to_tick = lambda rad: deg_to_tick(rad*180/math.pi)
+
+        if radians > 0:
+            wheel_dist = int(rad_to_tick(radians))
+        elif radians < 0:
+            wheel_dist = int(-rad_to_tick(-radians))
+        else:
+            wheel_dist = 0
+
+        self.queued_command = \
+            (DRIVE, [str(wheel_dist), str(-wheel_dist), str(power), str(power)])
 
     def open_grabber(self, time=350, power=100):
         """
@@ -282,7 +293,7 @@ class ManualController(object):
         text.pack()
 
         # Set up key bindings
-        self.root.bind('w', lambda event: self.robot.drive(10, 10))
+        self.root.bind('w', lambda event: self.robot.drive(100, 100))
         self.root.bind('<Up>', lambda event: self.robot.drive(20, 20, 70, 70))
         self.root.bind('x', lambda event: self.robot.drive(-10, -10))
         self.root.bind('<Down>', lambda event: self.robot.drive(-20, -20,

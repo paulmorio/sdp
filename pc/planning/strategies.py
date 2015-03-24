@@ -314,6 +314,30 @@ class ShootGoal(Strategy):
         self.shot_target = None
 
 
+class Defend(Strategy):
+    """
+    Sit in front of their defender. Very upsetting.
+
+    Intended use is when their defender is contemplating a pass - once the ball
+    actually starts moving then the intercept strategy should be selected.
+    """
+    def __init__(self, world, robot_ctl):
+        _STATES = [TURNING_TO_DEST, MOVING_TO_DEST]
+        _STATE_MAP = {TURNING_TO_DEST: self.turn_to_dest,
+                      MOVING_TO_DEST: self.move_to_dest}
+        super(Defend, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
+        self.dest = None
+
+    def get_dest(self):
+        pass
+
+    def turn_to_dest(self):
+        pass
+
+    def move_to_dest(self):
+        pass
+
+
 class Intercept(Strategy):
     """
     Intercept a moving ball.
