@@ -129,27 +129,27 @@ class Arbiter(object):
         # Planning pause/resume toggle
         self.planner_paused = False  # Flag for pausing/resuming the planning
         planning_toggle = Button(self.root)
-        planning_toggle["text"] = "Planning Toggle"
+        planning_toggle["text"] = "P[l]anning Toggle"
         planning_toggle["command"] = self.toggle_planning
         planning_toggle.grid(row=1, column=1, columnspan=3)
         # Calibration reset
         calib_reset = Button(self.root)
-        calib_reset["text"] = "Reset Current\nCalibration"
+        calib_reset["text"] = "Reset Current\nC[a]libration"
         calib_reset["command"] = self.clear_calibrations
         calib_reset.grid(row=2, column=1, columnspan=3)
         # Side switch
         side_switch = Button(self.root)
-        side_switch["text"] = "Switch Sides"
+        side_switch["text"] = "Switch [S]ides"
         side_switch["command"] = self.switch_sides
         side_switch.grid(row=3, column=1, columnspan=3)
         # Colour switch
         colour_switch = Button(self.root)
-        colour_switch["text"] = "Switch Colours"
+        colour_switch["text"] = "Switch [C]olours"
         colour_switch["command"] = self.switch_colours
         colour_switch.grid(row=4, column=1, columnspan=3)
         # Penalty mode
         penalty_mode = Button(self.root)
-        penalty_mode["text"] = "Take Penalty"
+        penalty_mode["text"] = "Take P[e]nalty"
         penalty_mode["command"] = self.take_penalty
         penalty_mode.grid(row=5, column=1, columnspan=3)
 
@@ -228,7 +228,6 @@ class Arbiter(object):
         self.sliders['BL'].set(0)
 
     def switch_sides(self):
-        # TODO: Test and refactor
         """
         Switch which side we're on.
         """
@@ -248,7 +247,6 @@ class Arbiter(object):
         self.start_planner()
 
     def switch_colours(self):
-        # TODO: as above.
         """
         Switch which colour we are.
         """
@@ -267,7 +265,6 @@ class Arbiter(object):
         Set the profile to penalty, and restart the planner
         Planning automatically resumes to "attacker" when the penalty has been taken.
         """
-        # TODO: broken upon merging. Fix!
         self.profile = 'penalty'
         self.start_planner()
 
