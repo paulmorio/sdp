@@ -107,8 +107,8 @@ class GetBall(Strategy):
             elif not self.robot_mdl.is_facing_point(self.ball.x, self.ball.y):
                 self.state = TURNING_TO_BALL
             else:
-                dist = self.robot_mdl.get_displacement_to_point(self.ball.x,
-                                                                self.ball.y)
+                dist = self.robot_mdl.dist_from_grabber(self.ball.x,
+                                                        self.ball.y)
                 self.robot_ctl.drive(dist, dist)
 
     def close_grabber(self):

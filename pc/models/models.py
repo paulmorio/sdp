@@ -328,7 +328,7 @@ class Robot(PitchObject):
         Get the distance CM from the center of the robot's grabber.
         Note that the robot must have a grabber defined.
         """
-        grab_centre = self.catcher_area.center()  # Centre of gravity
+        grab_centre = self.catcher_area.boundingBox.center()
         delta_x = x - grab_centre[0]
         delta_y = y - grab_centre[1]
         dist = hypot(delta_x, delta_y) * CM_PER_PX
