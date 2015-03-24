@@ -1,5 +1,4 @@
 from Tkinter import *
-import time
 
 
 class Launcher(Frame):

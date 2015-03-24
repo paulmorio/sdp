@@ -85,56 +85,6 @@ class Vision(object):
         self.ball_tracker = BallTracker(
             (0, width, 0, height), 0, calibration, pitch)
 
-    def switch_attributes(self, new_side, new_colour):
-        if new_side is not None:
-            self.our_side = new_side
-        if new_colour is not None:
-            self.colour = new_colour
-            self.opponent_color = 'yellow' if new_colour == 'blue' else 'blue'
-        if self.our_side == 'left':
-            self.us = [
-                RobotTracker(
-                    colour=self.colour, crop=self.zones[0], offset=self.zones[0][0],
-                    pitch=self.pitch, name='Our Defender', calibration=self.calibration),
-                RobotTracker(
-                    colour=self.colour, crop=self.zones[2], offset=self.zones[2][0],
-                    pitch=self.pitch, name='Our Attacker', calibration=self.calibration)
-            ]
-
-            self.opponents = [
-                RobotTracker(
-                    colour=self.opponent_color, crop=self.zones[3], offset=self.zones[3][0],
-                    pitch=self.pitch, name='Their Defender',
-                    calibration=self.calibration),
-                RobotTracker(
-                    colour=self.opponent_color, crop=self.zones[1], offset=self.zones[1][0],
-                    pitch=self.pitch, name='Their Attacker',
-                    calibration=self.calibration)
-
-            ]
-        else:
-            self.us = [
-                RobotTracker(
-                    colour=self.colour, crop=self.zones[3], offset=self.zones[3][0],
-                    pitch=self.pitch, name='Our Defender', calibration=self.calibration),
-                RobotTracker(
-                    colour=self.colour, crop=self.zones[1], offset=self.zones[1][0],
-                    pitch=self.pitch, name='Our Attacker', calibration=self.calibration)
-            ]
-
-            self.opponents = [
-                RobotTracker(  # defender
-                    colour=self.opponent_color, crop=self.zones[0], offset=self.zones[0][0],
-                    pitch=self.pitch, name='Their Defender',
-                    calibration=self.calibration),
-                RobotTracker(  # attacker
-                    colour=self.opponent_color, crop=self.zones[2], offset=self.zones[2][0],
-                    pitch=self.pitch, name='Their Attacker',
-                    calibration=self.calibration)
-            ]
-
-
-
     def _get_zones(self, width, height):
         return [(val[0], val[1], 0, height)
                 for val in tools.get_zones(width, height, pitch=self.pitch)]

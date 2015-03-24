@@ -328,7 +328,7 @@ class Robot(PitchObject):
         Get the distance CM from the center of the robot's grabber.
         Note that the robot must have a grabber defined.
         """
-        grab_centre = self.catcher_area.center()  # Centre of gravity
+        grab_centre = self.catcher_area.boundingBox.center()
         delta_x = x - grab_centre[0]
         delta_y = y - grab_centre[1]
         dist = hypot(delta_x, delta_y) * CM_PER_PX
@@ -366,14 +366,18 @@ class Robot(PitchObject):
             self.last_angle = self.angle
             return False
         self.last_angle = self.angle
+
         return True
 
-    def is_moving(self):
+    def is_driving(self):
         if self.is_at_point(self.last_pos[0], self.last_pos[1]):
             self.last_pos = self.x, self.y
             return False
         self.last_pos = self.x, self.y
         return True
+
+    def is_moving(self):
+        return self.is_turning() or self.is_driving()
 
     def is_facing_angle(self, rads, threshold=0.1):
         return rads - threshold < self.angle < rads + threshold

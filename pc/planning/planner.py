@@ -15,7 +15,7 @@ class Planner(object):
         """
         assert (profile in ['attacker', 'ms3', 'penalty'])
         self.world = world
-        self.profile = profile
+        self._profile = profile
         self.robot_mdl = world.our_attacker
         self.robot_ctl = robot_ctl
 
@@ -28,8 +28,23 @@ class Planner(object):
         self.strategy = None
         self.update_strategy()
 
-    def switch_sides(self):
-        self.robot_mdl = self.world.our_attacker
+    @property
+    def planner_state_string(self):
+        return self.state.replace('_', ' ').capitalize() + '.'
+
+    @property
+    def strategy_state_string(self):
+        return self.strategy.state.replace('_', ' ').capitalize() + '.'
+
+    @property
+    def profile(self):
+        return self._profile
+
+    @profile.setter
+    def profile(self, new_profile):
+        self._profile = new_profile
+        self.state = BALL_NOT_VISIBLE
+        self.update_strategy_map()
 
     # Defining strategy map depending on the profile
     def update_strategy_map(self):
@@ -39,7 +54,7 @@ class Planner(object):
                 GETTING_BALL: GetBall(self.world, self.robot_ctl),
                 POSSESSION: ShootGoal(self.world, self.robot_ctl),
                 DEFENDING: Intercept(self.world, self.robot_ctl),
-                AWAITING_PASS: AwaitPass(self.world, self.robot_ctl)
+                AWAITING_PASS: Idle(self.world, self.robot_ctl)
             }
         elif self.profile == 'ms3':
             self._strategy_map = {
@@ -87,6 +102,8 @@ class Planner(object):
 
         Updates the planner state and current strategy based on the world state
         """
+        print "ball-grabbed: "+str(self.robot_ctl.ball_grabbed)
+
         # Successfully grabbed ball, who cares what area it's in?
         if self.robot_ctl.ball_grabbed:
             self.state = POSSESSION
@@ -164,19 +181,17 @@ class Planner(object):
         For the penalty profile
         """
         # Holding the ball, ready to take penalty
-        if self.world.can_catch_ball(self.robot_mdl):
-            self.state = POSSESSION
-
-        # if self.robot_ctl.ball_grabbed:
+        # if self.world.can_catch_ball(self.robot_mdl):
         #     self.state = POSSESSION
+        #self.robot_ctl._update_state_bits
+        if self.robot_ctl.ball_grabbed:
+            self.state = POSSESSION
 
         # NOT Holding the ball anymore (kicked!)
         else:
-            print "self.world.can_catch_ball(self.robot_mdl): "+str(self.world.can_catch_ball(self.robot_mdl))
+            print "ball_grabbed: "+str(self.robot_ctl.ball_grabbed)
             print "PROFILE CHANGE TO ATTACKER"
             # Set profile back to attacker
             self.profile = 'attacker'
-            self.state = BALL_NOT_VISIBLE
-            self.update_strategy_map()
 
         self.update_strategy()

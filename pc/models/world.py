@@ -114,7 +114,7 @@ class World(object):
             self.ball.x > self.pitch.width - threshold_px or \
             self.ball.y > self.pitch.height - threshold_px
 
-    def ball_too_close(self, robot, threshold=23):
+    def ball_too_close(self, robot, threshold=18):
         """
         True if the ball is within threshold cm of the robot. Intended use is to
         determine if it is safe for the robot to turn, open grabbers, etc.
@@ -149,9 +149,10 @@ class World(object):
         of the closeby wall into the closeby corner of the goal.
         """
         our_center_x, our_center_y = \
-            self.pitch.zones[self.our_attacker].center()
+            self.pitch.zones[self.our_attacker.zone].center()
 
-        zone_height = self.pitch.zones[self.our_attacker].height
+        zone = self.pitch.zones[self.our_attacker.zone]
+        zone_height = zone.center()[1]*2
 
         upper_tgt = self.their_goal.x, \
                     self.their_goal.y - self.their_goal.height * (4/10.0)
@@ -161,9 +162,9 @@ class World(object):
         if self.our_attacker.y > our_center_y:
             # Check straight shot
             straight_shot_poly = \
-                Polygon(lower_tgt, (self.our_attacker.x, self.our_attacker.y))
+                Polygon([lower_tgt, (self.our_attacker.x, self.our_attacker.y)])
 
-            if not straight_shot_poly.overlaps(self.their_defender):
+            if not straight_shot_poly.overlaps(self.their_defender.get_polygon()):
                 return lower_tgt
             else:  # Bounce shot
 
@@ -173,14 +174,22 @@ class World(object):
 
         else:
             straight_shot_poly = \
-                Polygon(upper_tgt, (self.our_attacker.x, self.our_attacker.y))
+                Polygon([upper_tgt, (self.our_attacker.x, self.our_attacker.y)])
 
-            if not straight_shot_poly.overlaps(self.their_defender):
+            if not straight_shot_poly.overlaps(self.their_defender.get_polygon()):
                 return upper_tgt
             else:  # Bounce shot
                 return self.our_attacker.get_point_via_wall(lower_tgt[0],
                                                             lower_tgt[1],
                                                             zone_height, False)
+
+    def get_pass_receive_spot(self):
+        our_center_x, our_center_y = \
+            self.pitch.zones[self.our_attacker.zone].center()
+        our_center_y = \
+            our_center_y * 3/2 if self.their_attacker > our_center_y \
+                else our_center_y * 1/2
+        return our_center_x, our_center_y
 
     def find_pass_spot_ms3(self, robot):
         """

@@ -127,12 +127,12 @@ class VisionGUI(object):
         self.draw_text(frame, "Planner state:", x_main(1) - x_offset, y_offset,
                        size=0.6)
         self.draw_text(frame, planner_state, x_main(1) - x_offset,
-                       y_offset + 15, size=0.6)
+                       y_offset + 15, size=0.3)
 
         self.draw_text(frame, "Strategy state:", x_main(2) + x_offset,
                        y_offset, size=0.6)
         self.draw_text(frame, strat_state, x_main(2) + x_offset, y_offset + 15,
-                       size=0.6)
+                       size=0.3)
 
     def draw_ball(self, frame, position_dict):
         if position_dict and position_dict['x'] and position_dict['y']:
