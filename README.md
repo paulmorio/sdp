@@ -2,6 +2,8 @@
 
 *Murray Crichton, Roy Hotrabhvanon, Teun Kokke, Yiheng Liang, Paul Scherer, Chris Seaton*
 
+![Team 7 Logo](teamlogo.png)
+
 ## General Rules to Development
 - ***IMPORTANT:*** Please make sure to perform a `git pull` each time before and after you code in order to avoid integration conflicts later on.
 
