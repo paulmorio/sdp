@@ -28,8 +28,23 @@ class Planner(object):
         self.strategy = None
         self.update_strategy()
 
-    def switch_sides(self):
-        self.robot_mdl = self.world.our_attacker
+    @property
+    def planner_state_string(self):
+        return self.state.replace('_', ' ').capitalize() + '.'
+
+    @property
+    def strategy_state_string(self):
+        return self.strategy.state.replace('_', ' ').capitalize() + '.'
+
+    @property
+    def profile(self):
+        return self.profile
+
+    @profile.setter
+    def profile(self, new_profile):
+        self.profile = new_profile
+        self.state = BALL_NOT_VISIBLE
+        self.update_strategy_map()
 
     # Defining strategy map depending on the profile
     def update_strategy_map(self):
@@ -175,8 +190,6 @@ class Planner(object):
             print "self.world.can_catch_ball(self.robot_mdl): "+str(self.world.can_catch_ball(self.robot_mdl))
             print "PROFILE CHANGE TO ATTACKER"
             # Set profile back to attacker
-            self.profile = 'attacker'
-            self.state = BALL_NOT_VISIBLE
-            self.update_strategy_map()
+            self.profile('attacker')
 
         self.update_strategy()

@@ -61,20 +61,17 @@ class Arbiter(object):
         # Set up capture device
         self.camera = camera.Camera(pitch, video_src=video_src)
 
-        # Set up vision - note that this discards the colour-corrupt first frame
-        frame_shape = self.camera.get_frame().shape
-        frame_center = self.camera.get_adjusted_center()
-        self.vision = vision.Vision(pitch, self.colour, self.side, frame_shape,
-                                    frame_center, self.calibration,
-                                    perspective_correction=True)
-
-        # Set up world model
-        self.world = World(self.side, self.pitch)
-        self.world_updater = WorldUpdater(self.pitch, self.colour, self.side,
-                                          self.world, self.vision)
-
         # Set up robotController
         self.robot_controller = Robot(port=comm_port, comms=comms)
+
+        # Set up vision
+        self.vision = None
+        self.start_vision()
+
+        # Set up world model; updater
+        self.world = None
+        self.world_updater = None
+        self.start_world()
 
         # Set up the planner
         self.planner = None
@@ -85,6 +82,7 @@ class Arbiter(object):
         self.root.resizable(width=FALSE, height=FALSE)
         self.root.wm_title("Vision Wrapper")
         self.root.bind('<Key>', self.key_press)
+        # Overwrite the "any key" bind with other, more specific binds
         self.root.bind('<Escape>', lambda e: self.root.quit())  # Escape to quit
         self.root.bind('<q>', lambda e: self.root.quit())  # Q to |q|uit
         self.root.bind('<c>', lambda e: self.switch_colours())  # C to switch |c|olours
@@ -169,16 +167,34 @@ class Arbiter(object):
 
     def start_planner(self):
         """
-        Sets up a new planner depending on our current world state, robot controller, and profile
+        Starts a new planner depending on our current world state, robot controller, and profile.
         """
         if self.profile != "None":
             self.planner = Planner(self.world, self.robot_controller, self.profile)
         else:
             self.planner = None
 
+    def start_vision(self):
+        """
+        Start a new vision system - note that this discards the colour-corrupt first frame.
+        """
+        frame_shape = self.camera.get_frame().shape
+        frame_center = self.camera.get_adjusted_center()
+        self.vision = vision.Vision(self.pitch, self.colour, self.side, frame_shape,
+                                    frame_center, self.calibration,
+                                    perspective_correction=True)
+
+    def start_world(self):
+        """
+        Starts a new world model and world updater.
+        """
+        self.world = World(self.side, self.pitch)
+        self.world_updater = WorldUpdater(self.pitch, self.colour, self.side,
+                                          self.world, self.vision)
+
     def key_press(self, event):
         """
-        Sets the value of self.key upon a keypress
+        Sets the value of self.key upon a keypress.
         """
         # Raise a flag that a key_event has occurred (used by
         # calibration to change colour mode when needed)
@@ -238,12 +254,10 @@ class Arbiter(object):
             our_new_side = "left"
 
         self.side = our_new_side
-        self.vision.switch_attributes(our_new_side, None)
-        self.world._our_side = our_new_side
-        self.world._their_side = 'left' if our_new_side == 'right' else 'right'
-        self.world_updater.side = our_new_side
 
-        # Restart the planner, for the sake of sanity
+        # Restart the vision system, world model + updater, and planner
+        self.start_vision()
+        self.start_world()
         self.start_planner()
 
     def switch_colours(self):
@@ -257,8 +271,11 @@ class Arbiter(object):
             our_new_colour = "blue"
 
         self.colour = our_new_colour
-        self.world_updater.colour = our_new_colour
-        self.vision.switch_attributes(None, our_new_colour)
+
+        # Restart the vision system, world model + updater, and planner
+        self.start_vision()
+        self.start_world()
+        self.start_planner()
 
     def take_penalty(self):
         """
@@ -300,8 +317,8 @@ class Arbiter(object):
         if self.planner is not None:  # TODO tidy with getters
             if not self.planner_paused:
                 self.planner.plan()
-                p_state = self.planner.state
-                s_state = self.planner.strategy.state
+                p_state = self.planner.planner_state_string
+                s_state = self.planner.strategy_state_string
 
         fps = float(self.counter) / (time.clock() - self.timer)
 
