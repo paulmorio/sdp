@@ -368,12 +368,15 @@ class Robot(PitchObject):
         self.last_angle = self.angle
         return True
 
-    def is_moving(self):
+    def is_driving(self):
         if self.is_at_point(self.last_pos[0], self.last_pos[1]):
             self.last_pos = self.x, self.y
             return False
         self.last_pos = self.x, self.y
         return True
+
+    def is_moving(self):
+        return self.is_turning() or self.is_driving()
 
     def is_facing_angle(self, rads, threshold=0.1):
         return rads - threshold < self.angle < rads + threshold
