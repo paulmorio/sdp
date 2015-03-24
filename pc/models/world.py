@@ -114,7 +114,7 @@ class World(object):
             self.ball.x > self.pitch.width - threshold_px or \
             self.ball.y > self.pitch.height - threshold_px
 
-    def ball_too_close(self, robot, threshold=23):
+    def ball_too_close(self, robot, threshold=18):
         """
         True if the ball is within threshold cm of the robot. Intended use is to
         determine if it is safe for the robot to turn, open grabbers, etc.
@@ -134,7 +134,7 @@ class World(object):
         the center of our margin and y is either 1/3 * height or 2/3 * height
         """
         our_center_x, our_center_y = \
-            self.pitch.zones[self.our_attacker].center()
+            self.pitch.zones[self.our_attacker.zone].center()
 
         if self.our_attacker.y > our_center_y:
             return our_center_x, our_center_y * (4/3.0)
@@ -214,6 +214,7 @@ class World(object):
     def px_to_cm(self, px):
         return px / PX_PER_CM
 
+
 class WorldUpdater:
     """
     Ties vision to the world model.
@@ -263,11 +264,11 @@ class WorldUpdater:
         self.world.our_defender.catcher_area = \
             {'width': 30, 'height': 30, 'front_offset': 20}
         self.world.our_attacker.catcher_area = \
-            {'width': 20, 'height': 20, 'front_offset': 15}
+            {'width': 20, 'height': 20, 'front_offset': 18}
         self.world.their_defender.catcher_area = \
-            {'width': 30, 'height': 30, 'front_offset': 20}
+            {'width': 40, 'height': 40, 'front_offset': 20}
         self.world.their_attacker.catcher_area = \
-            {'width': 30, 'height': 30, 'front_offset': 20}
+            {'width': 40, 'height': 40, 'front_offset': 20}
 
         grabbers = {'our_defender': self.world.our_defender.catcher_area,
                     'our_attacker': self.world.our_attacker.catcher_area}

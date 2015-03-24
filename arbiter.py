@@ -2,6 +2,27 @@ from pc.models.world import WorldUpdater, World
 from pc.vision import tools, camera, vision
 from pc.planning.planner import Planner
 from pc.robot import Robot
+import time
+from pc.vision import calibrationgui, visiongui
+from Tkinter import *
+
+CONTROLS = ["LH", "UH", "LS", "US", "LV", "UV", "LR",
+            "UR", "LG", "UG", "LB", "UB", "CT", "BL"]
+
+MAX_BAR = {"LH": 360,
+           "UH": 360,
+           "LS": 255,
+           "US": 255,
+           "LV": 255,
+           "UV": 255,
+           "LR": 255,
+           "UR": 255,
+           "LG": 255,
+           "UG": 255,
+           "LB": 255,
+           "UB": 255,
+           "CT": 100,
+           "BL": 100}
 
 
 class Arbiter(object):
@@ -28,49 +49,249 @@ class Arbiter(object):
         assert pitch in [0, 1]
         assert colour in ['yellow', 'blue']
         assert our_side in ['left', 'right']
+        assert profile in ['ms3', 'attacker', 'penalty', 'None']
 
         self.pitch = pitch
         self.colour = colour
         self.side = our_side
+        self.profile = profile
         self.calibration = tools.get_colors(pitch)
         self.comms = comms
 
         # Set up capture device
         self.camera = camera.Camera(pitch, video_src=video_src)
 
-        # Set up vision - note that this discards the colour-corrupt first frame
+        # Set up robotController
+        self.robot_controller = Robot(port=comm_port, comms=comms)
+
+        # Set up vision
+        self.vision = None
+        self.start_vision()
+
+        # Set up world model; updater
+        self.world = None
+        self.world_updater = None
+        self.start_world()
+
+        # Set up the planner
+        self.planner = None
+        self.start_planner()
+
+        # Initialize the main GUI
+        self.root = Tk()
+        self.root.resizable(width=FALSE, height=FALSE)
+        self.root.wm_title("Vision Wrapper")
+        self.root.bind('<Key>', self.key_press)
+        # Overwrite the "any key" bind with other, more specific binds
+        self.root.bind('<Escape>', lambda e: self.root.quit())  # Escape to quit
+        self.root.bind('<q>', lambda e: self.root.quit())  # Q to |q|uit
+        self.root.bind('<c>', lambda e: self.switch_colours())  # C to switch |c|olours
+        self.root.bind('<s>', lambda e: self.switch_sides())  # S to switch |s|ides
+        self.root.bind('<l>', lambda e: self.toggle_planning())  # L to toggle p|l|anning
+        self.root.bind('<a>', lambda e: self.clear_calibrations())  # A to reset current c|a|libration
+        self.root.bind('<e>', lambda e: self.take_penalty())  # E to take a p|e|nalty
+
+        # GUI Layout
+        # [Title                                 ]
+        # [Vision Frame (+fps etc)][Buttons      ]
+        # [Calibration Label      ][Slider Labels]
+        # [Calibration Frame      ][Sliders      ]
+
+        vision_height = 16  # The height of the vision frame in TKinter grid terms - allows for button spacing
+
+        # Labels
+        self.title = Label(self.root, text="Group 7 - SDP - Vision GUI",
+                           height=2)
+        self.title.grid(row=0, column=0, columnspan=100)
+        self.calibration_label = \
+            Label(self.root, text="Calibrating: plate mask", height=2)
+        self.calibration_label.grid(row=(vision_height+2), column=0)
+        # Frames
+        self.vision_frame = Label(self.root)
+        self.vision_frame.grid(row=1, column=0, rowspan=vision_height)
+        self.calibration_frame = Label(self.root)
+        self.calibration_frame.grid(row=(vision_height+3), column=0)
+        # Sliders
+        self.sliders = {}
+        self.slider_labels = {}
+        for index, setting in enumerate(CONTROLS):
+            self.sliders[setting] = Scale(self.root, from_=0,
+                                          to=MAX_BAR[setting],
+                                          length=300, width=10)
+            self.sliders[setting].grid(row=(vision_height+3), column=(index+1))
+
+            self.slider_labels[setting] = Label(self.root, text=setting)
+            self.slider_labels[setting].grid(row=(vision_height+2), column=(index+1))
+
+        # Buttons
+        # Planning pause/resume toggle
+        self.planner_paused = False  # Flag for pausing/resuming the planning
+        planning_toggle = Button(self.root)
+        planning_toggle["text"] = "P[l]anning Toggle"
+        planning_toggle["command"] = self.toggle_planning
+        planning_toggle.grid(row=1, column=1, columnspan=3)
+        # Calibration reset
+        calib_reset = Button(self.root)
+        calib_reset["text"] = "Reset Current\nC[a]libration"
+        calib_reset["command"] = self.clear_calibrations
+        calib_reset.grid(row=2, column=1, columnspan=3)
+        # Side switch
+        side_switch = Button(self.root)
+        side_switch["text"] = "Switch [S]ides"
+        side_switch["command"] = self.switch_sides
+        side_switch.grid(row=3, column=1, columnspan=3)
+        # Colour switch
+        colour_switch = Button(self.root)
+        colour_switch["text"] = "Switch [C]olours"
+        colour_switch["command"] = self.switch_colours
+        colour_switch.grid(row=4, column=1, columnspan=3)
+        # Penalty mode
+        penalty_mode = Button(self.root)
+        penalty_mode["text"] = "Take P[e]nalty"
+        penalty_mode["command"] = self.take_penalty
+        penalty_mode.grid(row=5, column=1, columnspan=3)
+
+        # Used by the calibration GUI to know
+        # which mode to calibrate (plate/dot/red etc)
+        self.key_event = False
+        self.key = 'p'
+
+        # The OpenCV-based calibration and vision GUIs, which get wrapped
+        self.calibration_gui = calibrationgui.CalibrationGUI(self,
+                                                             self.calibration)
+        self.gui = visiongui.VisionGUI(self, self.pitch)
+
+        # FPS counter init
+        self.counter = 1L
+        self.timer = time.clock()
+
+    def start_planner(self):
+        """
+        Starts a new planner depending on our current world state, robot controller, and profile.
+        """
+        if self.profile != "None":
+            self.planner = Planner(self.world, self.robot_controller, self.profile)
+        else:
+            self.planner = None
+
+    def start_vision(self):
+        """
+        Start a new vision system - note that this discards the colour-corrupt first frame.
+        """
         frame_shape = self.camera.get_frame().shape
         frame_center = self.camera.get_adjusted_center()
-        self.vision = vision.Vision(pitch, colour, our_side, frame_shape,
+        self.vision = vision.Vision(self.pitch, self.colour, self.side, frame_shape,
                                     frame_center, self.calibration,
                                     perspective_correction=True)
 
-        # Set up world model
+    def start_world(self):
+        """
+        Starts a new world model and world updater.
+        """
         self.world = World(self.side, self.pitch)
         self.world_updater = WorldUpdater(self.pitch, self.colour, self.side,
                                           self.world, self.vision)
 
-        # Set up robotController
-        self.robot_controller = Robot(port=comm_port, comms=comms)
+    def key_press(self, event):
+        """
+        Sets the value of self.key upon a keypress.
+        """
+        # Raise a flag that a key_event has occurred (used by
+        # calibration to change colour mode when needed)
+        self.key_event = True
+        self.key = event.char
 
-        # Set up the planner
-        if profile != "None":
-            self.planner = Planner(self.world, self.robot_controller, profile)
-        else:
-            self.planner = None
+    def toggle_planning(self):
+        """
+        Toggles planning to prevent updates.
+        """
+        self.planner.robot_ctl.stop()
+        self.planner_paused = not self.planner_paused
 
-        # Set up GUI
-        self.gui_wrapper = wrapper.Wrapper(self.camera, self.planner,
-                                           self.pitch, self.world_updater,
-                                           self.calibration, self.colour,
-                                           self.side)
+    def clear_calibrations(self):
+        """
+        Resets the calibration sliders.
+        If the slider is a "lower" slider, sets the value to 0;
+        if the slider is an "upper" slider, sets the value to max;
+        if the slider is contrast/blur, sets the value to 0.
+        """
+        # Hue
+        self.sliders['LH'].set(0)
+        self.sliders['UH'].set(MAX_BAR['UH'])
+
+        # Saturation
+        self.sliders['LS'].set(0)
+        self.sliders['US'].set(MAX_BAR['US'])
+
+        # Value
+        self.sliders['LV'].set(0)
+        self.sliders['UV'].set(MAX_BAR['UV'])
+
+        # Red
+        self.sliders['LR'].set(0)
+        self.sliders['UR'].set(MAX_BAR['UR'])
+
+        # Green
+        self.sliders['LG'].set(0)
+        self.sliders['UG'].set(MAX_BAR['UG'])
+
+        # Blue
+        self.sliders['LB'].set(0)
+        self.sliders['UB'].set(MAX_BAR['UB'])
+
+        # Contrast/blur
+        self.sliders['CT'].set(0)
+        self.sliders['BL'].set(0)
+
+    def switch_sides(self):
+        """
+        Switch which side we're on.
+        """
+        our_new_side = ""
+        if self.side == "left":
+            our_new_side = "right"
+        elif self.side == "right":
+            our_new_side = "left"
+
+        self.side = our_new_side
+
+        # Restart the vision system, world model + updater, and planner
+        self.start_vision()
+        self.start_world()
+        self.start_planner()
+
+    def switch_colours(self):
+        """
+        Switch which colour we are.
+        """
+        our_new_colour = ""
+        if self.colour == "blue":
+            our_new_colour = "yellow"
+        elif self.colour == "yellow":
+            our_new_colour = "blue"
+
+        self.colour = our_new_colour
+
+        # Restart the vision system, world model + updater, and planner
+        self.start_vision()
+        self.start_world()
+        self.start_planner()
+
+    def take_penalty(self):
+        """
+        Set the profile to penalty, and restart the planner
+        Planning automatically resumes to "attacker" when the penalty has been taken.
+        """
+        self.profile = 'penalty'
+        self.start_planner()
 
     def run(self):
         """
-        Creates a GUI wrapper for the vision system, cleanly exits when finished.
+        Ticks the whole system, cleanly exits saving calibrations and resetting the robot.
         """
         try:
-            self.gui_wrapper.render()
+            self.tick()
+            self.root.mainloop()
         except:
             raise
         finally:
@@ -79,6 +300,40 @@ class Arbiter(object):
             self.camera.release()
             tools.save_colors(self.pitch, self.calibration)
 
+    def tick(self):
+        """
+        Main loop of the system. Grabs frames and passes them to the GUIs and
+        the world state.
+        """
+        # Get frame
+        frame = self.camera.get_frame()
+
+        # Find object positions, update world model
+        model_positions, regular_positions, grabbers = \
+            self.world_updater.update_world(frame)
+
+        # Act on the updated world model
+        p_state = s_state = None
+        if self.planner is not None:  # TODO tidy with getters
+            if not self.planner_paused:
+                self.planner.plan()
+                p_state = self.planner.planner_state_string
+                s_state = self.planner.strategy_state_string
+
+        fps = float(self.counter) / (time.clock() - self.timer)
+
+        # Draw GUIs
+        self.calibration_gui.show(frame, self.key_event, key=self.key)
+        self.gui.draw(frame, model_positions, regular_positions,
+                      grabbers, fps, self.colour, self.side, p_state,
+                      s_state)
+
+        self.counter += 1
+
+        # Reset the key_event flag
+        self.key_event = False
+        self.root.after(1, self.tick)  # TODO Oh wow.
+
 
 if __name__ == '__main__':
     # Set capture card settings
@@ -86,7 +341,7 @@ if __name__ == '__main__':
     subprocess.call(['./v4lctl.sh'])
 
     # Create a launcher
-    from pc.gui import launcher, wrapper
+    from pc.gui import launcher
     app = launcher.Launcher()
     app.mainloop()
 

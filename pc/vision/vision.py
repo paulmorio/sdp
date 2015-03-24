@@ -29,6 +29,7 @@ class Vision(object):
         self.pitch = pitch
         self.colour = colour
         self.our_side = our_side
+        self.calibration = calibration
         self.frame_center = frame_center
         self.perspective_correction = perspective_correction
 
@@ -37,7 +38,7 @@ class Vision(object):
         # Find the zone division
         self.zones = zones = self._get_zones(width, height)
 
-        opponent_color = self._get_opponent_colour(colour)
+        self.opponent_color = self._get_opponent_colour(colour)
 
         if our_side == 'left':
             self.us = [
@@ -51,11 +52,11 @@ class Vision(object):
 
             self.opponents = [
                 RobotTracker(
-                    colour=opponent_color, crop=zones[3], offset=zones[3][0],
+                    colour=self.opponent_color, crop=zones[3], offset=zones[3][0],
                     pitch=pitch, name='Their Defender',
                     calibration=calibration),
                 RobotTracker(
-                    colour=opponent_color, crop=zones[1], offset=zones[1][0],
+                    colour=self.opponent_color, crop=zones[1], offset=zones[1][0],
                     pitch=pitch, name='Their Attacker',
                     calibration=calibration)
 
@@ -72,11 +73,11 @@ class Vision(object):
 
             self.opponents = [
                 RobotTracker(  # defender
-                    colour=opponent_color, crop=zones[0], offset=zones[0][0],
+                    colour=self.opponent_color, crop=zones[0], offset=zones[0][0],
                     pitch=pitch, name='Their Defender',
                     calibration=calibration),
                 RobotTracker(  # attacker
-                    colour=opponent_color, crop=zones[2], offset=zones[2][0],
+                    colour=self.opponent_color, crop=zones[2], offset=zones[2][0],
                     pitch=pitch, name='Their Attacker',
                     calibration=calibration)
             ]

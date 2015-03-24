@@ -15,7 +15,7 @@ class Planner(object):
         """
         assert (profile in ['attacker', 'ms3', 'penalty'])
         self.world = world
-        self.profile = profile
+        self._profile = profile
         self.robot_mdl = world.our_attacker
         self.robot_ctl = robot_ctl
 
@@ -28,6 +28,24 @@ class Planner(object):
         self.strategy = None
         self.update_strategy()
 
+    @property
+    def planner_state_string(self):
+        return self.state.replace('_', ' ').capitalize() + '.'
+
+    @property
+    def strategy_state_string(self):
+        return self.strategy.state.replace('_', ' ').capitalize() + '.'
+
+    @property
+    def profile(self):
+        return self._profile
+
+    @profile.setter
+    def profile(self, new_profile):
+        self._profile = new_profile
+        self.state = BALL_NOT_VISIBLE
+        self.update_strategy_map()
+
     # Defining strategy map depending on the profile
     def update_strategy_map(self):
         if self.profile == 'attacker':
@@ -35,8 +53,7 @@ class Planner(object):
                 BALL_NOT_VISIBLE: Idle(self.world, self.robot_ctl),
                 GETTING_BALL: GetBall(self.world, self.robot_ctl),
                 POSSESSION: ShootGoal(self.world, self.robot_ctl),
-                INTERCEPT: Intercept(self.world, self.robot_ctl),
-                DEFENDING: Defend(self.world, self.robot_ctl),
+                DEFENDING: Intercept(self.world, self.robot_ctl),
                 AWAITING_PASS: AwaitPass(self.world, self.robot_ctl)
             }
         elif self.profile == 'ms3':
@@ -94,12 +111,7 @@ class Planner(object):
         # Ball is in their defender's area
         elif self.world.ball_in_area([self.world.their_defender]):
             # Assume their def has ball, stalk the defender's target
-            # TODO add estimated catch areas to opposition bots
-            if self.world.can_catch_ball(self.world.their_defender):
-                self.state = DEFENDING
-            # Ball is travelling. Either rebound or kick from defender
-            else:
-                self.state = INTERCEPT
+            self.state = DEFENDING
 
         # Ball in our defender's area
         elif self.world.ball_in_area([self.world.our_defender]):
@@ -108,17 +120,15 @@ class Planner(object):
                 self.state = AWAITING_PASS
             # Could be a rebound, if so then prepare to intercept
             elif not self.state == AWAITING_PASS:
-                self.state = INTERCEPT
+                self.state = DEFENDING
 
         # Ball in our margin
         elif self.world.ball_in_area([self.robot_mdl]):
             # The ball is heading at us (hopefully) or is slow
-            # TODO tune velocity threshold, ball smoothing (kalman)
-            # TODO distance from grabber center to ball
-            if self.state == AWAITING_PASS or self.world.ball.velocity < 2:
+            if self.state == DEFENDING and self.world.ball.velocity > 4:
+                self.state = DEFENDING
+            else:
                 self.state = GETTING_BALL
-            else:  # Stay in intercept mode until the ball is slow enough
-                self.state = INTERCEPT
 
         # Ball in their attacker's margin
         elif self.world.ball_in_area([self.world.their_attacker]):
@@ -127,7 +137,7 @@ class Planner(object):
                 pass
             # Ball is not a pass, could be a rebound
             else:
-                self.state = INTERCEPT
+                self.state = DEFENDING
 
         # Ball is not visible or is between zones (calibrate properly?)
         else:
@@ -183,7 +193,5 @@ class Planner(object):
             print "PROFILE CHANGE TO ATTACKER"
             # Set profile back to attacker
             self.profile = 'attacker'
-            self.state = BALL_NOT_VISIBLE
-            self.update_strategy_map()
 
         self.update_strategy()
