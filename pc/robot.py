@@ -198,23 +198,22 @@ class Robot(object):
         """
         self.drive(0, 0)
 
-    def turn(self, radians, power=100):
+    def turn(self, rads, power=100):
         """
         Turn the robot at the given motor power. The radians should be relative
         to the current orientation of the robot, where the robot is facing 0 rad
         and radians in (0,inf) indicate a rightward turn while radians in
         (-inf,-0) indicate a leftward turn.
-        :param radians: Radians to turn from current orientation. Sign indicates
+        :param rads: Radians to turn from current orientation. Sign indicates
                         direction (negative -> leftward, positive -> rightward)
         :param power: Motor power
         """
-        deg_to_tick = lambda deg: 1.1673*deg
-        rad_to_tick = lambda rad: deg_to_tick(rad*180/math.pi)
+        rad_to_tick = lambda rad: 1.1673*rad*180/math.pi
 
-        if radians > 0:
-            wheel_dist = round(rad_to_tick(radians))
-        elif radians < 0:
-            wheel_dist = round(-rad_to_tick(-radians))
+        if rads > 0:
+            wheel_dist = round(rad_to_tick(rads))
+        elif rads < 0:
+            wheel_dist = round(-rad_to_tick(-rads))
         else:
             wheel_dist = 0
 
