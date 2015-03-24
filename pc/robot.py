@@ -11,6 +11,7 @@ READY = "READY"
 STATUS = "STATUS"
 CMD_DELIMITER = ' '
 
+
 class Robot(object):
     """
     Robot actions and feedback.
@@ -179,14 +180,14 @@ class Robot(object):
             lambda cm: 12.095 * cm - 39.472 if cm >= 6 else 4.3018 * cm + 1
 
         if l_dist > 0:
-            l_dist = int(cm_to_ticks(l_dist))
+            l_dist = round(cm_to_ticks(l_dist))
         elif l_dist < 0:
-            l_dist = -int(cm_to_ticks(-l_dist))
+            l_dist = -round(cm_to_ticks(-l_dist))
 
         if r_dist > 0:
-            r_dist = int(cm_to_ticks(r_dist))
+            r_dist = round(cm_to_ticks(r_dist))
         elif r_dist < 0:
-            r_dist = -int(cm_to_ticks(-r_dist))
+            r_dist = -round(cm_to_ticks(-r_dist))
 
         self.queued_command = \
             (DRIVE, [str(l_dist), str(r_dist), str(l_power), str(r_power)])
@@ -207,14 +208,13 @@ class Robot(object):
                         direction (negative -> leftward, positive -> rightward)
         :param power: Motor power
         """
-        deg_to_tick = \
-            lambda deg: 1.1673*deg if deg >= 9 else 1.20730*deg - 9.7513
+        deg_to_tick = lambda deg: 1.1673*deg
         rad_to_tick = lambda rad: deg_to_tick(rad*180/math.pi)
 
         if radians > 0:
-            wheel_dist = int(rad_to_tick(radians))
+            wheel_dist = round(rad_to_tick(radians))
         elif radians < 0:
-            wheel_dist = int(-rad_to_tick(-radians))
+            wheel_dist = round(-rad_to_tick(-radians))
         else:
             wheel_dist = 0
 
@@ -288,7 +288,7 @@ class ManualController(object):
         text.pack()
 
         # Set up key bindings
-        self.root.bind('w', lambda event: self.robot.drive(100, 100))
+        self.root.bind('w', lambda event: self.robot.drive(10, 10))
         self.root.bind('<Up>', lambda event: self.robot.drive(20, 20, 70, 70))
         self.root.bind('x', lambda event: self.robot.drive(-10, -10))
         self.root.bind('<Down>', lambda event: self.robot.drive(-20, -20,
