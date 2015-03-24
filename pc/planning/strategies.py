@@ -438,7 +438,7 @@ class AwaitPass(Strategy):
             elif not self.robot_mdl.is_turning():
                 angle = self.robot_mdl.get_rotation_to_point(self.dest[0],
                                                              self.dest[1])
-                self.robot_ctl.turn(angle, angle)
+                self.robot_ctl.turn(angle)
 
     def face_wall_point(self):
         if self.wall_point is None:
