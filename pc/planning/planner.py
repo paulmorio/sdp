@@ -15,7 +15,7 @@ class Planner(object):
         """
         assert (profile in ['attacker', 'ms3', 'penalty'])
         self.world = world
-        self.profile = profile
+        self._profile = profile
         self.robot_mdl = world.our_attacker
         self.robot_ctl = robot_ctl
 
@@ -38,11 +38,11 @@ class Planner(object):
 
     @property
     def profile(self):
-        return self.profile
+        return self._profile
 
     @profile.setter
     def profile(self, new_profile):
-        self.profile = new_profile
+        self._profile = new_profile
         self.state = BALL_NOT_VISIBLE
         self.update_strategy_map()
 
@@ -190,6 +190,6 @@ class Planner(object):
             print "self.world.can_catch_ball(self.robot_mdl): "+str(self.world.can_catch_ball(self.robot_mdl))
             print "PROFILE CHANGE TO ATTACKER"
             # Set profile back to attacker
-            self.profile('attacker')
+            self.profile = 'attacker'
 
         self.update_strategy()
