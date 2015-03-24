@@ -49,10 +49,12 @@ class Arbiter(object):
         assert pitch in [0, 1]
         assert colour in ['yellow', 'blue']
         assert our_side in ['left', 'right']
+        assert profile in ['ms3', 'attacker', 'penalty', 'None']
 
         self.pitch = pitch
         self.colour = colour
         self.side = our_side
+        self.profile = profile
         self.calibration = tools.get_colors(pitch)
         self.comms = comms
 
@@ -75,11 +77,8 @@ class Arbiter(object):
         self.robot_controller = Robot(port=comm_port, comms=comms)
 
         # Set up the planner
-        self.previous_planner_profile = None  # Used to save/resume the prior planner when taking penalties
-        if profile != "None":
-            self.planner = Planner(self.world, self.robot_controller, profile)
-        else:
-            self.planner = None
+        self.planner = None
+        self.start_planner()
 
         # Initialize the main GUI
         self.root = Tk()
@@ -87,6 +86,12 @@ class Arbiter(object):
         self.root.wm_title("Vision Wrapper")
         self.root.bind('<Key>', self.key_press)
         self.root.bind('<Escape>', lambda e: self.root.quit())  # Escape to quit
+        self.root.bind('<q>', lambda e: self.root.quit())  # Q to |q|uit
+        self.root.bind('<c>', lambda e: self.switch_colours())  # C to switch |c|olours
+        self.root.bind('<s>', lambda e: self.switch_sides())  # S to switch |s|ides
+        self.root.bind('<l>', lambda e: self.toggle_planning())  # L to toggle p|l|anning
+        self.root.bind('<a>', lambda e: self.clear_calibrations())  # A to reset current c|a|libration
+        self.root.bind('<e>', lambda e: self.take_penalty())  # E to take a p|e|nalty
 
         # GUI Layout
         # [Title                                 ]
@@ -94,7 +99,7 @@ class Arbiter(object):
         # [Calibration Label      ][Slider Labels]
         # [Calibration Frame      ][Sliders      ]
 
-        vision_height = 16  #
+        vision_height = 16  # The height of the vision frame in TKinter grid terms - allows for button spacing
 
         # Labels
         self.title = Label(self.root, text="Group 7 - SDP - Vision GUI",
@@ -131,23 +136,22 @@ class Arbiter(object):
         calib_reset = Button(self.root)
         calib_reset["text"] = "Reset Current\nCalibration"
         calib_reset["command"] = self.clear_calibrations
-        calib_reset.grid(row=1, column=4, columnspan=3)
+        calib_reset.grid(row=2, column=1, columnspan=3)
         # Side switch
         side_switch = Button(self.root)
         side_switch["text"] = "Switch Sides"
         side_switch["command"] = self.switch_sides
-        side_switch.grid(row=1, column=7, columnspan=3)
+        side_switch.grid(row=3, column=1, columnspan=3)
         # Colour switch
         colour_switch = Button(self.root)
         colour_switch["text"] = "Switch Colours"
         colour_switch["command"] = self.switch_colours
-        colour_switch.grid(row=1, column=10, columnspan=3)
+        colour_switch.grid(row=4, column=1, columnspan=3)
         # Penalty mode
-        self.penalty_mode = False  # Flag to know what mode we're in
         penalty_mode = Button(self.root)
         penalty_mode["text"] = "Take Penalty"
-        penalty_mode["command"] = self.toggle_penalty_mode
-        penalty_mode.grid(row=1, column=13, columnspan=3)
+        penalty_mode["command"] = self.take_penalty
+        penalty_mode.grid(row=5, column=1, columnspan=3)
 
         # Used by the calibration GUI to know
         # which mode to calibrate (plate/dot/red etc)
@@ -162,6 +166,15 @@ class Arbiter(object):
         # FPS counter init
         self.counter = 1L
         self.timer = time.clock()
+
+    def start_planner(self):
+        """
+        Sets up a new planner depending on our current world state, robot controller, and profile
+        """
+        if self.profile != "None":
+            self.planner = Planner(self.world, self.robot_controller, self.profile)
+        else:
+            self.planner = None
 
     def key_press(self, event):
         """
@@ -230,7 +243,9 @@ class Arbiter(object):
         self.world._our_side = our_new_side
         self.world._their_side = 'left' if our_new_side == 'right' else 'right'
         self.world_updater.side = our_new_side
-        self.planner.switch_sides()
+
+        # Restart the planner, for the sake of sanity
+        self.start_planner()
 
     def switch_colours(self):
         # TODO: as above.
@@ -247,18 +262,14 @@ class Arbiter(object):
         self.world_updater.colour = our_new_colour
         self.vision.switch_attributes(None, our_new_colour)
 
-    def toggle_penalty_mode(self):
+    def take_penalty(self):
+        """
+        Set the profile to penalty, and restart the planner
+        Planning automatically resumes to "attacker" when the penalty has been taken.
+        """
         # TODO: broken upon merging. Fix!
-        # if not self.penalty_mode:
-        #     self.penalty_mode = True
-        #     self.previous_planner_profile = self.planner.profile
-        #     self.planner.profile = 'penalty'
-        #     self.planner.update_strategy_map()
-        # else:
-        #     self.penalty_mode = False
-        #     self.planner.profile = self.previous_planner_profile
-        #     self.planner.update_strategy_map()
-        print "Penalty!"
+        self.profile = 'penalty'
+        self.start_planner()
 
     def run(self):
         """
