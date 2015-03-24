@@ -225,18 +225,18 @@ class ShootGoal(Strategy):
     Intended use is when the ball is in our possession.
     """
     def __init__(self, world, robot_ctl):
-        _STATES = [INIT, FINDING_PATH, MOVING_TO_DEST,
-                   TURNING_TO_GOAL, OPENING_GRABBER, KICKING, DONE]
+        _STATES = [INIT, GOTO_SHOOT_SPOT, CHOOSING_SHOT_ANGLE, KICKING, DONE]
         _STATE_MAP = {INIT: self.close_grabber,
                       GOTO_SHOOT_SPOT: self.go_to_shoot_spot,
                       CHOOSING_SHOT_ANGLE: self.turn_to_shoot,
-
                       KICKING: self.kick,
                       DONE: self.do_nothing}
+
         super(ShootGoal, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
         self.target = self.world.their_goal
         self.their_defender = self.world.their_defender
         self.shot_target = None
+        self.dest = None
 
     def close_grabber(self):
         """
@@ -255,7 +255,7 @@ class ShootGoal(Strategy):
         Go to the closest shooting spot.
         """
         if self.dest is None:
-            self.dest = self.world.get_shoot_spot()
+            self.dest = self.world.get_shot_spot()
 
         if not self.robot_ctl.is_moving:
             # At the destination, move on
@@ -316,73 +316,6 @@ class ShootGoal(Strategy):
         self.shot_target = None
 
 
-class Defend(Strategy):
-    """
-    Sit in front of their defender. Very annoying.
-
-    Intended use is where their defender possesses the ball.
-    """
-    # TODO no detection of ball in grabber area?
-    def __init__(self, world, robot_ctl):
-        _STATES = [MOVING_TO_DEST]
-        _STATE_MAP = {MOVING_TO_DEST: self.move_to_destination}
-        super(Defend, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
-        self.their_defender = self.world.their_defender
-        self.dest = None
-
-    def get_destination(self):
-        """
-        Set destination.
-
-        Get equation of 'shot-line' from their defender and then find
-        intersection with our margin's x-center line.
-        """
-        center_x, center_y =\
-            self.world.pitch.zones[self.robot_mdl.zone].center()
-        our_zone_height = self.world.pitch.height
-
-        # We don't move outwith this margin to avoid being faked
-        y_max = center_y + our_zone_height*(1/6.0)  # TODO MAGIC
-        y_min = center_y - our_zone_height*(1/6.0)
-
-        # Find where their shot-line intercepts our margin center line
-        their_x = self.world.their_defender.x
-        their_y = self.world.their_defender.y
-        slope = math.tan(self.world.their_defender.angle)
-        offset = their_y - (slope * their_x)
-        intersection_y = (slope * center_x) + offset
-
-        # set destination
-        dest_x = center_x
-        if intersection_y > y_max:
-            dest_y = y_max
-        elif intersection_y < y_min:
-            dest_y = y_min
-        else:
-            dest_y = intersection_y
-
-        self.dest = dest_x, dest_y
-
-    def move_to_destination(self):
-        # If we're at the destination or have no destination
-        if self.dest is None or \
-                self.robot_mdl.is_at_point(self.dest[0], self.dest[1]):
-            self.get_destination()
-
-        # Command only if not moving
-        if not self.robot_ctl.is_moving and not self.robot_mdl.is_moving():
-            angle, dist = self.robot_mdl.get_direction_to_point(self.dest[0],
-                                                                self.dest[1])
-            if self.robot_mdl.is_facing_point(self.dest[0], self.dest[1]):
-                self.robot_ctl.drive(dist, dist)
-            else:
-                self.robot_ctl.turn(angle*0.3)
-
-    def reset(self):
-        super(Defend, self).reset()
-        self.dest = None
-
-
 class Intercept(Strategy):
     """
     Intercept a moving ball.
@@ -429,16 +362,12 @@ class Intercept(Strategy):
         """
         Follow ball's y coordinate.
         """
-        if self.top_fixated and self.robot_mdl.is_facing_angle(math.pi/2) or\
-                not self.top_fixated and \
-                        self.robot_mdl.is_facing_angle(3*math.pi/2):
-            if not self.robot_ctl.is_moving and self.robot_mdl.is_moving():
+        if self.robot_mdl.is_square():
+            if not self.robot_ctl.is_moving:
                 ball_y = self.world.ball.y
                 bot_y = self.robot_mdl.y
 
-                if not ball_y - 8 < bot_y < ball_y + 8 and\
-                        not self.robot_ctl.is_moving and\
-                        not self.robot_mdl.is_moving():
+                if not ball_y - 8 < bot_y < ball_y + 8:
                     displacement = self.world.px_to_cm(ball_y - bot_y)
                     if self.top_fixated:
                         self.robot_ctl.drive(displacement, displacement)

@@ -134,7 +134,7 @@ class World(object):
         the center of our margin and y is either 1/3 * height or 2/3 * height
         """
         our_center_x, our_center_y = \
-            self.pitch.zones[self.our_attacker].center()
+            self.pitch.zones[self.our_attacker.zone].center()
 
         if self.our_attacker.y > our_center_y:
             return our_center_x, our_center_y * (4/3.0)
@@ -264,7 +264,7 @@ class WorldUpdater:
         self.world.our_defender.catcher_area = \
             {'width': 30, 'height': 30, 'front_offset': 20}
         self.world.our_attacker.catcher_area = \
-            {'width': 20, 'height': 20, 'front_offset': 30}
+            {'width': 20, 'height': 20, 'front_offset': 18}
         self.world.their_defender.catcher_area = \
             {'width': 40, 'height': 40, 'front_offset': 20}
         self.world.their_attacker.catcher_area = \
