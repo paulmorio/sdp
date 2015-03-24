@@ -149,38 +149,44 @@ class World(object):
         of the closeby wall into the closeby corner of the goal.
         """
         our_center_x, our_center_y = \
-            self.pitch.zones[self.our_attacker].center()
+            self.pitch.zones[self.our_attacker.zone].center()
 
-        zone_height = self.pitch.zones[self.our_attacker].height
+        zone = self.pitch.zones[self.our_attacker.zone]
+        zone_height = zone.center()[1]*2
 
         upper_tgt = self.their_goal.x, \
                     self.their_goal.y - self.their_goal.height * (4/10.0)
         lower_tgt = self.their_goal.x,\
                     self.their_goal.y - self.their_goal.height * (4/10.0)
 
-        if self.our_attacker.y > our_center_y:
-            # Check straight shot
-            straight_shot_poly = \
-                Polygon(lower_tgt, (self.our_attacker.x, self.our_attacker.y))
+        return self.their_goal.x, self.their_goal.y
 
-            if not straight_shot_poly.overlaps(self.their_defender):
-                return lower_tgt
-            else:  # Bounce shot
+        #TODO: Fix polygons, returns error -> "TypeError an integer is required"
+        # if self.our_attacker.y > our_center_y:
+        #     # Check straight shot
+        #     straight_shot_poly = \
+        #         Polygon(lower_tgt, (self.our_attacker.x, self.our_attacker.y))
+        #
+        #     if not straight_shot_poly.overlaps(self.their_defender):
+        #         return lower_tgt
+        #     else:  # Bounce shot
+        #
+        #         return self.our_attacker.get_point_via_wall(upper_tgt[0],
+        #                                                     upper_tgt[1],
+        #                                                     zone_height)
+        #
+        # else:
+        #     straight_shot_poly = \
+        #         Polygon(upper_tgt, (self.our_attacker.x, self.our_attacker.y))
+        #
+        #     if not straight_shot_poly.overlaps(self.their_defender):
+        #         return upper_tgt
+        #     else:  # Bounce shot
+        #         return self.our_attacker.get_point_via_wall(lower_tgt[0],
+        #                                                     lower_tgt[1],
+        #                                                     zone_height, False)
 
-                return self.our_attacker.get_point_via_wall(upper_tgt[0],
-                                                            upper_tgt[1],
-                                                            zone_height)
 
-        else:
-            straight_shot_poly = \
-                Polygon(upper_tgt, (self.our_attacker.x, self.our_attacker.y))
-
-            if not straight_shot_poly.overlaps(self.their_defender):
-                return upper_tgt
-            else:  # Bounce shot
-                return self.our_attacker.get_point_via_wall(lower_tgt[0],
-                                                            lower_tgt[1],
-                                                            zone_height, False)
 
     def find_pass_spot_ms3(self, robot):
         """

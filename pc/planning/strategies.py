@@ -499,12 +499,11 @@ class PenaltyKick(Strategy):
         print "Aim-top: "+str(aim_top)
 
         # Convert coordinates to wall-bounce coordinates
-        (wall_x, wall_y) = self.robot_mdl.get_point_via_wall(self.target.x,
-                                                             self.target.y,
-                                                             aim_top)
+        #(wall_x, wall_y) = (self.target.x, self.target.y)
+        (wall_x, wall_y) = self.robot_mdl.get_point_via_wall(self.target.x, self.target.y, aim_top)
 
         # Rotate robot to point if required, otherwise new state: open grabber
-        if not self.robot_ctl.is_moving:
+        if not self.robot_ctl.is_moving and not self.robot_mdl.is_turning():
             if self.robot_mdl.is_facing_point(wall_x, wall_y):
                 self.state = OPENING_GRABBER
             else:
@@ -530,4 +529,5 @@ class PenaltyKick(Strategy):
         if not self.robot_ctl.ball_grabbed:
             self.state = DONE
         elif not self.robot_ctl.is_kicking:
+            print "ATTEMPT TO KICK"
             self.robot_ctl.kick()
