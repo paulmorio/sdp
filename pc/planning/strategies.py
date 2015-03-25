@@ -80,11 +80,12 @@ class GetBall(Strategy):
         self.ball = self.world.ball
 
     def face_ball(self):
-        if not self.robot_moving():
-            if self.world.can_catch_ball(self.robot_mdl) \
-                    and self.robot_ctl.grabber_open:
-                self.state = GRABBING_BALL
-            elif self.robot_mdl.is_facing_point(self.ball.x, self.ball.y):
+        if self.world.can_catch_ball(self.robot_mdl) \
+                and self.robot_ctl.grabber_open:
+            self.state = GRABBING_BALL
+
+        elif not self.robot_moving():
+            if self.robot_mdl.is_facing_point(self.ball.x, self.ball.y):
                 self.state = OPENING_GRABBER
             else:
                 angle = self.robot_mdl.get_rotation_to_point(self.ball.x,
