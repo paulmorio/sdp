@@ -42,10 +42,6 @@ class Robot(object):
             self.comm_pipe, sub_pipe = Pipe()
             comm = Communicator(sub_pipe, port)
             self.p = Process(target=comm.runner)
-
-            while not comm.serial.isOpen():
-                print "Waiting for comm port to open"
-
             self.p.start()
             self._initialize()
 
