@@ -102,10 +102,10 @@ class GetBall(Strategy):
                 self.robot_ctl.open_grabber()
 
     def move_to_ball(self):
+        if self.world.can_catch_ball(self.robot_mdl):
+            self.state = GRABBING_BALL
         if not self.robot_moving():
-            if self.world.can_catch_ball(self.robot_mdl):
-                self.state = GRABBING_BALL
-            elif not self.robot_mdl.is_facing_point(self.ball.x, self.ball.y):
+            if not self.robot_mdl.is_facing_point(self.ball.x, self.ball.y):
                 self.state = TURNING_TO_BALL
             else:
                 dist = self.robot_mdl.dist_from_grabber_to_point(self.ball.x,
