@@ -171,7 +171,6 @@ class World(object):
                 return self.our_attacker.get_point_via_wall(upper_tgt[0],
                                                             upper_tgt[1],
                                                             zone_height)
-
         else:
             straight_shot_poly = \
                 Polygon([upper_tgt, (self.our_attacker.x, self.our_attacker.y)])

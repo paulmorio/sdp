@@ -1,6 +1,7 @@
 from Polygon.cPolygon import Polygon
 from math import cos, sin, hypot, pi, atan2
 from ..vision.tools import get_croppings
+from collections import deque
 
 # Width measures the front and back of an object
 # Length measures along the sides of an object
@@ -131,6 +132,9 @@ class PitchObject(object):
             self._vector = Vector(x, y, angle, velocity)
             self._catcher_area = None
 
+            # Cache values for last five frames -- [(x,y),v]
+            self.pos_velocity_cache = deque([[(0, 0), 0]]*5)
+
     @property
     def width(self):
         return self._width
@@ -177,6 +181,10 @@ class PitchObject(object):
                                   new_vector.angle - self._angle_offset,
                                   new_vector.velocity)
 
+            # Update length 5 cache TODO robots only
+            self.pos_velocity_cache.append([(self.x, self.y), self.angle])
+            self.pos_velocity_cache.popleft()
+
     def overlaps(self, poly):
         """
         True if this object overlaps the given polygon
@@ -220,6 +228,9 @@ class Robot(PitchObject):
         self._world = world
         self.last_angle = self.angle
         self.last_pos = self.x, self.y
+
+        # Cache last five positions and angles -- ((x,y),v)
+        self.pos_cache = [((0, 0), 0)]*5
 
     @property
     def zone(self):
@@ -323,7 +334,7 @@ class Robot(PitchObject):
         return (self.get_displacement_to_point(x, y),
                 self.get_rotation_to_point(x, y))
 
-    def dist_from_grabber(self, x, y):
+    def dist_from_grabber_to_point(self, x, y):
         """
         Get the distance CM from the center of the robot's grabber.
         Note that the robot must have a grabber defined.
@@ -363,24 +374,19 @@ class Robot(PitchObject):
         return self.get_displacement_to_point(x, y) < cm_threshold
 
     def is_turning(self, threshold=0.1):  # TODO tune threshold
-        if self.angle - threshold < self.last_angle < self.angle + threshold:
-            self.last_angle = self.angle
-            return False
-        self.last_angle = self.angle
-
-        return True
+        avg_angle = sum([v for p, v in self.pos_velocity_cache]) / 5
+        return not self.is_facing_angle(avg_angle)
 
     def is_driving(self):
-        if self.is_at_point(self.last_pos[0], self.last_pos[1]):
-            self.last_pos = self.x, self.y
-            return False
-        self.last_pos = self.x, self.y
-        return True
+        # TODO very sloppy, tidy this up
+        avg_x = sum([x for (x, y), v in self.pos_velocity_cache]) / 5
+        avg_y = sum([y for (x, y), v in self.pos_velocity_cache]) / 5
+        return not self.is_at_point(avg_x, avg_y)
 
     def is_moving(self):
         return self.is_turning() or self.is_driving()
 
-    def is_facing_angle(self, rads, threshold=0.1):
+    def is_facing_angle(self, rads, threshold=0.17):
         return rads - threshold < self.angle < rads + threshold
 
     def is_square(self):
