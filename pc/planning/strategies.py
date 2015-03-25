@@ -288,13 +288,18 @@ class ShootGoal(Strategy):
             # Decide to aim at the top or bottom wall
             center_y = self.world.their_goal.y
 
-            if self.their_defender.y > center_y:
+            #if self.their_defender.y < center_y:
+            #    aim_top = True
+            #else:
+            #    aim_top = False
+
+            if self.robot_mdl.y > center_y:
                 aim_top = True
             else:
                 aim_top = False
 
             print "AIM TOP WALL: "+str(aim_top)
-            print "their_goal.y: "+str(center_y)+"; their_defender.y: "+str(self.their_defender.y)
+            print "robot_mdl.y: "+str(self.robot_mdl.y)+" > center_y: "+str(center_y)
             self.shot_target = self.robot_mdl.get_point_via_wall(
                 self.world.get_shot_target()[0],
                 self.world.get_shot_target()[1],

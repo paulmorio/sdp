@@ -310,12 +310,13 @@ class Robot(PitchObject):
         Given a target, return the point at which we should shoot
         to have the ball bounce and reach the target.
         """
+        margin_bottom = 20 # assume magic 20 pixels on bottom of pitch
         zone_height = self._world._pitch._zones[self._zone].center()[1]*2
 
         if top:
-            y_mirror = y + 2*(zone_height - y)
+            y_mirror = y + 2*(zone_height - y) + margin_bottom
         else:
-            y_mirror = -y
+            y_mirror = -y + margin_bottom
 
         print "top:"+str(top)+"; y_mirror:"+str(y_mirror)
 
