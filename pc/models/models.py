@@ -362,7 +362,7 @@ class Robot(PitchObject):
         return Polygon((robot_poly[0], robot_poly[1],
                         target_poly[0], target_poly[1]))
 
-    def is_facing_point(self, x, y, rad_thresh=0.17, backward=False):
+    def is_facing_point(self, x, y, rad_thresh=0.1, backward=False):
         """
         True if the robot is facing a given point given some threshold.
         """
@@ -379,7 +379,7 @@ class Robot(PitchObject):
         """
         return self.get_displacement_to_point(x, y) < cm_threshold
 
-    def is_turning(self, threshold=0.1):  # TODO tune threshold
+    def is_turning(self):  # TODO tune threshold
         avg_angle = sum([v for p, v in self.pos_velocity_cache]) / 5
         return not self.is_facing_angle(avg_angle)
 
@@ -392,7 +392,7 @@ class Robot(PitchObject):
     def is_moving(self):
         return self.is_turning() or self.is_driving()
 
-    def is_facing_angle(self, rads, threshold=0.17):
+    def is_facing_angle(self, rads, threshold=0.1):
         return rads - threshold < self.angle < rads + threshold
 
     def is_square(self):
