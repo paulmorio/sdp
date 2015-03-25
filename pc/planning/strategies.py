@@ -288,28 +288,29 @@ class ShootGoal(Strategy):
         there is an obstacle between the shooter and goal.
         """
         if self.shot_target is None:
-            # Decide to aim at the top or bottom wall
-            center_y = self.world.their_goal.y
-
-            #if self.their_defender.y < center_y:
+            self.shot_target = self.world.get_shot_target()
+            ## Decide to aim at the top or bottom wall
+            #center_y = self.world.their_goal.y
+            #
+            ##if self.their_defender.y < center_y:
+            ##    aim_top = True
+            ##else:
+            ##    aim_top = False
+            #
+            #if self.robot_mdl.y > center_y:
             #    aim_top = True
             #else:
             #    aim_top = False
-
-            if self.robot_mdl.y > center_y:
-                aim_top = True
-            else:
-                aim_top = False
-
-            print "AIM TOP WALL: "+str(aim_top)
-            print "robot_mdl.y: "+str(self.robot_mdl.y)+" > center_y: "+str(center_y)
-            self.shot_target = self.robot_mdl.get_point_via_wall(
-                self.world.get_shot_target()[0],
-                self.world.get_shot_target()[1],
-                aim_top
-            )
-
-            print "shot target: ("+str(self.shot_target[0])+", "+str(self.shot_target)+")"
+            #
+            #print "AIM TOP WALL: "+str(aim_top)
+            #print "robot_mdl.y: "+str(self.robot_mdl.y)+" > center_y: "+str(center_y)
+            #self.shot_target = self.robot_mdl.get_point_via_wall(
+            #    self.world.get_shot_target()[0],
+            #    self.world.get_shot_target()[1],
+            #    aim_top
+            #)
+            #
+            #print "shot target: ("+str(self.shot_target[0])+", "+str(self.shot_target)+")"
 
 
         # Turn to shot target
