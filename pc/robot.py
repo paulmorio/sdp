@@ -208,7 +208,9 @@ class Robot(object):
                         direction (negative -> leftward, positive -> rightward)
         :param power: Motor power
         """
-        rad_to_tick = lambda rad: 1.1673*rad*180/math.pi
+        deg_to_tick = lambda deg: 1.0652*deg - 6.7339 if deg > 9 \
+            else 1.1673*deg
+        rad_to_tick = lambda rad: deg_to_tick(rad*180/math.pi)
 
         if rads > 0:
             wheel_dist = round(rad_to_tick(rads))
