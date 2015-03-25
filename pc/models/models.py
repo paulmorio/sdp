@@ -289,20 +289,25 @@ class Robot(PitchObject):
         y = target y-pos
         top = pass via bottom wall or top wall (true = top)
         """
-        zone_height = self._world._pitch._zones[self._zone].height
+        zone_height = self._world._pitch._zones[self._zone].center()[1]*2
         (_, y_mirror) = self.get_point_via_wall(x, y, zone_height, top)
 
         return self.get_rotation_to_point(x, y_mirror)
 
-    def get_point_via_wall(self, x, y, zone_height, top=True):
+    def get_point_via_wall(self, x, y, top=True):
         """
         Given a target, return the point at which we should shoot
         to have the ball bounce and reach the target.
         """
+        zone_height = self._world._pitch._zones[self._zone].center()[1]*2
+
         if top:
             y_mirror = y + 2*(zone_height - y)
         else:
             y_mirror = -y
+
+        print "top:"+str(top)+"; y_mirror:"+str(y_mirror)
+
         return x, y_mirror
 
     def get_displacement_to_point(self, x, y):

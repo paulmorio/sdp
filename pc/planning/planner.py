@@ -102,7 +102,6 @@ class Planner(object):
 
         Updates the planner state and current strategy based on the world state
         """
-        print "ball-grabbed: "+str(self.robot_ctl.ball_grabbed)
 
         # Successfully grabbed ball, who cares what area it's in?
         if self.robot_ctl.ball_grabbed:
