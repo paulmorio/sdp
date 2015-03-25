@@ -107,8 +107,8 @@ class GetBall(Strategy):
             elif not self.robot_mdl.is_facing_point(self.ball.x, self.ball.y):
                 self.state = TURNING_TO_BALL
             else:
-                dist = self.robot_mdl.dist_from_grabber(self.ball.x,
-                                                        self.ball.y)
+                dist = self.robot_mdl.dist_from_grabber_to_point(self.ball.x,
+                                                                 self.ball.y)
                 self.robot_ctl.drive(dist, dist)
 
     def close_grabber(self):
@@ -288,12 +288,13 @@ class ShootGoal(Strategy):
             # Decide to aim at the top or bottom wall
             center_y = self.world.their_goal.y
 
-            if self.their_defender.y < center_y:
+            if self.their_defender.y > center_y:
                 aim_top = True
             else:
                 aim_top = False
 
             print "AIM TOP WALL: "+str(aim_top)
+            print "their_goal.y: "+str(center_y)+"; their_defender.y: "+str(self.their_defender.y)
             self.shot_target = self.robot_mdl.get_point_via_wall(
                 self.world.get_shot_target()[0],
                 self.world.get_shot_target()[1],
@@ -309,7 +310,6 @@ class ShootGoal(Strategy):
             angle = self.robot_mdl.get_rotation_to_point(self.shot_target[0],
                                                          self.shot_target[1])
             self.robot_ctl.turn(angle*0.3)
-
         else:
             self.state = KICKING
 
@@ -320,10 +320,8 @@ class ShootGoal(Strategy):
         if not self.robot_ctl.grabber_open:
             if not self.robot_ctl.is_grabbing:
                 self.robot_ctl.open_grabber()
-
         elif not self.robot_ctl.is_kicking:
             self.robot_ctl.kick()
-
         else:
             self.state = DONE
 
@@ -375,10 +373,8 @@ class Intercept(Strategy):
         super(Intercept, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
         self.top_fixated = None
 
-        self.timerlimit = 5
-        self.timer = self.timerlimit
-
     def choose_wall(self):
+        # TODO merge into turn_to_wall and turning to wall state
         angle_top = self.robot_mdl.get_rotation_to_angle(math.pi / 2)
         angle_bottom = self.robot_mdl.get_rotation_to_angle(3*math.pi/2)
 
@@ -390,23 +386,19 @@ class Intercept(Strategy):
         """
         Make the robot face the fixated wall
         """
-        self.timer-=1
-        if self.timer <= 0:
-            self.timer = self.timerlimit
-
-            if not self.robot_moving():
-                if self.top_fixated:  # Face wall at pi/2
-                    if self.robot_mdl.is_facing_angle(math.pi/2):
-                        self.state = TRACKING_BALL
-                    else:
-                        angle = self.robot_mdl.get_rotation_to_angle(math.pi/2)
-                        self.robot_ctl.turn(angle)
+        if not self.robot_moving():
+            if self.top_fixated:  # Face wall at pi/2
+                if self.robot_mdl.is_facing_angle(math.pi/2):
+                    self.state = TRACKING_BALL
                 else:
-                    if self.robot_mdl.is_facing_angle(3*math.pi/2):
-                        self.state = TRACKING_BALL
-                    else:
-                        angle = self.robot_mdl.get_rotation_to_angle(3*math.pi/2)
-                        self.robot_ctl.turn(angle)
+                    angle = self.robot_mdl.get_rotation_to_angle(math.pi/2)
+                    self.robot_ctl.turn(angle)
+            else:
+                if self.robot_mdl.is_facing_angle(3*math.pi/2):
+                    self.state = TRACKING_BALL
+                else:
+                    angle = self.robot_mdl.get_rotation_to_angle(3*math.pi/2)
+                    self.robot_ctl.turn(angle)
 
     def track_ball(self):
         """
@@ -451,13 +443,9 @@ class AwaitPass(Strategy):
         self.dest = None
         self.wall_point = None
 
-        self.timerlimit = 5
-        self.timer = self.timerlimit
-
     def move_to_pass_point(self):
         if self.dest is None:
             self.dest = self.world.get_pass_receive_spot()
-
 
         if not self.robot_moving():
             if self.robot_mdl.is_at_point(self.dest[0], self.dest[1]):
@@ -473,25 +461,21 @@ class AwaitPass(Strategy):
                 self.robot_ctl.turn(angle)
 
     def face_wall_point(self):
-
-        self.timer-=1
-        if self.timer <= 0:
-            self.timer = self.timerlimit
-
+        if self.wall_point is None:
             self.wall_point = self.robot_mdl.get_point_via_wall(
                 self.world.our_defender.x, self.world.our_defender.y,
                 self.world.pitch.height*2,
                 self.robot_mdl.y > self.world.pitch.height/2.0)
 
-            if not self.robot_moving():
-                if self.robot_mdl.is_facing_point(self.wall_point[0],
-                                                  self.wall_point[1]):
-                    self.state = OPENING_GRABBER
-                    self.wall_point = None
-                else:
-                    angle = self.robot_mdl.get_rotation_to_point(self.wall_point[0],
-                                                                 self.wall_point[1])
-                    self.robot_ctl.turn(angle*0.3)
+        if not self.robot_moving():
+            if self.robot_mdl.is_facing_point(self.wall_point[0],
+                                              self.wall_point[1]):
+                self.state = OPENING_GRABBER
+                self.wall_point = None
+            else:
+                angle = self.robot_mdl.get_rotation_to_point(self.wall_point[0],
+                                                             self.wall_point[1])
+                self.robot_ctl.turn(angle)
 
     def open_grabber(self):
         if not self.robot_ctl.grabber_open and not self.robot_ctl.is_grabbing:
