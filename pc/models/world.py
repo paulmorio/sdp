@@ -155,7 +155,7 @@ class World(object):
         zone_height = zone.center()[1]*2
 
         upper_tgt = self.their_goal.x, \
-                    self.their_goal.y - self.their_goal.height * (4/10.0)
+                    self.their_goal.y + self.their_goal.height * (4/10.0)
         lower_tgt = self.their_goal.x,\
                     self.their_goal.y - self.their_goal.height * (4/10.0)
 
@@ -169,8 +169,8 @@ class World(object):
             else:  # Bounce shot
 
                 return self.our_attacker.get_point_via_wall(upper_tgt[0],
-                                                            upper_tgt[1],
-                                                            zone_height)
+                                                            upper_tgt[1]
+                                                            )
         else:
             straight_shot_poly = \
                 Polygon([upper_tgt, (self.our_attacker.x, self.our_attacker.y)])
@@ -180,7 +180,7 @@ class World(object):
             else:  # Bounce shot
                 return self.our_attacker.get_point_via_wall(lower_tgt[0],
                                                             lower_tgt[1],
-                                                            zone_height, False)
+                                                            False)
 
     def get_pass_receive_spot(self):
         our_center_x, our_center_y = \
