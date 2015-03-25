@@ -155,7 +155,7 @@ class World(object):
         zone_height = zone.center()[1]*2
 
         upper_tgt = self.their_goal.x, \
-                    self.their_goal.y - self.their_goal.height * (4/10.0)
+                    self.their_goal.y + self.their_goal.height * (4/10.0)
         lower_tgt = self.their_goal.x,\
                     self.their_goal.y - self.their_goal.height * (4/10.0)
 
