@@ -162,8 +162,9 @@ class World(object):
         if self.our_attacker.y > our_center_y:
             # Check straight shot
             straight_shot_poly = \
-                Polygon([lower_tgt, (self.our_attacker.x, self.our_attacker.y)])
+                Polygon([lower_tgt, (self.our_attacker.x, self.our_attacker.y-5), (self.our_attacker.x, self.our_attacker.y+5)])
 
+            #if self.their_defender.y > (7/10.0) * (self._pitch._zones[self.their_defender.zone].center()[1]*2):
             if not straight_shot_poly.overlaps(self.their_defender.get_polygon()):
                 return lower_tgt
             else:  # Bounce shot
@@ -173,8 +174,9 @@ class World(object):
                                                             )
         else:
             straight_shot_poly = \
-                Polygon([upper_tgt, (self.our_attacker.x, self.our_attacker.y)])
+                Polygon([upper_tgt, (self.our_attacker.x, self.our_attacker.y), (self.our_attacker.x, self.our_attacker.y+5)])
 
+            #if self.their_defender.y < (7/10.0) * (self._pitch._zones[self.their_defender.zone].center()[1]*2):
             if not straight_shot_poly.overlaps(self.their_defender.get_polygon()):
                 return upper_tgt
             else:  # Bounce shot

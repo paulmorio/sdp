@@ -109,8 +109,12 @@ class GetBall(Strategy):
             if not self.robot_mdl.is_facing_point(self.ball.x, self.ball.y):
                 self.state = TURNING_TO_BALL
             else:
-                dist = self.robot_mdl.dist_from_grabber_to_point(self.ball.x,
-                                                                 self.ball.y)
+                if self.robot_mdl.get_displacement_to_point(self.ball.x, self.ball.y) > 25:
+                    dist = self.robot_mdl.dist_from_grabber_to_point(self.ball.x,
+                                                                     self.ball.y)
+                else:
+                    dist = 0.5 * self.robot_mdl.dist_from_grabber_to_point(self.ball.x,
+                                                                            self.ball.y)
                 self.robot_ctl.drive(dist, dist)
 
     def close_grabber(self):
@@ -494,36 +498,24 @@ class PenaltyKick(Strategy):
         self.target = self.world.their_goal
         self.their_defender = self.world.their_defender
         self.dest = None
+        self.shot_target = None
 
     def turn_to_goal(self):
+        """
+        Turn to appropriate shot angle. This is going to be a bounce shot if
+        there is an obstacle between the shooter and goal.
+        """
+        if self.shot_target is None:
+            self.shot_target = self.world.get_shot_target()
 
-        # Decide to aim at the top or bottom wall
-        center_y = self.world.their_goal.y
-
-        if self.robot_mdl.y > center_y:
-            aim_top = True
+        # Turn to shot target
+        if not self.robot_mdl.is_facing_point(self.shot_target[0],
+                                              self.shot_target[1], 0.01):
+            angle = self.robot_mdl.get_rotation_to_point(self.shot_target[0],
+                                                         self.shot_target[1])
+            self.robot_ctl.turn(angle*0.3)
         else:
-            aim_top = False
-
-        print "AIM TOP WALL: "+str(aim_top)
-        print "robot_mdl.y: "+str(self.robot_mdl.y)+" > center_y: "+str(center_y)
-        (wall_x, wall_y) = self.robot_mdl.get_point_via_wall(
-            self.world.get_shot_target()[0],
-            self.world.get_shot_target()[1],
-            aim_top
-        )
-
-        print "shot target: ("+str(wall_x)+", "+str(wall_y)+")"
-
-        # Rotate robot to point if required, otherwise new state: open grabber
-        if not self.robot_moving():
-            if self.robot_mdl.is_facing_point(wall_x, wall_y):
-                self.state = OPENING_GRABBER
-            else:
-                angle = self.robot_mdl.get_rotation_to_point(wall_x,
-                                                             wall_y)
-                print "giving task to turn: "+str(angle*0.3)+" deg"
-                self.robot_ctl.turn(angle*0.3)
+            self.state = OPENING_GRABBER
 
     def open_grabber(self):
         if not self.robot_ctl.is_grabbing:
