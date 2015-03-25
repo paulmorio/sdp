@@ -4,6 +4,7 @@ ACK_LEN = 8  # Length of ack string received from robot
 CMD_DELIMITER = ' '
 CMD_TERMINAL = '\n'
 
+
 class Communicator(object):
     """
     Handles communication between the system and the robot.
@@ -37,17 +38,14 @@ class Communicator(object):
         while True:
             if self.current_command is None:  # No current command, get
                 cmd = self.comm_pipe.recv()
-                self.current_command = cmd + CMD_DELIMITER + \
-                                       self.ack_bit + CMD_TERMINAL
+                self.current_command = \
+                    cmd + CMD_DELIMITER + self.ack_bit + CMD_TERMINAL
 
             else:  # Have a current command, get ack/state
                 self.serial.write(self.current_command)
                 ack = self.serial.readline()
                 if self.ack_test_and_update(ack):
                     self.current_command = None  # Successful ack, we're done
-
-        # Exit sequence
-        self.comm_pipe.write(EXIT_CODE)
 
     def ack_test_and_update(self, ack):
         """
