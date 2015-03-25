@@ -260,6 +260,8 @@ class ShootGoal(Strategy):
         if self.dest is None:
             self.dest = self.world.get_shot_spot()
 
+        print "shotspot = "+str(self.dest[0])+","+str(self.dest[1])
+
         if not self.robot_moving():
             # At the destination, move on
             if self.robot_mdl.is_at_point(self.dest[0], self.dest[1]):
@@ -513,14 +515,20 @@ class PenaltyKick(Strategy):
         # Decide to aim at the top or bottom wall
         center_y = self.world.their_goal.y
 
-        if self.their_defender.y < center_y:
+        if self.robot_mdl.y > center_y:
             aim_top = True
         else:
             aim_top = False
 
-        # Convert coordinates to wall-bounce coordinates
-        #(wall_x, wall_y) = (self.target.x, self.target.y)
-        (wall_x, wall_y) = self.robot_mdl.get_point_via_wall(self.target.x, self.target.y, aim_top)
+        print "AIM TOP WALL: "+str(aim_top)
+        print "robot_mdl.y: "+str(self.robot_mdl.y)+" > center_y: "+str(center_y)
+        (wall_x, wall_y) = self.robot_mdl.get_point_via_wall(
+            self.world.get_shot_target()[0],
+            self.world.get_shot_target()[1],
+            aim_top
+        )
+
+        print "shot target: ("+str(wall_x)+", "+str(wall_y)+")"
 
         # Rotate robot to point if required, otherwise new state: open grabber
         if not self.robot_moving():
