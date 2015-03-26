@@ -89,17 +89,6 @@ class World(object):
         """
         return self.ball_in_area(self._robots)
 
-    def ball_at_wall(self, threshold=10):
-        """
-        True if the ball is within threshold cm of the wall. Intended use is to
-        determine when the robot must take a careful approach to the ball.
-        """
-        threshold_px = cm_to_px(threshold)
-        return self.ball.x < threshold_px or \
-            self.ball.y < threshold_px or \
-            self.ball.x > self.pitch.width - threshold_px or \
-            self.ball.y > self.pitch.height - threshold_px
-
     def ball_too_close(self, robot, threshold=18):
         """
         True if the ball is within threshold cm of the robot. Intended use is to
