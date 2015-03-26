@@ -96,7 +96,7 @@ class World(object):
         Note that we calculate the distance from the robot's center, and so
         this is dependent on the dimensions of the robot.
         """
-        threshold_px = cm_to_px(threshold)
+        threshold_px = self.cm_to_px(threshold)
         r_x, r_y = robot.x, robot.y
         b_x, b_y = self.ball.x, self.ball.y
         too_close_x = r_x - threshold_px < b_x < r_x + threshold_px
@@ -196,6 +196,22 @@ class World(object):
         """
         return robot.catcher_area.isInside(self.ball.x, self.ball.y)
 
+    def cm_to_px(self, cm):
+        """
+        Use the constant ratio CM_PX_RATIO to convert from cm to px
+        :param cm: Centimetre value to be converted.
+        :return: Pixel equivalent
+        """
+        return PX_PER_CM * cm
+
+    def px_to_cm(self, px):
+        """
+        Use the constant ratio CM_PX_RATIO to convert from px to cm
+        :param px: Pixel value to be converted
+        :return: Centimeter representation
+        """
+        return px / PX_PER_CM
+
 
 class WorldUpdater:
     """
@@ -257,12 +273,3 @@ class WorldUpdater:
 
         self.world.update_positions(model_positions)
         return model_positions, regular_positions, grabbers
-
-
-def cm_to_px(cm):
-    """
-    Use the constant ratio CM_PX_RATIO to convert from cm to px
-    :param cm: Centimetre valued to be converted.
-    :return: Pixel equivalent
-    """
-    return PX_PER_CM * cm
