@@ -144,7 +144,7 @@ class World(object):
                 return lower_tgt
             else:  # Bounce shot
 
-                return self.our_attacker.get_point_via_wall(upper_tgt[0],
+                return self.our_attacker.target_via_wall(upper_tgt[0],
                                                             upper_tgt[1]
                                                             )
         else:
@@ -155,7 +155,7 @@ class World(object):
             if not straight_shot_poly.overlaps(self.their_defender.get_polygon()):
                 return upper_tgt
             else:  # Bounce shot
-                return self.our_attacker.get_point_via_wall(lower_tgt[0],
+                return self.our_attacker.target_via_wall(lower_tgt[0],
                                                             lower_tgt[1],
                                                             False)
 
