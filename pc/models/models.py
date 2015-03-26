@@ -358,12 +358,11 @@ class Robot(PitchObject):
         """
         return self.displacement_to_point(x, y) < cm_threshold
 
-    def is_turning(self):  # TODO tune threshold
+    def is_turning(self):  # TODO is broken
         avg_angle = sum([v for p, v in self.pos_velocity_cache]) / 5
         return not self.is_facing_angle(avg_angle)
 
-    def is_driving(self):
-        # TODO very sloppy, tidy this up
+    def is_driving(self):  # TODO is broken
         avg_x = sum([x for (x, y), v in self.pos_velocity_cache]) / 5
         avg_y = sum([y for (x, y), v in self.pos_velocity_cache]) / 5
         return not self.is_at_point(avg_x, avg_y)
@@ -371,10 +370,13 @@ class Robot(PitchObject):
     def is_moving(self):
         return self.is_turning() or self.is_driving()
 
-    def is_facing_angle(self, rads, threshold=0.17):
+    def is_facing_angle(self, rads, threshold=0.17):  # TODO tune threshold
         return rads - threshold < self.angle < rads + threshold
 
     def is_square(self):
+        """
+        True if the robot is facing either the top or bottom wall.
+        """
         return self.is_facing_angle(pi/2) or self.is_facing_angle(3*pi/2)
 
     def __repr__(self):
