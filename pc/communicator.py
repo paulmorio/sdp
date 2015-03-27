@@ -38,8 +38,10 @@ class Communicator(object):
         while True:
             if self.current_command is None:  # No current command, get
                 cmd = self.comm_pipe.recv()
-                self.current_command = \
-                    cmd + CMD_DELIMITER + self.ack_bit + CMD_TERMINAL
+                self.current_command = cmd[0] + CMD_DELIMITER + self.ack_bit
+                for arg in cmd[1]:
+                    self.current_command += CMD_DELIMITER + arg
+                self.current_command += CMD_TERMINAL
 
             else:  # Have a current command, get ack/state
                 self.serial.write(self.current_command)

@@ -119,7 +119,6 @@ class PitchObject(object):
     Width measures the front and back of an object
     Length measures along the sides of an object
     """
-
     def __init__(self, x, y, angle, velocity, width,
                  length, height, angle_offset=0):
         if width < 0 or length < 0 or height < 0:
