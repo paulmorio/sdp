@@ -53,8 +53,9 @@ class Planner(object):
                 BALL_NOT_VISIBLE: Idle(self.world, self.robot_ctl),
                 GETTING_BALL: GetBall(self.world, self.robot_ctl),
                 POSSESSION: ShootGoal(self.world, self.robot_ctl),
-                DEFENDING: Intercept(self.world, self.robot_ctl),
-                AWAITING_PASS: Idle(self.world, self.robot_ctl)
+                DEFENDING: Defend(self.world, self.robot_ctl),
+                INTERCEPT: Intercept(self.world, self.robot_ctl),
+                AWAITING_PASS: Idle(self.world, self.robot_ctl)  # TODO receive pass
             }
         elif self.profile == 'ms3':
             self._strategy_map = {
@@ -108,6 +109,7 @@ class Planner(object):
         # Ball is in their defender's area
         elif self.world.ball_in_area([self.world.their_defender]):
             # Assume their def has ball, stalk the defender's target
+            # TODO if their def can catch ball condition
             self.state = DEFENDING
 
         # Ball in our defender's area
@@ -122,8 +124,9 @@ class Planner(object):
         # Ball in our margin
         elif self.world.ball_in_area([self.robot_mdl]):
             # The ball is heading at us (hopefully) or is slow
-            if self.state == DEFENDING and self.world.ball.velocity > 4:
-                self.state = DEFENDING
+            if (self.state == DEFENDING or self.state == INTERCEPT) \
+                    and self.world.ball.velocity > 4:  # TODO tweak
+                self.state = INTERCEPT
             else:
                 self.state = GETTING_BALL
 
@@ -134,7 +137,7 @@ class Planner(object):
                 pass
             # Ball is not a pass, could be a rebound
             else:
-                self.state = DEFENDING
+                self.state = INTERCEPT
 
         # Ball is not visible or is between zones (calibrate properly?)
         else:
