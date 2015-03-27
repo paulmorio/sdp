@@ -370,12 +370,60 @@ class Defend(Strategy):
                     self.robot_ctl.turn(angle)
 
     def track_shot_path(self):
-        # TODO find y where shot path intercepts our x
+        # find y where shot path intercepts our x
+        # The margin to which we restrict the robot. This is to avoid us being
+        # juked by a faux bounce pass.
+        y_max = self.world.pitch.height * 0.7  # TODO tune
+        y_min = self.world.pitch.height * 0.3
+        their_def = self.world.their_defender
 
-        # TODO limit y within some margin to avoid fakes
+        # If their def is facing away (not yet ready for shot)
+        # TODO refactor into world state method
+        if self.world.our_side == 'left':
+            if their_def.angle < 4 * math.pi / 6:
+                target_y = y_max  # TODO turning direction cases
+            elif their_def.angle > 4 * math.pi / 3:
+                target_y = y_min
+            else:  # Get intersection
+                # Get shot line
+                slope = math.tan(their_def.angle)
+                offset = their_def.y - slope*their_def.x
+                intersection = slope * self.robot_mdl.x + offset
 
-        # TODO move to y
-        pass
+                # Set y within bounds
+                if intersection > y_max:
+                    target_y = y_max
+                elif intersection < y_min:
+                    target_y = y_min
+                else:
+                    target_y = intersection
+
+        else:
+            if math.pi > their_def.angle > 2 * math.pi / 6:
+                target_y = y_max
+            elif math.pi < their_def.angle < 5 * math.pi / 3:
+                target_y = y_min
+            else:  # Get intersection
+                # Get shot line
+                slope = math.tan(their_def.angle)
+                offset = their_def.y - slope*their_def.x
+                intersection = slope * self.robot_mdl.x + offset
+
+                # Set y within bounds
+                if intersection > y_max:
+                    target_y = y_max
+                elif intersection < y_min:
+                    target_y = y_min
+                else:
+                    target_y = intersection
+
+        # move to y
+        if not target_y - 8 < self.robot_mdl.y < target_y + 8:
+            displacement = self.world.px_to_cm(target_y - self.robot_mdl.y)
+            if self.top_fixated:
+                self.robot_ctl.drive(displacement, displacement)
+            else:
+                self.robot_ctl.drive(-displacement, -displacement)
 
 
 class Intercept(Strategy):
