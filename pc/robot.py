@@ -28,6 +28,7 @@ class Robot(object):
         """
 
         self._queued_command = None  # Next command to be sent
+        self._current_command = None  # Command being dealt with at the moment
         self.waiting_for_ack = False  # Waiting for update from communicator
         self.ready = False  # True if ready to receive a command
         self.grabber_open = True  # Assume open
@@ -58,7 +59,7 @@ class Robot(object):
     @queued_command.setter
     def queued_command(self, val):
         """
-        Set the current command. Can only set if it is currently none.
+        Set the current command.
         :param val: Iterable/tuple - cmd [args]
         """
         try:
@@ -78,17 +79,19 @@ class Robot(object):
 
         If comms is false then just print the queued command and clear it.
         """
+        if self.queued_command is not None:
+            print self.queued_command
         if self.waiting_for_ack:
             if self.comm_pipe.poll():
                 state_str = self.comm_pipe.recv()
                 self._update_state_bits(state_str)
                 self.waiting_for_ack = False
+                self.reset_queued_command()
 
         elif self.queued_command is not None:  # There is a queued command
             if self.comms:
                 self.comm_pipe.send(self.queued_command)
                 self.waiting_for_ack = True
-                self.reset_queued_command()
             else:
                 print self.queued_command
                 self.reset_queued_command()

@@ -93,7 +93,6 @@ class Planner(object):
         if new_strategy is not self.strategy:
             if self.strategy is not None:
                 self.strategy.reset()
-            # STOP PUTTING THIS IN A FUCKING ELSE BLOCK YOU FUCKS
             self.strategy = new_strategy
 
     def attacker_transition(self):
@@ -102,7 +101,6 @@ class Planner(object):
 
         Updates the planner state and current strategy based on the world state
         """
-
         # Successfully grabbed ball, who cares what area it's in?
         if self.robot_ctl.ball_grabbed:
             self.state = POSSESSION

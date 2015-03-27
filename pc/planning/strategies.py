@@ -32,8 +32,10 @@ class Strategy(object):
         :param new_state: New state to be set. Must be valid else AssertionError
         """
         assert (new_state in self.states)
+        self.robot_ctl.update_state()
         if new_state != self._state:
             self._state = new_state
+
 
     def reset(self):
         """Reset the Strategy object to its initial state."""
@@ -299,7 +301,7 @@ class ShootGoal(Strategy):
         if not self.robot_mdl.is_facing_point(self.shot_target[0],
                                               self.shot_target[1], 0.01):
             angle = self.robot_mdl.rotation_to_point(self.shot_target[0],
-                                                         self.shot_target[1])
+                                                     self.shot_target[1])
             self.robot_ctl.turn(angle*0.3)
         else:
             self.state = KICKING
@@ -383,7 +385,7 @@ class Intercept(Strategy):
         """
         Make the robot face the fixated wall
         """
-        if not self.robot_moving():
+        if not self.robot_moving():  # TODO fix this condition
             if self.top_fixated:  # Face wall at pi/2
                 if self.robot_mdl.is_facing_angle(math.pi/2):
                     self.state = TRACKING_BALL
