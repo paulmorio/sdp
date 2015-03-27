@@ -338,20 +338,43 @@ class Defend(Strategy):
     Intended use is when their defender is contemplating a pass - once the ball
     actually starts moving then the intercept strategy should be selected.
     """
+    # TODO refactor this and intercept - lots of duplicate code
     def __init__(self, world, robot_ctl):
-        _STATES = [TURNING_TO_DEST, MOVING_TO_DEST]
-        _STATE_MAP = {TURNING_TO_DEST: self.turn_to_dest,
-                      MOVING_TO_DEST: self.move_to_dest}
+        _STATES = [FIXATE, TURNING_TO_DEST, MOVING_TO_DEST]
+        _STATE_MAP = {FIXATE: self.choose_wall,
+                      TURNING_TO_WALL: self.turn_to_wall,
+                      TRACKING_SHOT_PATH: self.track_shot_path}
         super(Defend, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
-        self.dest = None
+        self.top_fixated = None
 
-    def get_dest(self):
-        pass
+    def choose_wall(self):
+        angle_top = self.robot_mdl.rotation_to_angle(math.pi / 2)
+        angle_bottom = self.robot_mdl.rotation_to_angle(3*math.pi/2)
+        self.top_fixated = abs(angle_top) < abs(angle_bottom)
+        self.state = TURNING_TO_WALL
+        self.turn_to_wall()
 
-    def turn_to_dest(self):
-        pass
+    def turn_to_wall(self):
+        if not self.robot_moving():
+            if self.top_fixated:  # Face wall at pi/2
+                if self.robot_mdl.is_facing_angle(math.pi/2):
+                    self.state = TRACKING_BALL
+                else:
+                    angle = self.robot_mdl.rotation_to_angle(math.pi/2)
+                    self.robot_ctl.turn(angle)
+            else:
+                if self.robot_mdl.is_facing_angle(3*math.pi/2):
+                    self.state = TRACKING_BALL
+                else:
+                    angle = self.robot_mdl.rotation_to_angle(3*math.pi/2)
+                    self.robot_ctl.turn(angle)
 
-    def move_to_dest(self):
+    def track_shot_path(self):
+        # TODO find y where shot path intercepts our x
+
+        # TODO limit y within some margin to avoid fakes
+
+        # TODO move to y
         pass
 
 
@@ -372,10 +395,8 @@ class Intercept(Strategy):
         self.top_fixated = None
 
     def choose_wall(self):
-        # TODO merge into turn_to_wall and turning to wall state
         angle_top = self.robot_mdl.rotation_to_angle(math.pi / 2)
         angle_bottom = self.robot_mdl.rotation_to_angle(3*math.pi/2)
-
         self.top_fixated = abs(angle_top) < abs(angle_bottom)
         self.state = TURNING_TO_WALL
         self.turn_to_wall()
