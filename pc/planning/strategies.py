@@ -36,7 +36,6 @@ class Strategy(object):
         if new_state != self._state:
             self._state = new_state
 
-
     def reset(self):
         """Reset the Strategy object to its initial state."""
         self.state = self.states[0]
@@ -385,7 +384,7 @@ class Intercept(Strategy):
         """
         Make the robot face the fixated wall
         """
-        if not self.robot_moving():  # TODO fix this condition
+        if not self.robot_moving():
             if self.top_fixated:  # Face wall at pi/2
                 if self.robot_mdl.is_facing_angle(math.pi/2):
                     self.state = TRACKING_BALL
@@ -415,10 +414,7 @@ class Intercept(Strategy):
                     else:
                         self.robot_ctl.drive(-displacement, -displacement)
         else:
-            self.state = FIXATE
-
-    def reset(self):
-        super(Intercept, self).reset()
+            self.state = TURNING_TO_WALL
 
 
 class AwaitPass(Strategy):
