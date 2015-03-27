@@ -340,7 +340,7 @@ class Defend(Strategy):
     """
     # TODO refactor this and intercept - lots of duplicate code
     def __init__(self, world, robot_ctl):
-        _STATES = [FIXATE, TURNING_TO_DEST, MOVING_TO_DEST]
+        _STATES = [FIXATE, TURNING_TO_WALL, TRACKING_SHOT_PATH]
         _STATE_MAP = {FIXATE: self.choose_wall,
                       TURNING_TO_WALL: self.turn_to_wall,
                       TRACKING_SHOT_PATH: self.track_shot_path}
@@ -358,13 +358,13 @@ class Defend(Strategy):
         if not self.robot_moving():
             if self.top_fixated:  # Face wall at pi/2
                 if self.robot_mdl.is_facing_angle(math.pi/2):
-                    self.state = TRACKING_BALL
+                    self.state = TRACKING_SHOT_PATH
                 else:
                     angle = self.robot_mdl.rotation_to_angle(math.pi/2)
                     self.robot_ctl.turn(angle)
             else:
                 if self.robot_mdl.is_facing_angle(3*math.pi/2):
-                    self.state = TRACKING_BALL
+                    self.state = TRACKING_SHOT_PATH
                 else:
                     angle = self.robot_mdl.rotation_to_angle(3*math.pi/2)
                     self.robot_ctl.turn(angle)
