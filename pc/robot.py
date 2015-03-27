@@ -86,7 +86,7 @@ class Robot(object):
 
         elif self.queued_command is not None:  # There is a queued command
             if self.comms:
-                self.comm_pipe.send(self.queued_command)
+                self.comm_pipe.send(self._queued_command)
                 self.waiting_for_ack = True
                 self.reset_queued_command()
             else:
