@@ -18,7 +18,7 @@ class Tracker(object):
 
     def get_contours(self, frame, adjustments):
         """
-        Adjust the given frame based on 'min', 'max', 'contrast' and 'blur'
+        Adjust the given frame based on 'min', 'max', 'brightness' and 'blur'
         keys in adjustments dictionary.
         """
         try:
@@ -28,9 +28,9 @@ class Tracker(object):
                 frame = cv2.blur(frame,
                                  (adjustments['blur'], adjustments['blur']))
 
-            if adjustments['contrast'] > 1.0:
+            if adjustments['brightness'] > 1.0:
                 frame = cv2.add(frame,
-                                np.array([float(adjustments['contrast'])]))
+                                np.array([float(adjustments['brightness'])]))
 
             # Convert frame to HSV
             frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -65,7 +65,7 @@ class Tracker(object):
     # TODO this function is a mess - probably hacked together at last minute
     # TODO Kernel mask and erosion were left in unused
     # TODO: Used by Ball tracker - REFACTOR
-    def preprocess(self, frame, crop, min_hsv_color, max_hsv_color, min_rgb_color, max_rgb_color, contrast, blur):
+    def preprocess(self, frame, crop, min_hsv_color, max_hsv_color, min_rgb_color, max_rgb_color, brightness, blur):
         # Crop frame
         frame = frame[crop[2]:crop[3], crop[0]:crop[1]]
 
@@ -75,9 +75,9 @@ class Tracker(object):
         if blur > 1:
             frame = cv2.blur(frame, (blur, blur))
 
-        # Set Contrast
-        if contrast > 1.0:
-            frame = cv2.add(frame, np.array([float(contrast)]))
+        # Set Brightness
+        if brightness > 1.0:
+            frame = cv2.add(frame, np.array([float(brightness)]))
 
         # Convert frame to HSV
         frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -202,7 +202,7 @@ class RobotTracker(Tracker):
         Returns:
             list of corner points
         """
-        # Adjustments are colors and contrast/blur
+        # Adjustments are colors and brightness/blur
         adjustments = self.calibration['plate']
         contours = self.get_contours(frame.copy(), adjustments)
         return self.get_contour_corners(self.join_contours(contours))
@@ -422,7 +422,7 @@ class BallTracker(Tracker):
                 color['hsv_max'],
                 color['rgb_min'],
                 color['rgb_max'],
-                color['contrast'],
+                color['brightness'],
                 color['blur']
             )
 

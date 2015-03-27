@@ -7,7 +7,7 @@ from pc.vision import calibrationgui, visiongui
 from Tkinter import *
 
 CONTROLS = ["LH", "UH", "LS", "US", "LV", "UV", "LR",
-            "UR", "LG", "UG", "LB", "UB", "CT", "BL"]
+            "UR", "LG", "UG", "LB", "UB", "BR", "BL"]
 
 MAX_BAR = {"LH": 360,
            "UH": 360,
@@ -21,7 +21,7 @@ MAX_BAR = {"LH": 360,
            "UG": 255,
            "LB": 255,
            "UB": 255,
-           "CT": 100,
+           "BR": 100,
            "BL": 100}
 
 
@@ -213,7 +213,7 @@ class Arbiter(object):
         Resets the calibration sliders.
         If the slider is a "lower" slider, sets the value to 0;
         if the slider is an "upper" slider, sets the value to max;
-        if the slider is contrast/blur, sets the value to 0.
+        if the slider is brightness/blur, sets the value to 0.
         """
         # Hue
         self.sliders['LH'].set(0)
@@ -239,8 +239,8 @@ class Arbiter(object):
         self.sliders['LB'].set(0)
         self.sliders['UB'].set(MAX_BAR['UB'])
 
-        # Contrast/blur
-        self.sliders['CT'].set(0)
+        # Brightness/blur
+        self.sliders['BR'].set(0)
         self.sliders['BL'].set(0)
 
     def switch_sides(self):
@@ -326,7 +326,7 @@ class Arbiter(object):
         self.calibration_gui.show(frame, self.key_event, key=self.key)
         self.gui.draw(frame, model_positions, regular_positions,
                       grabbers, fps, self.colour, self.side, p_state,
-                      s_state)
+                      s_state, self.sliders['BR'].get(), self.sliders['BL'].get())
 
         self.counter += 1
 

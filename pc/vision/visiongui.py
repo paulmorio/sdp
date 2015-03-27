@@ -45,7 +45,7 @@ class VisionGUI(object):
         return {'x': x, 'y': y, 'angle': angle, 'velocity': velocity}
 
     def draw(self, frame, model_positions, regular_positions,
-             grabbers, fps, our_color, our_side, p_state, s_state):
+             grabbers, fps, our_color, our_side, p_state, s_state, brightness, blur):
         """
         Draw information onto the GUI given positions from the vision and
         post processing.
@@ -53,6 +53,14 @@ class VisionGUI(object):
         """
         # Get general information about the frame
         frame_height, frame_width, channels = frame.shape
+
+        # Apply the blur
+        if blur > 1:
+            frame = cv2.blur(frame, (blur, blur))
+
+        # Apply the brightness
+        if brightness*1.0 > 1.0:
+            frame = cv2.add(frame, np.array([brightness*1.0]))
 
         # Draw dividers for the zones
         self.draw_zones(frame, frame_width, frame_height)

@@ -8,7 +8,7 @@ KEYS = {'y': 'yellow',
         'd': 'dot',
         'p': 'plate'}
 
-CONTROLS = ["LH", "UH", "LS", "US", "LV", "UV", "LR", "UR", "LG", "UG", "LB", "UB", "CT", "BL"]
+CONTROLS = ["LH", "UH", "LS", "US", "LV", "UV", "LR", "UR", "LG", "UG", "LB", "UB", "BR", "BL"]
 
 
 class CalibrationGUI(object):
@@ -44,8 +44,8 @@ class CalibrationGUI(object):
         self.wrapper.sliders['LB'].set(self.calibration[self.color]['rgb_min'][2])
         self.wrapper.sliders['UB'].set(self.calibration[self.color]['rgb_max'][2])
 
-        # Contrast/blur
-        self.wrapper.sliders['CT'].set(self.calibration[self.color]['contrast'])
+        # Brightness/blur
+        self.wrapper.sliders['BR'].set(self.calibration[self.color]['brightness'])
         self.wrapper.sliders['BL'].set(self.calibration[self.color]['blur'])
 
     def change_color(self, color):
@@ -77,7 +77,7 @@ class CalibrationGUI(object):
         self.calibration[self.color]['rgb_max'] = \
             np.array([values['UR'], values['UG'], values['UB']])
 
-        self.calibration[self.color]['contrast'] = values['CT']
+        self.calibration[self.color]['brightness'] = values['BR']
         self.calibration[self.color]['blur'] = values['BL']
 
         mask = self.get_mask(frame)
@@ -94,9 +94,9 @@ class CalibrationGUI(object):
         if blur > 1:
             frame = cv2.blur(frame, (blur, blur))
 
-        contrast = self.calibration[self.color]['contrast']
-        if contrast > 1.0:
-            frame = cv2.add(frame, np.array([contrast]))
+        brightness = self.calibration[self.color]['brightness']
+        if brightness > 1.0:
+            frame = cv2.add(frame, np.array([brightness]))
 
         frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
