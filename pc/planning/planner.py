@@ -119,7 +119,7 @@ class Planner(object):
                 self.state = AWAITING_PASS
             # Could be a rebound, if so then prepare to intercept
             elif not self.state == AWAITING_PASS:
-                self.state = DEFENDING
+                self.state = INTERCEPT
 
         # Ball in our margin
         elif self.world.ball_in_area([self.robot_mdl]):

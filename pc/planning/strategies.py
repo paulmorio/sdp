@@ -418,13 +418,15 @@ class Defend(Strategy):
                     target_y = intersection
 
         # move to y
-        if not target_y - 8 < self.robot_mdl.y < target_y + 8 \
-                and not self.robot_moving():
-            displacement = self.world.px_to_cm(target_y - self.robot_mdl.y)
-            if self.top_fixated:
-                self.robot_ctl.drive(displacement, displacement)
-            else:
-                self.robot_ctl.drive(-displacement, -displacement)
+        if not self.robot_moving():
+            if not self.robot_mdl.is_square():  # Straighten up
+                self.state = TURNING_TO_WALL
+            elif not target_y - 8 < self.robot_mdl.y < target_y + 8:
+                displacement = self.world.px_to_cm(target_y - self.robot_mdl.y)
+                if self.top_fixated:
+                    self.robot_ctl.drive(displacement, displacement)
+                else:
+                    self.robot_ctl.drive(-displacement, -displacement)
 
 
 class Intercept(Strategy):
