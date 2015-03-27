@@ -373,8 +373,8 @@ class Defend(Strategy):
         # find y where shot path intercepts our x
         # The margin to which we restrict the robot. This is to avoid us being
         # juked by a faux bounce pass.
-        y_max = self.world.pitch.height * 0.7  # TODO tune
-        y_min = self.world.pitch.height * 0.3
+        y_max = self.world.pitch.height * 0.8  # TODO tune
+        y_min = self.world.pitch.height * 0.2
         their_def = self.world.their_defender
 
         # If their def is facing away (not yet ready for shot)
@@ -417,8 +417,15 @@ class Defend(Strategy):
                 else:
                     target_y = intersection
 
+        # Check if square -- account for robot veering off
+        if not self.robot_mdl.is_square:
+            if self.robot_moving():
+                self.robot_ctl.stop()
+            else:
+                self.state = TURNING_TO_WALL
+
         # move to y
-        if not self.robot_moving():
+        elif not self.robot_moving():
             if not self.robot_mdl.is_square():  # Straighten up
                 self.state = TURNING_TO_WALL
             elif not target_y - 8 < self.robot_mdl.y < target_y + 8:
@@ -486,6 +493,7 @@ class Intercept(Strategy):
                     else:
                         self.robot_ctl.drive(-displacement, -displacement)
         else:
+            self.robot_ctl.stop()
             self.state = TURNING_TO_WALL
 
 
