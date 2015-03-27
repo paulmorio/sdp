@@ -207,6 +207,15 @@ bool ackTest() {
   char ackBit = comm.next()[0];
   if (ackBit != castToChar(currentAckBit)) {
     comm.clearBuffer();  // Flush remaining args
+    
+    // Send ack anyway -- TODO refactor
+    Serial.print(ackBit);
+    Serial.print(castToChar(grabberOpen));
+    Serial.print(castToChar(isGrabbing));
+    Serial.print(castToChar(isMoving));
+    Serial.print(castToChar(isKicking));
+    Serial.println(castToChar(ballGrabbed));
+    Serial.flush();
     return false;
   }
   return true;
