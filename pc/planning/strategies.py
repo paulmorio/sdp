@@ -510,7 +510,7 @@ class AwaitPass(Strategy):
     bugs and as such it requires a lot of testing (at the planner level that is)
     """
     def __init__(self, world, robot_ctl):
-        _STATES = [MOVING_TO_DEST, OPENING_GRABBER, TURNING_TO_BALL]
+        _STATES = [MOVING_TO_DEST, OPENING_GRABBER, TURNING_TO_WALL]
         _STATE_MAP = {MOVING_TO_DEST: self.move_to_pass_point,
                       OPENING_GRABBER: self.open_grabber,
                       TURNING_TO_WALL: self.face_wall_point}
@@ -528,18 +528,17 @@ class AwaitPass(Strategy):
                 self.state = TURNING_TO_WALL
             elif self.robot_mdl.is_facing_point(self.dest[0], self.dest[1]):
                 dist = self.robot_mdl.displacement_to_point(self.dest[0],
-                                                                self.dest[1])
+                                                            self.dest[1])
                 self.robot_ctl.drive(dist, dist)
             else:
                 angle = self.robot_mdl.rotation_to_point(self.dest[0],
-                                                             self.dest[1])
+                                                         self.dest[1])
                 self.robot_ctl.turn(angle)
 
     def face_wall_point(self):
         if self.wall_point is None:
             self.wall_point = self.robot_mdl.target_via_wall(
                 self.world.our_defender.x, self.world.our_defender.y,
-                self.world.pitch.height*2,
                 self.robot_mdl.y > self.world.pitch.height/2.0)
 
         if not self.robot_moving():
@@ -549,12 +548,13 @@ class AwaitPass(Strategy):
                 self.wall_point = None
             else:
                 angle = self.robot_mdl.rotation_to_point(self.wall_point[0],
-                                                             self.wall_point[1])
+                                                         self.wall_point[1])
                 self.robot_ctl.turn(angle)
 
     def open_grabber(self):
         if not self.robot_ctl.grabber_open and not self.robot_ctl.is_grabbing:
             self.robot_ctl.open_grabber()
+        # TODO if def has backed out of pass, rethink?
 
     def reset(self):
         super(AwaitPass, self).reset()

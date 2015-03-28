@@ -163,8 +163,8 @@ class World(object):
         our_center_x, our_center_y = \
             self.pitch.zones[self.our_attacker.zone].center()
         our_center_y = \
-            our_center_y * 3/2 if self.their_attacker > our_center_y \
-                else our_center_y * 1/2
+            our_center_y * 1/2 if self.their_attacker.y > our_center_y \
+                else our_center_y * 3/2
         return our_center_x, our_center_y
 
     def find_pass_spot_ms3(self, robot):

@@ -55,7 +55,7 @@ class Planner(object):
                 POSSESSION: ShootGoal(self.world, self.robot_ctl),
                 DEFENDING: Defend(self.world, self.robot_ctl),
                 INTERCEPT: Intercept(self.world, self.robot_ctl),
-                AWAITING_PASS: Idle(self.world, self.robot_ctl)  # TODO receive pass
+                AWAITING_PASS: AwaitPass(self.world, self.robot_ctl)
             }
         elif self.profile == 'ms3':
             self._strategy_map = {
