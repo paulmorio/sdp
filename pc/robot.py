@@ -79,8 +79,6 @@ class Robot(object):
 
         If comms is false then just print the queued command and clear it.
         """
-        if self.queued_command is not None:
-            print self.queued_command
         if self.waiting_for_ack:
             if self.comm_pipe.poll():
                 state_str = self.comm_pipe.recv()
