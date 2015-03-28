@@ -374,7 +374,7 @@ class Robot(PitchObject):
     def is_moving(self):
         return self.is_turning() or self.is_driving()
 
-    def is_facing_angle(self, rads, threshold=0.17):  # TODO tune threshold
+    def is_facing_angle(self, rads, threshold=0.05):  # TODO tune threshold
         return rads - threshold < self.angle < rads + threshold
 
     def is_square(self):
