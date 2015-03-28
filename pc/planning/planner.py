@@ -108,9 +108,12 @@ class Planner(object):
 
         # Ball is in their defender's area
         elif self.world.ball_in_area([self.world.their_defender]):
-            # Assume their def has ball, stalk the defender's target
-            # TODO if their def can catch ball condition
-            self.state = DEFENDING
+            # Their defender has the ball
+            if self.world.can_catch_ball(self.world.their_defender):
+                self.state = DEFENDING
+            # Either rebound or a pass
+            else:
+                self.state = INTERCEPT
 
         # Ball in our defender's area
         elif self.world.ball_in_area([self.world.our_defender]):

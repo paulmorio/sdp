@@ -264,12 +264,14 @@ class WorldUpdater:
         self.world.our_attacker.catcher_area = \
             {'width': 20, 'height': 20, 'front_offset': 18}
         self.world.their_defender.catcher_area = \
-            {'width': 40, 'height': 40, 'front_offset': 20}
+            {'width': 30, 'height': 25, 'front_offset': 10}
         self.world.their_attacker.catcher_area = \
-            {'width': 40, 'height': 40, 'front_offset': 20}
+            {'width': 30, 'height': 25, 'front_offset': 10}
 
         grabbers = {'our_defender': self.world.our_defender.catcher_area,
-                    'our_attacker': self.world.our_attacker.catcher_area}
+                    'our_attacker': self.world.our_attacker.catcher_area,
+                    'their_defender': self.world.their_defender.catcher_area,
+                    'their_attacker': self.world.their_attacker.catcher_area}
 
         self.world.update_positions(model_positions)
         return model_positions, regular_positions, grabbers
