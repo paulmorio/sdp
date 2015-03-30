@@ -223,7 +223,7 @@ class Robot(object):
         self.queued_command = \
             (DRIVE, [str(wheel_dist), str(-wheel_dist), str(power), str(power)])
 
-    def open_grabber(self, time=350, power=100):
+    def open_grabber(self, time=1000, power=100):
         """
         Run the grabber motor in the opening direction for the given number of
         milliseconds at the given motor power.
@@ -233,7 +233,7 @@ class Robot(object):
         """
         self.queued_command = (OPEN_GRABBER, [str(time), str(power)])
 
-    def close_grabber(self, time=370, power=100):
+    def close_grabber(self, time=1100, power=100):
         """
         Run the grabber motor in the closing direction for the given number of
         milliseconds at the given motor power.
