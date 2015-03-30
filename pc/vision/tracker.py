@@ -25,8 +25,10 @@ class Tracker(object):
             if frame is None:
                 return None
             if adjustments['blur'] > 1:
-                frame = cv2.blur(frame,
-                                 (adjustments['blur'], adjustments['blur']))
+                blur = adjustments['blur']
+                if blur % 2 == 0:
+                    blur -= 1
+                frame = cv2.GaussianBlur(frame, (blur, blur), 0)
 
             if adjustments['brightness'] > 1.0:
                 frame = cv2.add(frame,
@@ -73,7 +75,9 @@ class Tracker(object):
         # Take a matrix given by second argument and
         # calculate the average of those pixels
         if blur > 1:
-            frame = cv2.blur(frame, (blur, blur))
+            if blur % 2 == 0:
+                blur -= 1
+            frame = cv2.GaussianBlur(frame, (blur, blur), 0)
 
         # Set Brightness
         if brightness > 1.0:

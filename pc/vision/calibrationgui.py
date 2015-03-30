@@ -8,7 +8,7 @@ KEYS = {'y': 'yellow',
         'd': 'dot',
         'p': 'plate'}
 
-CONTROLS = ["LH", "UH", "LS", "US", "LV", "UV", "LR", "UR", "LG", "UG", "LB", "UB", "BR", "BL"]
+CONTROLS = ["LH", "UH", "LS", "US", "LV", "UV", "LR", "UR", "LG", "UG", "LB", "UB", "BR", "BL", "C1", "C2"]
 
 
 class CalibrationGUI(object):
@@ -92,7 +92,9 @@ class CalibrationGUI(object):
     def get_mask(self, frame):
         blur = self.calibration[self.color]['blur']
         if blur > 1:
-            frame = cv2.blur(frame, (blur, blur))
+            if blur % 2 == 0:
+                blur -= 1
+            frame = cv2.GaussianBlur(frame, (blur, blur), 0)
 
         brightness = self.calibration[self.color]['brightness']
         if brightness > 1.0:

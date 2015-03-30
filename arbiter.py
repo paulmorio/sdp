@@ -5,9 +5,12 @@ from pc.robot import Robot
 import time
 from pc.vision import calibrationgui, visiongui
 from Tkinter import *
+from pc.vision.vision import split_into_rgb_channels
+import cv2
 
 CONTROLS = ["LH", "UH", "LS", "US", "LV", "UV", "LR",
-            "UR", "LG", "UG", "LB", "UB", "BR", "BL"]
+            "UR", "LG", "UG", "LB", "UB", "BR", "BL",
+            "C1", "C2"]
 
 MAX_BAR = {"LH": 360,
            "UH": 360,
@@ -22,7 +25,9 @@ MAX_BAR = {"LH": 360,
            "LB": 255,
            "UB": 255,
            "BR": 100,
-           "BL": 100}
+           "BL": 100,
+           "C1": 100,
+           "C2": 100}
 
 
 class Arbiter(object):
@@ -58,6 +63,9 @@ class Arbiter(object):
         self.calibration = tools.get_colors(pitch)
         self.comms = comms
 
+        self.contrast_toggle = False
+        self.vision_filter_toggle = False
+
         # Set up capture device
         self.camera = camera.Camera(pitch, video_src=video_src)
 
@@ -90,6 +98,7 @@ class Arbiter(object):
         self.root.bind('<l>', lambda e: self.toggle_planning())  # L to toggle p|l|anning
         self.root.bind('<a>', lambda e: self.clear_calibrations())  # A to reset current c|a|libration
         self.root.bind('<e>', lambda e: self.take_penalty())  # E to take a p|e|nalty
+        self.root.bind('<o>', lambda e: self.toggle_contrast())  # O to toggle c|o|ntrast
 
         # GUI Layout
         # [Title                                 ]
@@ -129,27 +138,37 @@ class Arbiter(object):
         planning_toggle = Button(self.root)
         planning_toggle["text"] = "P[l]anning Toggle"
         planning_toggle["command"] = self.toggle_planning
-        planning_toggle.grid(row=1, column=1, columnspan=3)
+        planning_toggle.grid(row=1, column=1, columnspan=5)
         # Calibration reset
         calib_reset = Button(self.root)
         calib_reset["text"] = "Reset Current\nC[a]libration"
         calib_reset["command"] = self.clear_calibrations
-        calib_reset.grid(row=2, column=1, columnspan=3)
+        calib_reset.grid(row=2, column=1, columnspan=5)
         # Side switch
         side_switch = Button(self.root)
         side_switch["text"] = "Switch [S]ides"
         side_switch["command"] = self.switch_sides
-        side_switch.grid(row=3, column=1, columnspan=3)
+        side_switch.grid(row=3, column=1, columnspan=5)
         # Colour switch
         colour_switch = Button(self.root)
         colour_switch["text"] = "Switch [C]olours"
         colour_switch["command"] = self.switch_colours
-        colour_switch.grid(row=4, column=1, columnspan=3)
+        colour_switch.grid(row=4, column=1, columnspan=5)
         # Penalty mode
         penalty_mode = Button(self.root)
         penalty_mode["text"] = "Take P[e]nalty"
         penalty_mode["command"] = self.take_penalty
-        penalty_mode.grid(row=5, column=1, columnspan=3)
+        penalty_mode.grid(row=5, column=1, columnspan=5)
+        # Vision filter toggle
+        vision_filter_toggle = Button(self.root)
+        vision_filter_toggle["text"] = "Toggle Vision\nFilters (-FPS)"
+        vision_filter_toggle["command"] = self.toggle_vision_filters
+        vision_filter_toggle.grid(row=7, column=1, columnspan=5)
+        # Contrast toggle
+        contrast_toggle = Button(self.root)
+        contrast_toggle["text"] = "Toggle C[o]ntrast\nEXPERIMENTAL (-FPS)"
+        contrast_toggle["command"] = self.toggle_contrast
+        contrast_toggle.grid(row=8, column=1, columnspan=5)
 
         # Used by the calibration GUI to know
         # which mode to calibrate (plate/dot/red etc)
@@ -159,7 +178,7 @@ class Arbiter(object):
         # The OpenCV-based calibration and vision GUIs, which get wrapped
         self.calibration_gui = calibrationgui.CalibrationGUI(self,
                                                              self.calibration)
-        self.gui = visiongui.VisionGUI(self, self.pitch)
+        self.gui = visiongui.VisionGUI(self, self.pitch, self.contrast_toggle)
 
         # FPS counter init
         self.counter = 1L
@@ -285,6 +304,23 @@ class Arbiter(object):
         self.profile = 'penalty'
         self.start_planner()
 
+    def toggle_contrast(self):
+        """
+        Toggle the contrast filtering on vision.
+        Restarts the vision system, and the vision GUI.
+        """
+        self.contrast_toggle = not self.contrast_toggle
+        self.start_vision()
+        self.gui = visiongui.VisionGUI(self, self.pitch, self.vision_filter_toggle)
+
+    def toggle_vision_filters(self):
+        """
+        Toggle whether or not the "misc" sliders are affecting the GUI view of the pitch.
+        Restarts the vision GUI.
+        """
+        self.vision_filter_toggle = not self.vision_filter_toggle
+        self.gui = visiongui.VisionGUI(self, self.pitch, self.vision_filter_toggle)
+
     def run(self):
         """
         Ticks the whole system, cleanly exits saving calibrations and resetting the robot.
@@ -307,6 +343,25 @@ class Arbiter(object):
         """
         # Get frame
         frame = self.camera.get_frame()
+
+        ct_clipLimit = self.sliders['C1'].get()
+        ct_tileGridSize = self.sliders['C2'].get()
+        if self.contrast_toggle:
+            # Apply contrast changes first
+            r, g, b = split_into_rgb_channels(frame)
+
+            if ct_clipLimit > 0 and ct_tileGridSize > 0:
+                clahe = cv2.createCLAHE(clipLimit=1.0*ct_clipLimit,
+                                        tileGridSize=(1.0*ct_tileGridSize, 1.0*ct_tileGridSize))
+            else:
+                clahe = cv2.createCLAHE(clipLimit=1.0,
+                                        tileGridSize=(32.0, 32.0))
+
+            r_c = clahe.apply(r)
+            g_c = clahe.apply(g)
+            b_c = clahe.apply(b)
+
+            frame = cv2.merge((r_c, g_c, b_c))
 
         # Find object positions, update world model
         model_positions, regular_positions, grabbers = \
