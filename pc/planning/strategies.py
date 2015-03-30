@@ -373,8 +373,8 @@ class Defend(Strategy):
         # find y where shot path intercepts our x
         # The margin to which we restrict the robot. This is to avoid us being
         # juked by a faux bounce pass.
-        y_max = self.world.pitch.height * 0.8  # TODO tune
-        y_min = self.world.pitch.height * 0.2
+        y_max = self.world.pitch.height * 0.9  # TODO tune
+        y_min = self.world.pitch.height * 0.1
         their_def = self.world.their_defender
 
         # If their def is facing away (not yet ready for shot)
