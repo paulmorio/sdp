@@ -290,7 +290,7 @@ class ManualController(object):
         text.pack()
 
         # Set up key bindings
-        self.root.bind('w', lambda event: self.robot.drive(10, 10))
+        self.root.bind('w', lambda event: self.robot.drive(100, 100))
         self.root.bind('<Up>', lambda event: self.robot.drive(20, 20, 70, 70))
         self.root.bind('x', lambda event: self.robot.drive(-10, -10))
         self.root.bind('<Down>', lambda event: self.robot.drive(-20, -20,
@@ -328,7 +328,10 @@ class ManualController(object):
     # TODO find a better solution
     # This is hacked together to fix an incompatibility between the manual
     # controller and the act function in the robot class. Something to do
-    # with all commands being replaced with update_state.
+    # with all commands being replaced with update_state due to the act command
+    # being run in a different thread rather than only after we've evaluated
+    # the current command. We correct this by removing the clause where
+    # update state is set.
     def act(self):
         if self.robot.waiting_for_ack:
             if self.robot.comm_pipe.poll():
