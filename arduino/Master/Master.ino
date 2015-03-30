@@ -16,7 +16,8 @@
 #define MOTOR_L 0
 #define MOTOR_R 2
 #define MOTOR_K 4
-#define MOTOR_G 5
+#define MOTOR_GL 5
+#define MOTOR_GR 3
 
 // Rotary encoder
 #define ROTARY_SLAVE_ADDRESS 5
@@ -109,7 +110,8 @@ void closeGrabber() {
   int time = atoi(comm.next());
   int power = atoi(comm.next());
   if (!isGrabbing) {
-    motorBackward(MOTOR_G, power);
+    motorBackward(MOTOR_GL, power);
+    motorBackward(MOTOR_GR, power);
     grabTimer = millis() + time;
     isGrabbing = true;
   }
@@ -126,7 +128,8 @@ void openGrabber() {
   int time = atoi(comm.next());
   int power = atoi(comm.next());
   if (!isGrabbing) {
-    motorForward(MOTOR_G, power);
+    motorForward(MOTOR_GL, power);
+    motorForward(MOTOR_GR, power);
     grabTimer = millis() + time;
     isGrabbing = true;
   }
@@ -155,7 +158,8 @@ void checkTimers() {
   /* Check kicker and grabber timers */
   unsigned long time = millis();
   if (isGrabbing && time >= grabTimer) {  // Grab timer test
-    motorStop(MOTOR_G);
+    motorStop(MOTOR_GL);
+    motorStop(MOTOR_GR);
     grabTimer = 0;
     grabberOpen = !grabberOpen;
     isGrabbing = false;
