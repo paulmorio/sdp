@@ -92,19 +92,20 @@ class GetBall(Strategy):
             else:
                 angle = self.robot_mdl.rotation_to_point(self.ball.x,
                                                              self.ball.y)
-                self.robot_ctl.turn(angle*0.3)
+                self.robot_ctl.turn(angle)
 
     def open_grabber(self):
         if not self.robot_ctl.is_grabbing:
             if self.robot_ctl.grabber_open:
                 self.state = MOVING_TO_BALL
             elif self.world.ball_too_close(self.robot_mdl):  # SAFE SPACE POLICY
-                self.robot_ctl.drive(-1, -1)               # TODO MAGIC
+                self.robot_ctl.drive(-1, -1)           # Shift back a bit
             else:
                 self.robot_ctl.open_grabber()
 
     def move_to_ball(self):
         if self.world.can_catch_ball(self.robot_mdl):
+            self.robot_ctl.stop()
             self.state = GRABBING_BALL
         if not self.robot_moving():
             if not self.robot_mdl.is_facing_point(self.ball.x, self.ball.y):
@@ -114,8 +115,10 @@ class GetBall(Strategy):
                     dist = self.robot_mdl.dist_from_grabber_to_point(self.ball.x,
                                                                      self.ball.y)
                 else:
-                    dist = 0.5 * self.robot_mdl.dist_from_grabber_to_point(self.ball.x,
-                                                                            self.ball.y)
+                    dist = self.robot_mdl.displacement_to_point(self.ball.x,
+                                                                self.ball.y)
+                    # todo hack - subtract constant if result is nonneg
+                    dist = dist - 10 if dist > 10 else dist * 0.1
                 self.robot_ctl.drive(dist, dist)
 
     def close_grabber(self):
@@ -373,8 +376,8 @@ class Defend(Strategy):
         # find y where shot path intercepts our x
         # The margin to which we restrict the robot. This is to avoid us being
         # juked by a faux bounce pass.
-        y_max = self.world.pitch.height * 0.8  # TODO tune
-        y_min = self.world.pitch.height * 0.2
+        y_max = self.world.pitch.height * 0.9  # TODO tune
+        y_min = self.world.pitch.height * 0.1
         their_def = self.world.their_defender
 
         # If their def is facing away (not yet ready for shot)
