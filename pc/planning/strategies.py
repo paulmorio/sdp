@@ -479,15 +479,46 @@ class Intercept(Strategy):
 
     def track_ball(self):
         """
-        Follow ball's y coordinate.
+        Follow ball path interception.
         """
+        # TODO refactor, too verbose and alike the defend strategy
+        # find y where ball path intercepts our bot x
+        # We restrict the bot to some margin to prevent wall humping
+        y_max = self.world.pitch.height * 0.9  # TODO tune
+        y_min = self.world.pitch.height * 0.1
+        ball = self.world.ball
+
+        # if the ball is left of us and not heading to us
+        if ball.x < self.robot_mdl.x and\
+            3 * math.pi / 2 > ball.angle > math.pi / 2:
+                target_y = self.ball.y  # Track ball y
+
+        # If the ball is right of us, not heading to us
+        elif math.pi / 2 > ball.angle or ball.angle > 3 * math.pi / 2:
+            target_y = self.ball.y
+
+        # Ball is heading towards us, get intercept
+        else:
+            # Get shot line
+            slope = math.tan(ball.angle)
+            offset = ball.y - slope * ball.x
+            intersection = slope * self.robot_mdl.x + offset
+
+            # Set y within bounds
+            if intersection > y_max:
+                target_y = y_max
+            elif intersection < y_min:
+                target_y = y_min
+            else:
+                target_y = intersection
+
+        # Check robot is facing wall
         if self.robot_mdl.is_square():
             if not self.robot_moving():
-                ball_y = self.world.ball.y
                 bot_y = self.robot_mdl.y
 
-                if not ball_y - 8 < bot_y < ball_y + 8:
-                    displacement = self.world.px_to_cm(ball_y - bot_y)
+                if not target_y - 8 < bot_y < target_y + 8:
+                    displacement = self.world.px_to_cm(target_y - bot_y)
                     if self.top_fixated:
                         self.robot_ctl.drive(displacement, displacement)
                     else:
