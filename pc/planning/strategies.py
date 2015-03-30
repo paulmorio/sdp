@@ -32,6 +32,7 @@ class Strategy(object):
         :param new_state: New state to be set. Must be valid else AssertionError
         """
         assert (new_state in self.states)
+        self.robot_ctl.update_state()
         if new_state != self._state:
             self._state = new_state
 
@@ -299,7 +300,7 @@ class ShootGoal(Strategy):
         if not self.robot_mdl.is_facing_point(self.shot_target[0],
                                               self.shot_target[1], 0.01):
             angle = self.robot_mdl.rotation_to_point(self.shot_target[0],
-                                                         self.shot_target[1])
+                                                     self.shot_target[1])
             self.robot_ctl.turn(angle*0.3)
         else:
             self.state = KICKING
@@ -337,21 +338,102 @@ class Defend(Strategy):
     Intended use is when their defender is contemplating a pass - once the ball
     actually starts moving then the intercept strategy should be selected.
     """
+    # TODO refactor this and intercept - lots of duplicate code
     def __init__(self, world, robot_ctl):
-        _STATES = [TURNING_TO_DEST, MOVING_TO_DEST]
-        _STATE_MAP = {TURNING_TO_DEST: self.turn_to_dest,
-                      MOVING_TO_DEST: self.move_to_dest}
+        _STATES = [FIXATE, TURNING_TO_WALL, TRACKING_SHOT_PATH]
+        _STATE_MAP = {FIXATE: self.choose_wall,
+                      TURNING_TO_WALL: self.turn_to_wall,
+                      TRACKING_SHOT_PATH: self.track_shot_path}
         super(Defend, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
-        self.dest = None
+        self.top_fixated = None
 
-    def get_dest(self):
-        pass
+    def choose_wall(self):
+        angle_top = self.robot_mdl.rotation_to_angle(math.pi / 2)
+        angle_bottom = self.robot_mdl.rotation_to_angle(3*math.pi/2)
+        self.top_fixated = abs(angle_top) < abs(angle_bottom)
+        self.state = TURNING_TO_WALL
+        self.turn_to_wall()
 
-    def turn_to_dest(self):
-        pass
+    def turn_to_wall(self):
+        if not self.robot_moving():
+            if self.top_fixated:  # Face wall at pi/2
+                if self.robot_mdl.is_facing_angle(math.pi/2):
+                    self.state = TRACKING_SHOT_PATH
+                else:
+                    angle = self.robot_mdl.rotation_to_angle(math.pi/2)
+                    self.robot_ctl.turn(angle)
+            else:
+                if self.robot_mdl.is_facing_angle(3*math.pi/2):
+                    self.state = TRACKING_SHOT_PATH
+                else:
+                    angle = self.robot_mdl.rotation_to_angle(3*math.pi/2)
+                    self.robot_ctl.turn(angle)
 
-    def move_to_dest(self):
-        pass
+    def track_shot_path(self):
+        # find y where shot path intercepts our x
+        # The margin to which we restrict the robot. This is to avoid us being
+        # juked by a faux bounce pass.
+        y_max = self.world.pitch.height * 0.8  # TODO tune
+        y_min = self.world.pitch.height * 0.2
+        their_def = self.world.their_defender
+
+        # If their def is facing away (not yet ready for shot)
+        # TODO refactor into world state method
+        if self.world.our_side == 'left':
+            if their_def.angle < 4 * math.pi / 6:
+                target_y = y_max  # TODO turning direction cases
+            elif their_def.angle > 4 * math.pi / 3:
+                target_y = y_min
+            else:  # Get intersection
+                # Get shot line
+                slope = math.tan(their_def.angle)
+                offset = their_def.y - slope*their_def.x
+                intersection = slope * self.robot_mdl.x + offset
+
+                # Set y within bounds
+                if intersection > y_max:
+                    target_y = y_max
+                elif intersection < y_min:
+                    target_y = y_min
+                else:
+                    target_y = intersection
+
+        else:
+            if math.pi > their_def.angle > 2 * math.pi / 6:
+                target_y = y_max
+            elif math.pi < their_def.angle < 5 * math.pi / 3:
+                target_y = y_min
+            else:  # Get intersection
+                # Get shot line
+                slope = math.tan(their_def.angle)
+                offset = their_def.y - slope*their_def.x
+                intersection = slope * self.robot_mdl.x + offset
+
+                # Set y within bounds
+                if intersection > y_max:
+                    target_y = y_max
+                elif intersection < y_min:
+                    target_y = y_min
+                else:
+                    target_y = intersection
+
+        # Check if square -- account for robot veering off
+        if not self.robot_mdl.is_square:
+            if self.robot_moving():
+                self.robot_ctl.stop()
+            else:
+                self.state = TURNING_TO_WALL
+
+        # move to y
+        elif not self.robot_moving():
+            if not self.robot_mdl.is_square():  # Straighten up
+                self.state = TURNING_TO_WALL
+            elif not target_y - 8 < self.robot_mdl.y < target_y + 8:
+                displacement = self.world.px_to_cm(target_y - self.robot_mdl.y)
+                if self.top_fixated:
+                    self.robot_ctl.drive(displacement, displacement)
+                else:
+                    self.robot_ctl.drive(-displacement, -displacement)
 
 
 class Intercept(Strategy):
@@ -371,10 +453,8 @@ class Intercept(Strategy):
         self.top_fixated = None
 
     def choose_wall(self):
-        # TODO merge into turn_to_wall and turning to wall state
         angle_top = self.robot_mdl.rotation_to_angle(math.pi / 2)
         angle_bottom = self.robot_mdl.rotation_to_angle(3*math.pi/2)
-
         self.top_fixated = abs(angle_top) < abs(angle_bottom)
         self.state = TURNING_TO_WALL
         self.turn_to_wall()
@@ -413,10 +493,8 @@ class Intercept(Strategy):
                     else:
                         self.robot_ctl.drive(-displacement, -displacement)
         else:
-            self.state = FIXATE
-
-    def reset(self):
-        super(Intercept, self).reset()
+            self.robot_ctl.stop()
+            self.state = TURNING_TO_WALL
 
 
 class AwaitPass(Strategy):
@@ -432,7 +510,7 @@ class AwaitPass(Strategy):
     bugs and as such it requires a lot of testing (at the planner level that is)
     """
     def __init__(self, world, robot_ctl):
-        _STATES = [MOVING_TO_DEST, OPENING_GRABBER, TURNING_TO_BALL]
+        _STATES = [MOVING_TO_DEST, OPENING_GRABBER, TURNING_TO_WALL]
         _STATE_MAP = {MOVING_TO_DEST: self.move_to_pass_point,
                       OPENING_GRABBER: self.open_grabber,
                       TURNING_TO_WALL: self.face_wall_point}
@@ -450,18 +528,17 @@ class AwaitPass(Strategy):
                 self.state = TURNING_TO_WALL
             elif self.robot_mdl.is_facing_point(self.dest[0], self.dest[1]):
                 dist = self.robot_mdl.displacement_to_point(self.dest[0],
-                                                                self.dest[1])
+                                                            self.dest[1])
                 self.robot_ctl.drive(dist, dist)
             else:
                 angle = self.robot_mdl.rotation_to_point(self.dest[0],
-                                                             self.dest[1])
+                                                         self.dest[1])
                 self.robot_ctl.turn(angle)
 
     def face_wall_point(self):
         if self.wall_point is None:
             self.wall_point = self.robot_mdl.target_via_wall(
                 self.world.our_defender.x, self.world.our_defender.y,
-                self.world.pitch.height*2,
                 self.robot_mdl.y > self.world.pitch.height/2.0)
 
         if not self.robot_moving():
@@ -471,12 +548,13 @@ class AwaitPass(Strategy):
                 self.wall_point = None
             else:
                 angle = self.robot_mdl.rotation_to_point(self.wall_point[0],
-                                                             self.wall_point[1])
+                                                         self.wall_point[1])
                 self.robot_ctl.turn(angle)
 
     def open_grabber(self):
         if not self.robot_ctl.grabber_open and not self.robot_ctl.is_grabbing:
             self.robot_ctl.open_grabber()
+        # TODO if def has backed out of pass, rethink?
 
     def reset(self):
         super(AwaitPass, self).reset()
