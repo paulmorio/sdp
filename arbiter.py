@@ -98,7 +98,6 @@ class Arbiter(object):
         self.root.bind('<l>', lambda e: self.toggle_planning())  # L to toggle p|l|anning
         self.root.bind('<a>', lambda e: self.clear_calibrations())  # A to reset current c|a|libration
         self.root.bind('<e>', lambda e: self.take_penalty())  # E to take a p|e|nalty
-        self.root.bind('<o>', lambda e: self.toggle_contrast())  # O to toggle c|o|ntrast
 
         # GUI Layout
         # [Title                                 ]
@@ -166,7 +165,7 @@ class Arbiter(object):
         vision_filter_toggle.grid(row=7, column=1, columnspan=5)
         # Contrast toggle
         contrast_toggle = Button(self.root)
-        contrast_toggle["text"] = "Toggle C[o]ntrast\nEXPERIMENTAL (-FPS)"
+        contrast_toggle["text"] = "Toggle Contrast\nEXPERIMENTAL (-FPS)"
         contrast_toggle["command"] = self.toggle_contrast
         contrast_toggle.grid(row=8, column=1, columnspan=5)
 
