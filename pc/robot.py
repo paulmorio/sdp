@@ -28,6 +28,7 @@ class Robot(object):
         """
 
         self._queued_command = None  # Next command to be sent
+        self._current_command = None  # Command being dealt with at the moment
         self.waiting_for_ack = False  # Waiting for update from communicator
         self.ready = False  # True if ready to receive a command
         self.grabber_open = True  # Assume open
@@ -58,7 +59,7 @@ class Robot(object):
     @queued_command.setter
     def queued_command(self, val):
         """
-        Set the current command. Can only set if it is currently none.
+        Set the current command.
         :param val: Iterable/tuple - cmd [args]
         """
         try:
@@ -83,12 +84,12 @@ class Robot(object):
                 state_str = self.comm_pipe.recv()
                 self._update_state_bits(state_str)
                 self.waiting_for_ack = False
+                self.reset_queued_command()
 
         elif self.queued_command is not None:  # There is a queued command
             if self.comms:
-                self.comm_pipe.send(self.queued_command)
+                self.comm_pipe.send(self._queued_command)
                 self.waiting_for_ack = True
-                self.reset_queued_command()
             else:
                 print self.queued_command
                 self.reset_queued_command()
@@ -222,7 +223,7 @@ class Robot(object):
         self.queued_command = \
             (DRIVE, [str(wheel_dist), str(-wheel_dist), str(power), str(power)])
 
-    def open_grabber(self, time=350, power=100):
+    def open_grabber(self, time=1000, power=100):
         """
         Run the grabber motor in the opening direction for the given number of
         milliseconds at the given motor power.
@@ -232,7 +233,7 @@ class Robot(object):
         """
         self.queued_command = (OPEN_GRABBER, [str(time), str(power)])
 
-    def close_grabber(self, time=370, power=100):
+    def close_grabber(self, time=1100, power=100):
         """
         Run the grabber motor in the closing direction for the given number of
         milliseconds at the given motor power.
@@ -314,7 +315,7 @@ class ManualController(object):
         self.root.mainloop()
 
     def run_comms_loop(self):
-        self.robot.act()
+        self.act()
         self.root.after(1, self.run_comms_loop)
 
     def quit(self):
@@ -324,6 +325,21 @@ class ManualController(object):
         self.robot.teardown()
         self.root.quit()
 
+    # TODO find a better solution
+    # This is hacked together to fix an incompatibility between the manual
+    # controller and the act function in the robot class. Something to do
+    # with all commands being replaced with update_state.
+    def act(self):
+        if self.robot.waiting_for_ack:
+            if self.robot.comm_pipe.poll():
+                self.robot.comm_pipe.recv()
+                self.robot.waiting_for_ack = False
+                self.robot.reset_queued_command()
+
+        elif self.robot.queued_command is not None:  # There is a queued command
+            if self.robot.comms:
+                self.robot.comm_pipe.send(self.robot._queued_command)
+                self.robot.waiting_for_ack = True
 
 # Create a manualcontroller if robot.py is run from main
 if __name__ == '__main__':

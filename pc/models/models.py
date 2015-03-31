@@ -119,7 +119,6 @@ class PitchObject(object):
     Width measures the front and back of an object
     Length measures along the sides of an object
     """
-
     def __init__(self, x, y, angle, velocity, width,
                  length, height, angle_offset=0):
         if width < 0 or length < 0 or height < 0:
@@ -131,9 +130,6 @@ class PitchObject(object):
             self._angle_offset = angle_offset
             self._vector = Vector(x, y, angle, velocity)
             self._catcher_area = None
-
-            # Cache values for last five frames -- [(x,y),v]
-            self.pos_velocity_cache = deque([[(0, 0), 0]]*5)
 
     @property
     def width(self):
@@ -181,10 +177,6 @@ class PitchObject(object):
                                   new_vector.angle - self._angle_offset,
                                   new_vector.velocity)
 
-            # Update length 5 cache TODO robots only
-            self.pos_velocity_cache.append([(self.x, self.y), self.angle])
-            self.pos_velocity_cache.popleft()
-
     def overlaps(self, poly):
         """
         True if this object overlaps the given polygon
@@ -227,10 +219,6 @@ class Robot(PitchObject):
         self._zone = zone
         self._world = world
         self.last_angle = self.angle
-        self.last_pos = self.x, self.y
-
-        # Cache last five positions and angles -- ((x,y),v)
-        self.pos_cache = [((0, 0), 0)]*5
 
     @property
     def zone(self):
@@ -321,6 +309,19 @@ class Robot(PitchObject):
 
         return x, y_mirror
 
+    def dist_from_grabber_to_point(self, x, y):
+        """
+        Get the distance CM from the center of the robot's grabber.
+        Note that the robot must have a grabber defined.
+        """
+        # TODO: Not really implemented, similar to displacement_to_point
+        #grab_centre = self.catcher_area.center()
+        grab_centre = self.x, self.y
+        delta_x = x - grab_centre[0]
+        delta_y = y - grab_centre[1]
+        dist = hypot(delta_x, delta_y) * CM_PER_PX
+        return dist * 0.5
+
     def displacement_to_point(self, x, y):
         """
         This method returns the displacement (CM) between the robot and the
@@ -358,19 +359,22 @@ class Robot(PitchObject):
         """
         return self.displacement_to_point(x, y) < cm_threshold
 
-    def is_turning(self):  # TODO is broken
-        avg_angle = sum([v for p, v in self.pos_velocity_cache]) / 5
-        return not self.is_facing_angle(avg_angle)
+    def is_turning(self):
+        test = not self.is_facing_angle(self.last_angle)
+        self.last_angle = self.angle
+        return test
 
-    def is_driving(self):  # TODO is broken
-        avg_x = sum([x for (x, y), v in self.pos_velocity_cache]) / 5
-        avg_y = sum([y for (x, y), v in self.pos_velocity_cache]) / 5
-        return not self.is_at_point(avg_x, avg_y)
+    def is_driving(self):
+        """
+        Assume the robot is driving if velocity > 1 or velocity < -1.
+        This also accounts for _most_ turning cases.
+        """
+        return self.velocity > 1 or self.velocity < -1
 
     def is_moving(self):
         return self.is_turning() or self.is_driving()
 
-    def is_facing_angle(self, rads, threshold=0.17):  # TODO tune threshold
+    def is_facing_angle(self, rads, threshold=0.1):  # TODO tune threshold
         return rads - threshold < self.angle < rads + threshold
 
     def is_square(self):

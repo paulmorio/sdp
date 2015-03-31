@@ -16,7 +16,7 @@ class World(object):
     def __init__(self, our_side, pitch_num):
         assert our_side in ['left', 'right']
         self._pitch = Pitch(pitch_num)
-        self._our_side = our_side
+        self.our_side = our_side
         self._their_side = 'left' if our_side == 'right' else 'right'
         self._ball = Ball(0, 0, 0, 0)
         self._robots = [
@@ -30,19 +30,19 @@ class World(object):
 
     @property
     def our_attacker(self):
-        return self._robots[2] if self._our_side == 'left' else self._robots[1]
+        return self._robots[2] if self.our_side == 'left' else self._robots[1]
 
     @property
     def their_attacker(self):
-        return self._robots[1] if self._our_side == 'left' else self._robots[2]
+        return self._robots[1] if self.our_side == 'left' else self._robots[2]
 
     @property
     def our_defender(self):
-        return self._robots[0] if self._our_side == 'left' else self._robots[3]
+        return self._robots[0] if self.our_side == 'left' else self._robots[3]
 
     @property
     def their_defender(self):
-        return self._robots[3] if self._our_side == 'left' else self._robots[0]
+        return self._robots[3] if self.our_side == 'left' else self._robots[0]
 
     @property
     def ball(self):
@@ -50,11 +50,11 @@ class World(object):
 
     @property
     def our_goal(self):
-        return self._goals[0] if self._our_side == 'left' else self._goals[1]
+        return self._goals[0] if self.our_side == 'left' else self._goals[1]
 
     @property
     def their_goal(self):
-        return self._goals[1] if self._our_side == 'left' else self._goals[0]
+        return self._goals[1] if self.our_side == 'left' else self._goals[0]
 
     @property
     def pitch(self):
@@ -163,8 +163,8 @@ class World(object):
         our_center_x, our_center_y = \
             self.pitch.zones[self.our_attacker.zone].center()
         our_center_y = \
-            our_center_y * 3/2 if self.their_attacker > our_center_y \
-                else our_center_y * 1/2
+            our_center_y * 1/2 if self.their_attacker.y > our_center_y \
+                else our_center_y * 3/2
         return our_center_x, our_center_y
 
     def find_pass_spot_ms3(self, robot):
@@ -182,7 +182,7 @@ class World(object):
         else:
             los_y = (8.0/10) * self.pitch.height
 
-        if self._our_side == 'right':
+        if self.our_side == 'right':
             los_x = int(our_center_x+25)  # TODO MAGIC NUMBERS WOOO
         else:
             los_x = int(our_center_x-25)
@@ -264,12 +264,14 @@ class WorldUpdater:
         self.world.our_attacker.catcher_area = \
             {'width': 20, 'height': 20, 'front_offset': 18}
         self.world.their_defender.catcher_area = \
-            {'width': 40, 'height': 40, 'front_offset': 20}
+            {'width': 30, 'height': 25, 'front_offset': 10}
         self.world.their_attacker.catcher_area = \
-            {'width': 40, 'height': 40, 'front_offset': 20}
+            {'width': 30, 'height': 25, 'front_offset': 10}
 
         grabbers = {'our_defender': self.world.our_defender.catcher_area,
-                    'our_attacker': self.world.our_attacker.catcher_area}
+                    'our_attacker': self.world.our_attacker.catcher_area,
+                    'their_defender': self.world.their_defender.catcher_area,
+                    'their_attacker': self.world.their_attacker.catcher_area}
 
         self.world.update_positions(model_positions)
         return model_positions, regular_positions, grabbers
