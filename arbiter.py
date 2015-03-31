@@ -176,8 +176,7 @@ class Arbiter(object):
         self.key = 'p'
 
         # The OpenCV-based calibration and vision GUIs, which get wrapped
-        self.calibration_gui = calibrationgui.CalibrationGUI(self,
-                                                             self.calibration)
+        self.calibration_gui = calibrationgui.CalibrationGUI(self, self.calibration)
         self.gui = visiongui.VisionGUI(self, self.pitch, self.contrast_toggle)
 
         # FPS counter init
@@ -350,12 +349,14 @@ class Arbiter(object):
             # Apply contrast changes first
             r, g, b = split_into_rgb_channels(frame)
 
-            if ct_clipLimit > 0 and ct_tileGridSize > 0:
-                clahe = cv2.createCLAHE(clipLimit=1.0*ct_clipLimit,
-                                        tileGridSize=(1.0*ct_tileGridSize, 1.0*ct_tileGridSize))
-            else:
-                clahe = cv2.createCLAHE(clipLimit=1.0,
-                                        tileGridSize=(32.0, 32.0))
+            if ct_clipLimit == 0:
+                ct_clipLimit += 1
+
+            if ct_tileGridSize == 0:
+                ct_tileGridSize += 1
+
+            clahe = cv2.createCLAHE(clipLimit=1.0*ct_clipLimit,
+                                    tileGridSize=(1.0*ct_tileGridSize, 1.0*ct_tileGridSize))
 
             r_c = clahe.apply(r)
             g_c = clahe.apply(g)
@@ -369,7 +370,7 @@ class Arbiter(object):
 
         # Act on the updated world model
         p_state = s_state = None
-        if self.planner is not None:  # TODO tidy with getters
+        if self.planner is not None:
             if not self.planner_paused:
                 self.planner.plan()
                 p_state = self.planner.planner_state_string
