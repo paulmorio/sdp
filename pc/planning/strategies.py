@@ -111,12 +111,13 @@ class GetBall(Strategy):
                 self.state = TURNING_TO_BALL
             else:
                 if self.robot_mdl.displacement_to_point(self.ball.x, self.ball.y) > 25:
-                    dist = self.robot_mdl.dist_from_grabber_to_point(self.ball.x,
-                                                                     self.ball.y)
+                    pass
+                    #dist = self.robot_mdl.dist_from_grabber_to_point(self.ball.x, self.ball.y)  # TODO: this doesn't exist?
                 else:
-                    dist = 0.5 * self.robot_mdl.dist_from_grabber_to_point(self.ball.x,
-                                                                            self.ball.y)
-                self.robot_ctl.drive(dist, dist)
+                    pass
+                    #dist = 0.5 * self.robot_mdl.dist_from_grabber_to_point(self.ball.x, self.ball.y)  # TODO: this doesn't exist?
+                pass
+                #self.robot_ctl.drive(dist, dist)
 
     def close_grabber(self):
         if not self.robot_ctl.is_grabbing:

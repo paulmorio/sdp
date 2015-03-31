@@ -14,10 +14,11 @@ TEAM_COLORS = set(['yellow', 'blue'])
 
 class VisionGUI(object):
 
-    def __init__(self, wrapper, pitch):
+    def __init__(self, wrapper, pitch, vision_filter_toggle):
         self.wrapper = wrapper
         self.pitch = pitch
         self.zones = None
+        self.vision_filter_toggle = vision_filter_toggle
 
     def to_info(self, args):
         """
@@ -45,7 +46,7 @@ class VisionGUI(object):
         return {'x': x, 'y': y, 'angle': angle, 'velocity': velocity}
 
     def draw(self, frame, model_positions, regular_positions,
-             grabbers, fps, our_color, our_side, p_state, s_state):
+             grabbers, fps, our_color, our_side, p_state, s_state, brightness, blur):
         """
         Draw information onto the GUI given positions from the vision and
         post processing.
@@ -53,6 +54,19 @@ class VisionGUI(object):
         """
         # Get general information about the frame
         frame_height, frame_width, channels = frame.shape
+
+        # If we want to be able to see the effects of blur/contrast/brightness
+        if self.vision_filter_toggle:
+            # Apply the blur
+            if blur > 1:
+                if blur % 2 == 0:
+                    blur -= 1
+                frame = cv2.GaussianBlur(frame, (blur, blur), 0)
+
+            # Apply the brightness
+            if brightness*1.0 > 1.0:
+                frame = cv2.add(frame, np.array([brightness*1.0]))
+
 
         # Draw dividers for the zones
         self.draw_zones(frame, frame_width, frame_height)
