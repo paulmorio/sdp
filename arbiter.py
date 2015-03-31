@@ -105,6 +105,12 @@ class Arbiter(object):
         # [Calibration Label      ][Slider Labels]
         # [Calibration Frame      ][Sliders      ]
 
+        # Our glorious -leader- logo
+        logo = PhotoImage(file="minilogo.ppm")
+        tk_logo = Label(image=logo)
+        tk_logo.grid(row=0, column=14, rowspan=2, columnspan=100)
+        tk_logo.image = logo
+
         vision_height = 16  # The height of the vision frame in TKinter grid terms - allows for button spacing
 
         # Labels
