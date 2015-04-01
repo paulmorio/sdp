@@ -105,8 +105,6 @@ class GetBall(Strategy):
                 self.robot_ctl.open_grabber()
 
     def move_to_ball(self):
-
-
         if self.world.can_catch_ball(self.robot_mdl):
             self.robot_ctl.stop()
             self.state = GRABBING_BALL
@@ -151,7 +149,7 @@ class FaceBall(Strategy):
                 and not self.robot_moving():
             angle = self.robot_mdl.rotation_to_point(self.ball.x,
                                                          self.ball.y)
-            self.robot_ctl.turn(angle*0.3)
+            self.robot_ctl.turn(angle)
 
 
 class PassBall(Strategy):
@@ -194,7 +192,7 @@ class PassBall(Strategy):
             else:
                 angle = self.robot_mdl.rotation_to_point(self.dest[0],
                                                              self.dest[1])
-                self.robot_ctl.turn(angle*0.3)
+                self.robot_ctl.turn(angle)
 
     def turn_to_def(self):
         if not self.robot_moving():
@@ -203,7 +201,7 @@ class PassBall(Strategy):
             else:
                 angle = self.robot_mdl.rotation_to_point(self.target.x,
                                                              self.target.y)
-                self.robot_ctl.turn(angle*0.3)
+                self.robot_ctl.turn(angle)
 
     def open_grabber(self):
         if not self.robot_ctl.is_grabbing:
@@ -268,8 +266,6 @@ class ShootGoal(Strategy):
         if self.dest is None:
             self.dest = self.world.get_shot_spot()
 
-        print "shotspot = "+str(self.dest[0])+","+str(self.dest[1])
-
         if not self.robot_moving():
             # At the destination, move on
             if self.robot_mdl.is_at_point(self.dest[0], self.dest[1]):
@@ -279,15 +275,13 @@ class ShootGoal(Strategy):
             # Else, not facing destination
             elif not self.robot_mdl.is_facing_point(self.dest[0], self.dest[1]):
                 angle = self.robot_mdl.rotation_to_point(self.dest[0],
-                                                             self.dest[1])
-                print "turning: "+str(angle*0.3)
-                self.robot_ctl.turn(angle*0.3) #note: 0.3 = slowing down turn
+                                                         self.dest[1])
+                self.robot_ctl.turn(angle)
 
             # Facing the point, move forward
             else:
                 dist = self.robot_mdl.displacement_to_point(self.dest[0],
-                                                                self.dest[1])
-                print "driving: "+str(dist)
+                                                            self.dest[1])
                 self.robot_ctl.drive(dist, dist)
 
     def turn_to_shoot(self):
@@ -300,10 +294,10 @@ class ShootGoal(Strategy):
 
         # Turn to shot target
         if not self.robot_mdl.is_facing_point(self.shot_target[0],
-                                              self.shot_target[1], 0.02):
+                                              self.shot_target[1], 0.1):
             angle = self.robot_mdl.rotation_to_point(self.shot_target[0],
                                                      self.shot_target[1])
-            self.robot_ctl.turn(angle*0.3)
+            self.robot_ctl.turn(angle)
         else:
             self.state = KICKING
 
