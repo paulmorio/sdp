@@ -27,6 +27,7 @@ venv/
 *.log
 *.synctex.gz
 *.toc
+*.out
 
 # Editor Swap Files#
 ####################
@@ -35,3 +36,8 @@ venv/
 # Sandbox, for personal experimentation #
 #########################################
 sandbox/
+
+# other
+*.jpg
+*.png
+*.pdf

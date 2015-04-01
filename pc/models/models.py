@@ -119,7 +119,6 @@ class PitchObject(object):
     Width measures the front and back of an object
     Length measures along the sides of an object
     """
-
     def __init__(self, x, y, angle, velocity, width,
                  length, height, angle_offset=0):
         if width < 0 or length < 0 or height < 0:
@@ -131,9 +130,6 @@ class PitchObject(object):
             self._angle_offset = angle_offset
             self._vector = Vector(x, y, angle, velocity)
             self._catcher_area = None
-
-            # Cache values for last five frames -- [(x,y),v]
-            self.pos_velocity_cache = deque([[(0, 0), 0]]*5)
 
     @property
     def width(self):
@@ -181,10 +177,6 @@ class PitchObject(object):
                                   new_vector.angle - self._angle_offset,
                                   new_vector.velocity)
 
-            # Update length 5 cache TODO robots only
-            self.pos_velocity_cache.append([(self.x, self.y), self.angle])
-            self.pos_velocity_cache.popleft()
-
     def overlaps(self, poly):
         """
         True if this object overlaps the given polygon
@@ -227,10 +219,6 @@ class Robot(PitchObject):
         self._zone = zone
         self._world = world
         self.last_angle = self.angle
-        self.last_pos = self.x, self.y
-
-        # Cache last five positions and angles -- ((x,y),v)
-        self.pos_cache = [((0, 0), 0)]*5
 
     @property
     def zone(self):
@@ -261,7 +249,7 @@ class Robot(PitchObject):
     def catcher_area(self, area_dict):
         self._catcher_area = area_dict
 
-    def get_rotation_to_point(self, x, y):
+    def rotation_to_point(self, x, y):
         """
         Get the angle by which the robot needs to rotate to attain alignment.
         """
@@ -280,7 +268,7 @@ class Robot(PitchObject):
         assert -pi <= theta <= pi
         return -theta
 
-    def get_rotation_to_angle(self, rads):
+    def rotation_to_angle(self, rads):
         """
         Get the angle by which the robot needs to rotate to attain alignment.
         """
@@ -291,7 +279,7 @@ class Robot(PitchObject):
             theta += 2*pi
         return theta
 
-    def get_rotation_to_point_via_wall(self, x, y, top=True):
+    def rotation_to_point_via_wall(self, x, y, top=True):
         """
         Get the angle by which the robot needs to rotate in order to look at the
         target WALL-BOUNCE PASS EDITION
@@ -301,11 +289,10 @@ class Robot(PitchObject):
         top = pass via bottom wall or top wall (true = top)
         """
         zone_height = self._world._pitch._zones[self._zone].center()[1]*2
-        (_, y_mirror) = self.get_point_via_wall(x, y, zone_height, top)
+        (_, y_mirror) = self.target_via_wall(x, y, zone_height, top)
+        return self.rotation_to_point(x, y_mirror)
 
-        return self.get_rotation_to_point(x, y_mirror)
-
-    def get_point_via_wall(self, x, y, top=True):
+    def target_via_wall(self, x, y, top=True):
         """
         Given a target, return the point at which we should shoot
         to have the ball bounce and reach the target.
@@ -322,7 +309,20 @@ class Robot(PitchObject):
 
         return x, y_mirror
 
-    def get_displacement_to_point(self, x, y):
+    def dist_from_grabber_to_point(self, x, y):
+        """
+        Get the distance CM from the center of the robot's grabber.
+        Note that the robot must have a grabber defined.
+        """
+        # TODO: Not really implemented, similar to displacement_to_point
+        #grab_centre = self.catcher_area.center()
+        grab_centre = self.x, self.y
+        delta_x = x - grab_centre[0]
+        delta_y = y - grab_centre[1]
+        dist = hypot(delta_x, delta_y) * CM_PER_PX
+        return dist * 0.5
+
+    def displacement_to_point(self, x, y):
         """
         This method returns the displacement (CM) between the robot and the
         (x, y) coordinate.
@@ -332,27 +332,7 @@ class Robot(PitchObject):
         displacement = hypot(delta_x, delta_y) * CM_PER_PX  # To CM
         return displacement
 
-    def get_direction_to_point(self, x, y):
-        """
-        This method returns the displacement (CM) and angle (RAD) to
-        coordinate x, y.
-        """
-        return (self.get_displacement_to_point(x, y),
-                self.get_rotation_to_point(x, y))
-
-    def dist_from_grabber_to_point(self, x, y):
-        """
-        Get the distance CM from the center of the robot's grabber.
-        Note that the robot must have a grabber defined.
-        """
-        #grab_centre = self.catcher_area.center()
-        grab_centre = self.x, self.y
-        delta_x = x - grab_centre[0]
-        delta_y = y - grab_centre[1]
-        dist = hypot(delta_x, delta_y) * CM_PER_PX
-        return dist * 0.5
-
-    def get_pass_path(self, target):
+    def pass_path(self, target):
         """
         Gets a path represented by a Polygon for the area for passing ball
         between two robots
@@ -367,9 +347,9 @@ class Robot(PitchObject):
         True if the robot is facing a given point given some threshold.
         """
         if not backward:
-            return -rad_thresh < self.get_rotation_to_point(x, y) < rad_thresh
+            return -rad_thresh < self.rotation_to_point(x, y) < rad_thresh
         else:
-            return -rad_thresh < self.get_rotation_to_point(x, y) + pi \
+            return -rad_thresh < self.rotation_to_point(x, y) - pi \
                 < rad_thresh
 
     def is_at_point(self, x, y, cm_threshold=2):
@@ -377,25 +357,30 @@ class Robot(PitchObject):
         True if the point is less that cm_threshold centimetres from the robot
         center
         """
-        return self.get_displacement_to_point(x, y) < cm_threshold
+        return self.displacement_to_point(x, y) < cm_threshold
 
-    def is_turning(self):  # TODO tune threshold
-        avg_angle = sum([v for p, v in self.pos_velocity_cache]) / 5
-        return not self.is_facing_angle(avg_angle)
+    def is_turning(self):
+        test = not self.is_facing_angle(self.last_angle)
+        self.last_angle = self.angle
+        return test
 
     def is_driving(self):
-        # TODO very sloppy, tidy this up
-        avg_x = sum([x for (x, y), v in self.pos_velocity_cache]) / 5
-        avg_y = sum([y for (x, y), v in self.pos_velocity_cache]) / 5
-        return not self.is_at_point(avg_x, avg_y)
+        """
+        Assume the robot is driving if velocity > 1 or velocity < -1.
+        This also accounts for _most_ turning cases.
+        """
+        return self.velocity > 1 or self.velocity < -1
 
     def is_moving(self):
         return self.is_turning() or self.is_driving()
 
-    def is_facing_angle(self, rads, threshold=0.17):
+    def is_facing_angle(self, rads, threshold=0.1):  # TODO tune threshold
         return rads - threshold < self.angle < rads + threshold
 
     def is_square(self):
+        """
+        True if the robot is facing either the top or bottom wall.
+        """
         return self.is_facing_angle(pi/2) or self.is_facing_angle(3*pi/2)
 
     def __repr__(self):

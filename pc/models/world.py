@@ -16,7 +16,7 @@ class World(object):
     def __init__(self, our_side, pitch_num):
         assert our_side in ['left', 'right']
         self._pitch = Pitch(pitch_num)
-        self._our_side = our_side
+        self.our_side = our_side
         self._their_side = 'left' if our_side == 'right' else 'right'
         self._ball = Ball(0, 0, 0, 0)
         self._robots = [
@@ -30,19 +30,19 @@ class World(object):
 
     @property
     def our_attacker(self):
-        return self._robots[2] if self._our_side == 'left' else self._robots[1]
+        return self._robots[2] if self.our_side == 'left' else self._robots[1]
 
     @property
     def their_attacker(self):
-        return self._robots[1] if self._our_side == 'left' else self._robots[2]
+        return self._robots[1] if self.our_side == 'left' else self._robots[2]
 
     @property
     def our_defender(self):
-        return self._robots[0] if self._our_side == 'left' else self._robots[3]
+        return self._robots[0] if self.our_side == 'left' else self._robots[3]
 
     @property
     def their_defender(self):
-        return self._robots[3] if self._our_side == 'left' else self._robots[0]
+        return self._robots[3] if self.our_side == 'left' else self._robots[0]
 
     @property
     def ball(self):
@@ -50,11 +50,11 @@ class World(object):
 
     @property
     def our_goal(self):
-        return self._goals[0] if self._our_side == 'left' else self._goals[1]
+        return self._goals[0] if self.our_side == 'left' else self._goals[1]
 
     @property
     def their_goal(self):
-        return self._goals[1] if self._our_side == 'left' else self._goals[0]
+        return self._goals[1] if self.our_side == 'left' else self._goals[0]
 
     @property
     def pitch(self):
@@ -69,20 +69,6 @@ class World(object):
         self.our_defender.vector = pos_dict['our_defender']
         self.their_defender.vector = pos_dict['their_defender']
         self.ball.vector = pos_dict['ball']
-
-        # Checking if the robot locations make sense:
-        # Is the side correct:
-        if (self._our_side == 'left' and
-                not(self.our_defender.x < self.their_attacker.x
-                    < self.our_attacker.x < self.their_defender.x)):
-            #print "WARNING: The sides are probably wrong!"
-            pass
-
-        if (self._our_side == 'right' and
-                not(self.our_defender.x > self.their_attacker.x
-                    > self.our_attacker.x > self.their_defender.x)):
-            #print "WARNING: The sides are probably wrong!"
-            pass
 
     def ball_in_area(self, robots):
         """
@@ -103,17 +89,6 @@ class World(object):
         """
         return self.ball_in_area(self._robots)
 
-    def ball_at_wall(self, threshold=10):
-        """
-        True if the ball is within threshold cm of the wall. Intended use is to
-        determine when the robot must take a careful approach to the ball.
-        """
-        threshold_px = cm_to_px(threshold)
-        return self.ball.x < threshold_px or \
-            self.ball.y < threshold_px or \
-            self.ball.x > self.pitch.width - threshold_px or \
-            self.ball.y > self.pitch.height - threshold_px
-
     def ball_too_close(self, robot, threshold=18):
         """
         True if the ball is within threshold cm of the robot. Intended use is to
@@ -121,7 +96,7 @@ class World(object):
         Note that we calculate the distance from the robot's center, and so
         this is dependent on the dimensions of the robot.
         """
-        threshold_px = cm_to_px(threshold)
+        threshold_px = self.cm_to_px(threshold)
         r_x, r_y = robot.x, robot.y
         b_x, b_y = self.ball.x, self.ball.y
         too_close_x = r_x - threshold_px < b_x < r_x + threshold_px
@@ -169,7 +144,7 @@ class World(object):
                 return lower_tgt
             else:  # Bounce shot
 
-                return self.our_attacker.get_point_via_wall(upper_tgt[0],
+                return self.our_attacker.target_via_wall(upper_tgt[0],
                                                             upper_tgt[1]
                                                             )
         else:
@@ -180,7 +155,7 @@ class World(object):
             if not straight_shot_poly.overlaps(self.their_defender.get_polygon()):
                 return upper_tgt
             else:  # Bounce shot
-                return self.our_attacker.get_point_via_wall(lower_tgt[0],
+                return self.our_attacker.target_via_wall(lower_tgt[0],
                                                             lower_tgt[1],
                                                             False)
 
@@ -188,8 +163,8 @@ class World(object):
         our_center_x, our_center_y = \
             self.pitch.zones[self.our_attacker.zone].center()
         our_center_y = \
-            our_center_y * 3/2 if self.their_attacker > our_center_y \
-                else our_center_y * 1/2
+            our_center_y * 1/2 if self.their_attacker.y > our_center_y \
+                else our_center_y * 3/2
         return our_center_x, our_center_y
 
     def find_pass_spot_ms3(self, robot):
@@ -207,7 +182,7 @@ class World(object):
         else:
             los_y = (8.0/10) * self.pitch.height
 
-        if self._our_side == 'right':
+        if self.our_side == 'right':
             los_x = int(our_center_x+25)  # TODO MAGIC NUMBERS WOOO
         else:
             los_x = int(our_center_x-25)
@@ -221,7 +196,20 @@ class World(object):
         """
         return robot.catcher_area.isInside(self.ball.x, self.ball.y)
 
+    def cm_to_px(self, cm):
+        """
+        Use the constant ratio CM_PX_RATIO to convert from cm to px
+        :param cm: Centimetre value to be converted.
+        :return: Pixel equivalent
+        """
+        return PX_PER_CM * cm
+
     def px_to_cm(self, px):
+        """
+        Use the constant ratio CM_PX_RATIO to convert from px to cm
+        :param px: Pixel value to be converted
+        :return: Centimeter representation
+        """
         return px / PX_PER_CM
 
 
@@ -276,21 +264,14 @@ class WorldUpdater:
         self.world.our_attacker.catcher_area = \
             {'width': 20, 'height': 20, 'front_offset': 18}
         self.world.their_defender.catcher_area = \
-            {'width': 40, 'height': 40, 'front_offset': 20}
+            {'width': 30, 'height': 25, 'front_offset': 10}
         self.world.their_attacker.catcher_area = \
-            {'width': 40, 'height': 40, 'front_offset': 20}
+            {'width': 30, 'height': 25, 'front_offset': 10}
 
         grabbers = {'our_defender': self.world.our_defender.catcher_area,
-                    'our_attacker': self.world.our_attacker.catcher_area}
+                    'our_attacker': self.world.our_attacker.catcher_area,
+                    'their_defender': self.world.their_defender.catcher_area,
+                    'their_attacker': self.world.their_attacker.catcher_area}
 
         self.world.update_positions(model_positions)
         return model_positions, regular_positions, grabbers
-
-
-def cm_to_px(cm):
-    """
-    Use the constant ratio CM_PX_RATIO to convert from cm to px
-    :param cm: Centimetre valued to be converted.
-    :return: Pixel equivalent
-    """
-    return PX_PER_CM * cm

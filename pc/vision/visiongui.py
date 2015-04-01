@@ -14,10 +14,11 @@ TEAM_COLORS = set(['yellow', 'blue'])
 
 class VisionGUI(object):
 
-    def __init__(self, wrapper, pitch):
+    def __init__(self, wrapper, pitch, vision_filter_toggle):
         self.wrapper = wrapper
         self.pitch = pitch
         self.zones = None
+        self.vision_filter_toggle = vision_filter_toggle
 
     def to_info(self, args):
         """
@@ -45,7 +46,7 @@ class VisionGUI(object):
         return {'x': x, 'y': y, 'angle': angle, 'velocity': velocity}
 
     def draw(self, frame, model_positions, regular_positions,
-             grabbers, fps, our_color, our_side, p_state, s_state):
+             grabbers, fps, our_color, our_side, p_state, s_state, brightness, blur):
         """
         Draw information onto the GUI given positions from the vision and
         post processing.
@@ -53,6 +54,19 @@ class VisionGUI(object):
         """
         # Get general information about the frame
         frame_height, frame_width, channels = frame.shape
+
+        # If we want to be able to see the effects of blur/contrast/brightness
+        if self.vision_filter_toggle:
+            # Apply the blur
+            if blur > 1:
+                if blur % 2 == 0:
+                    blur -= 1
+                frame = cv2.GaussianBlur(frame, (blur, blur), 0)
+
+            # Apply the brightness
+            if brightness*1.0 > 1.0:
+                frame = cv2.add(frame, np.array([brightness*1.0]))
+
 
         # Draw dividers for the zones
         self.draw_zones(frame, frame_width, frame_height)
@@ -172,25 +186,35 @@ class VisionGUI(object):
                 position_dict['direction'][1],
                 BGR_COMMON['orange'], 2)
 
-    def draw_grabbers(self, frame, grabbers, height):
-        def_grabber = grabbers['our_defender'][0]
-        att_grabber = grabbers['our_attacker'][0]
+    def draw_grabbers(self, frame, grabbers, height):  # TODO refactor
+        our_def = grabbers['our_defender'][0]
+        our_att = grabbers['our_attacker'][0]
+        opp_def = grabbers['their_defender'][0]
+        opp_att = grabbers['their_attacker'][0]
 
-        def_grabber = [(x, height - y) for x, y in def_grabber]
-        att_grabber = [(x, height - y) for x, y in att_grabber]
+        our_def = [(x, height - y) for x, y in our_def]
+        our_att = [(x, height - y) for x, y in our_att]
+        opp_def = [(x, height - y) for x, y in opp_def]
+        opp_att = [(x, height - y) for x, y in opp_att]
 
-        def_grabber = [(int(x) if x > -1 else 0, int(y) if y > -1 else 0)
-                       for x, y in def_grabber]
-        att_grabber = [(int(x) if x > -1 else 0, int(y) if y > -1 else 0)
-                       for x, y in att_grabber]
+        our_def = [(int(x) if x > -1 else 0, int(y) if y > -1 else 0)
+                   for x, y in our_def]
+        our_att = [(int(x) if x > -1 else 0, int(y) if y > -1 else 0)
+                   for x, y in our_att]
+        opp_def = [(int(x) if x > -1 else 0, int(y) if y > -1 else 0)
+                   for x, y in opp_def]
+        opp_att = [(int(x) if x > -1 else 0, int(y) if y > -1 else 0)
+                   for x, y in opp_att]
 
-        def_grabber[2], def_grabber[3] = def_grabber[3], def_grabber[2]
-        att_grabber[2], att_grabber[3] = att_grabber[3], att_grabber[2]
+        our_def[2], our_def[3] = our_def[3], our_def[2]
+        our_att[2], our_att[3] = our_att[3], our_att[2]
+        opp_def[2], opp_def[3] = opp_def[3], opp_def[2]
+        opp_att[2], opp_att[3] = opp_att[3], opp_att[2]
 
-        cv2.polylines(frame, [np.array(def_grabber)],
-                      True, BGR_COMMON['red'], 1)
-        cv2.polylines(frame, [np.array(att_grabber)],
-                      True, BGR_COMMON['red'], 1)
+        cv2.polylines(frame, [np.array(our_def)], True, BGR_COMMON['red'], 1)
+        cv2.polylines(frame, [np.array(our_att)], True, BGR_COMMON['red'], 1)
+        cv2.polylines(frame, [np.array(opp_def)], True, BGR_COMMON['red'], 1)
+        cv2.polylines(frame, [np.array(opp_att)], True, BGR_COMMON['red'], 1)
 
     def draw_line(self, frame, points, thickness=2):
         if points is not None:

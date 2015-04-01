@@ -53,8 +53,9 @@ class Planner(object):
                 BALL_NOT_VISIBLE: Idle(self.world, self.robot_ctl),
                 GETTING_BALL: GetBall(self.world, self.robot_ctl),
                 POSSESSION: ShootGoal(self.world, self.robot_ctl),
-                DEFENDING: Intercept(self.world, self.robot_ctl),
-                AWAITING_PASS: Idle(self.world, self.robot_ctl)
+                DEFENDING: Defend(self.world, self.robot_ctl),
+                INTERCEPT: Intercept(self.world, self.robot_ctl),
+                AWAITING_PASS: AwaitPass(self.world, self.robot_ctl)
             }
         elif self.profile == 'ms3':
             self._strategy_map = {
@@ -93,7 +94,6 @@ class Planner(object):
         if new_strategy is not self.strategy:
             if self.strategy is not None:
                 self.strategy.reset()
-            # STOP PUTTING THIS IN A FUCKING ELSE BLOCK YOU FUCKS
             self.strategy = new_strategy
 
     def attacker_transition(self):
@@ -102,15 +102,18 @@ class Planner(object):
 
         Updates the planner state and current strategy based on the world state
         """
-
         # Successfully grabbed ball, who cares what area it's in?
         if self.robot_ctl.ball_grabbed:
             self.state = POSSESSION
 
         # Ball is in their defender's area
         elif self.world.ball_in_area([self.world.their_defender]):
-            # Assume their def has ball, stalk the defender's target
-            self.state = DEFENDING
+            # Their defender has the ball
+            if self.world.can_catch_ball(self.world.their_defender):
+                self.state = DEFENDING
+            # Either rebound or a pass
+            else:
+                self.state = INTERCEPT
 
         # Ball in our defender's area
         elif self.world.ball_in_area([self.world.our_defender]):
@@ -119,13 +122,14 @@ class Planner(object):
                 self.state = AWAITING_PASS
             # Could be a rebound, if so then prepare to intercept
             elif not self.state == AWAITING_PASS:
-                self.state = DEFENDING
+                self.state = INTERCEPT
 
         # Ball in our margin
         elif self.world.ball_in_area([self.robot_mdl]):
             # The ball is heading at us (hopefully) or is slow
-            if self.state == DEFENDING and self.world.ball.velocity > 4:
-                self.state = DEFENDING
+            if (self.state == DEFENDING or self.state == INTERCEPT) \
+                    and self.world.ball.velocity > 4:  # TODO tweak
+                self.state = INTERCEPT
             else:
                 self.state = GETTING_BALL
 
@@ -136,7 +140,7 @@ class Planner(object):
                 pass
             # Ball is not a pass, could be a rebound
             else:
-                self.state = DEFENDING
+                self.state = INTERCEPT
 
         # Ball is not visible or is between zones (calibrate properly?)
         else:

@@ -38,8 +38,10 @@ class Communicator(object):
         while True:
             if self.current_command is None:  # No current command, get
                 cmd = self.comm_pipe.recv()
-                self.current_command = \
-                    cmd + CMD_DELIMITER + self.ack_bit + CMD_TERMINAL
+                self.current_command = cmd[0] + CMD_DELIMITER + self.ack_bit
+                for arg in cmd[1]:
+                    self.current_command += CMD_DELIMITER + arg
+                self.current_command += CMD_TERMINAL
 
             else:  # Have a current command, get ack/state
                 self.serial.write(self.current_command)
@@ -53,12 +55,13 @@ class Communicator(object):
         flip the bit, send the state string to the parent process, and return
         true. Else return false.
         """
-        test = len(ack) == ACK_LEN and ack[0] == self.ack_bit
-        if test:
+        if len(ack) == ACK_LEN and ack[0] == self.ack_bit:
             self.ack_bit = '0' if self.ack_bit == '1' else '1'  # Flip
 
             # send state
             state_str = ack[1:]
             self.comm_pipe.send(state_str)
             self.current_command = None
-        return test
+            return True
+        else:
+            return False

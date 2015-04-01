@@ -16,7 +16,8 @@
 #define MOTOR_L 0
 #define MOTOR_R 2
 #define MOTOR_K 4
-#define MOTOR_G 5
+#define MOTOR_GL 5
+#define MOTOR_GR 3
 
 // Rotary encoder
 #define ROTARY_SLAVE_ADDRESS 5
@@ -31,6 +32,7 @@ int rotaryTimeout[ROTARY_COUNT] = {-1};  // Counters for rotary timeout
 
 // Communications
 SerialCommand comm;
+bool currentAckBit = false;
 
 // Grabber/kicker states, timers
 boolean grabberOpen = true;  // Assume open on startup
@@ -63,8 +65,9 @@ void loop() {
 void drive() {
   /*
    * Run drive motors L and R for given number of 'ticks' at the given motor speeds.
-   * ARGS: [L_ticks] [R_ticks][L_power] [R_power] [ack]
+   * ARGS: [ack] [L_ticks] [R_ticks][L_power] [R_power]
    */  
+  if (!ackTest()) return;
   rotaryCounter[0] = atoi(comm.next());
   rotaryCounter[1] = atoi(comm.next());
   int lPower = atoi(comm.next());
@@ -100,13 +103,15 @@ void drive() {
 void closeGrabber() {
   /*
    * Close the grabber with the hardcoded time and motor power
-   * ARGS: [time] [power] [ack]
+   * ARGS: [ack] [time] [power]
    * TODO: rotary grabber
    */
+  if (!ackTest()) return;
   int time = atoi(comm.next());
   int power = atoi(comm.next());
   if (!isGrabbing) {
-    motorBackward(MOTOR_G, power);
+    motorBackward(MOTOR_GL, power);
+    motorBackward(MOTOR_GR, power);
     grabTimer = millis() + time;
     isGrabbing = true;
   }
@@ -119,10 +124,12 @@ void openGrabber() {
    * ARGS: [time] [power] [ack]
    * TODO rotary grabber
    */
+  if (!ackTest()) return;
   int time = atoi(comm.next());
   int power = atoi(comm.next());
   if (!isGrabbing) {
-    motorForward(MOTOR_G, power);
+    motorForward(MOTOR_GL, power);
+    motorForward(MOTOR_GR, power);
     grabTimer = millis() + time;
     isGrabbing = true;
   }
@@ -136,6 +143,7 @@ void kick() {
    * ARGS: [ack] [time] [power]
    * TODO: rotary kicker
    */
+  if (!ackTest()) return;
   int time = atoi(comm.next());
   int power = atoi(comm.next());
   if (!isKicking) {
@@ -150,7 +158,8 @@ void checkTimers() {
   /* Check kicker and grabber timers */
   unsigned long time = millis();
   if (isGrabbing && time >= grabTimer) {  // Grab timer test
-    motorStop(MOTOR_G);
+    motorStop(MOTOR_GL);
+    motorStop(MOTOR_GR);
     grabTimer = 0;
     grabberOpen = !grabberOpen;
     isGrabbing = false;
@@ -198,9 +207,27 @@ void checkSensors() {
   isMoving = !(motorDir[0] == 0 && motorDir[1] == 0);
 }
 
+bool ackTest() {
+  char ackBit = comm.next()[0];
+  if (ackBit != castToChar(currentAckBit)) {
+    comm.clearBuffer();  // Flush remaining args
+    
+    // Send ack anyway -- TODO refactor
+    Serial.print(ackBit);
+    Serial.print(castToChar(grabberOpen));
+    Serial.print(castToChar(isGrabbing));
+    Serial.print(castToChar(isMoving));
+    Serial.print(castToChar(isKicking));
+    Serial.println(castToChar(ballGrabbed));
+    Serial.flush();
+    return false;
+  }
+  return true;
+}
+
 void ack() {
-  char ack_bit = comm.next()[0];
-  Serial.print(ack_bit);
+  Serial.print(castToChar(currentAckBit));
+  currentAckBit = !currentAckBit;  // Flip expected ack bit
   Serial.print(castToChar(grabberOpen));
   Serial.print(castToChar(isGrabbing));
   Serial.print(castToChar(isMoving));
