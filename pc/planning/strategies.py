@@ -71,6 +71,7 @@ class GetBall(Strategy):
     Have the robot move to the ball then grab it.
     Intended use is when the ball is in our robot's area.
     """
+
     def __init__(self, world, robot_ctl):
         _STATES = [TURNING_TO_BALL, OPENING_GRABBER,
                    MOVING_TO_BALL, GRABBING_BALL, POSSESSION]
@@ -104,6 +105,8 @@ class GetBall(Strategy):
                 self.robot_ctl.open_grabber()
 
     def move_to_ball(self):
+
+
         if self.world.can_catch_ball(self.robot_mdl):
             self.robot_ctl.stop()
             self.state = GRABBING_BALL
@@ -111,14 +114,10 @@ class GetBall(Strategy):
             if not self.robot_mdl.is_facing_point(self.ball.x, self.ball.y):
                 self.state = TURNING_TO_BALL
             else:
-                if self.robot_mdl.displacement_to_point(self.ball.x, self.ball.y) > 25:
-                    dist = self.robot_mdl.dist_from_grabber_to_point(self.ball.x,
-                                                                     self.ball.y)
-                else:
-                    dist = self.robot_mdl.displacement_to_point(self.ball.x,
+                dist = self.robot_mdl.displacement_to_point(self.ball.x,
                                                                 self.ball.y)
-                    # todo hack - subtract constant if result is nonneg
-                    dist = dist - 10 if dist > 10 else dist * 0.1
+                # hack - subtract constant if result is nonneg
+                dist = dist - 10 if dist > 10 else dist * 0.1
                 self.robot_ctl.drive(dist, dist)
 
     def close_grabber(self):
@@ -301,7 +300,7 @@ class ShootGoal(Strategy):
 
         # Turn to shot target
         if not self.robot_mdl.is_facing_point(self.shot_target[0],
-                                              self.shot_target[1], 0.01):
+                                              self.shot_target[1], 0.02):
             angle = self.robot_mdl.rotation_to_point(self.shot_target[0],
                                                      self.shot_target[1])
             self.robot_ctl.turn(angle*0.3)
@@ -312,8 +311,7 @@ class ShootGoal(Strategy):
         """
         Open grabber then kick.
         """
-        # TODO throws polygon exception - the proposed polygon is also worthless
-        # # If the path is now blocked, go back
+        # If the path is now blocked, go back
         # shoot_path = Polygon([self.shot_target, self.world.get_shot_target()])
         # if self.world.their_defender.overlaps(shoot_path):
         #     self.shot_target = None
