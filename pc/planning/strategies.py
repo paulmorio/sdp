@@ -312,13 +312,14 @@ class ShootGoal(Strategy):
         """
         Open grabber then kick.
         """
-        # If the path is now blocked, go back
-        shoot_path = Polygon([self.shot_target, self.world.get_shot_target()])
-        if self.world.their_defender.overlaps(shoot_path):
-            self.shot_target = None
-            self.state = GOTO_SHOOT_SPOT
+        # TODO throws polygon exception - the proposed polygon is also worthless
+        # # If the path is now blocked, go back
+        # shoot_path = Polygon([self.shot_target, self.world.get_shot_target()])
+        # if self.world.their_defender.overlaps(shoot_path):
+        #     self.shot_target = None
+        #     self.state = GOTO_SHOOT_SPOT
 
-        elif not self.robot_ctl.grabber_open:
+        if not self.robot_ctl.grabber_open:
             if not self.robot_ctl.is_grabbing:
                 self.robot_ctl.open_grabber()
         elif not self.robot_ctl.is_kicking:
