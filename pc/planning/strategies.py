@@ -302,7 +302,7 @@ class ShootGoal(Strategy):
 
         # Turn to shot target
         if not self.robot_mdl.is_facing_point(self.shot_target[0],
-                                              self.shot_target[1], 0.01):
+                                              self.shot_target[1], 0.02):
             angle = self.robot_mdl.rotation_to_point(self.shot_target[0],
                                                      self.shot_target[1])
             self.robot_ctl.turn(angle*0.3)
