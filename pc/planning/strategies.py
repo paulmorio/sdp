@@ -99,6 +99,7 @@ class GetBall(Strategy):
                                                          self.ball.y)
                 self.robot_ctl.turn(angle)
 
+
     def open_grabber(self):
         """
         Open the grabber then transition to moving_to_ball state.
@@ -127,13 +128,13 @@ class GetBall(Strategy):
             if not self.robot_mdl.is_facing_point(self.ball.x, self.ball.y):
                 self.state = TURNING_TO_BALL
 
-            else:  # Move towards the ball
+            elif not self.robot_ctl.is_grabbing:  # Move towards the ball
                 dist = self.robot_mdl.displacement_to_point(self.ball.x,
-                                                                self.ball.y)
+                                                            self.ball.y)
                 # Bit of a hack because we have no notion of distance from the
                 # grabber area to the ball - the distance is from the
                 # center of the plate.
-                dist = dist - 10 if dist > 10 else dist * 0.1
+                dist = dist - 20 if dist > 20 else dist * 0.1
                 self.robot_ctl.drive(dist, dist)
 
     def close_grabber(self):
@@ -143,10 +144,13 @@ class GetBall(Strategy):
         """
         # If we're not already grabbing then close the grabber until the
         # feedback from the grabber switch reads true - then transition.
-        if not self.robot_ctl.is_grabbing:
-            self.robot_ctl.close_grabber()
-            if self.robot_ctl.ball_grabbed:
-                self.state = POSSESSION
+        if self.world.can_catch_ball(self.robot_mdl):
+            if not self.robot_ctl.is_grabbing:
+                self.robot_ctl.close_grabber()
+                if self.robot_ctl.ball_grabbed:
+                    self.state = POSSESSION
+        else:
+            self.state = MOVING_TO_BALL
 
 
 class ShootGoal(Strategy):

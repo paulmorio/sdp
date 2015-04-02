@@ -89,7 +89,7 @@ class World(object):
         """
         return self.ball_in_area(self._robots)
 
-    def ball_too_close(self, robot, threshold=18):
+    def ball_too_close(self, robot, threshold=25):
         """
         True if the ball is within threshold cm of the robot. Intended use is to
         determine if it is safe for the robot to turn, open grabbers, etc.
@@ -239,9 +239,9 @@ class WorldUpdater:
         # Note that due to how the setter is written, these things need to be
         # set on every frame - bit hacked together.
         self.world.our_defender.catcher_area = \
-            {'width': 30, 'height': 30, 'front_offset': 20}
+            {'width': 25, 'height': 30, 'front_offset': 20}
         self.world.our_attacker.catcher_area = \
-            {'width': 20, 'height': 20, 'front_offset': 18}
+            {'width': 30, 'height': 30, 'front_offset': 18}
         self.world.their_defender.catcher_area = \
             {'width': 30, 'height': 25, 'front_offset': 10}
         self.world.their_attacker.catcher_area = \

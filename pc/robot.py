@@ -62,12 +62,13 @@ class Robot(object):
         Set the current command.
         :param val: Iterable/tuple - cmd [args]
         """
-        try:
-            cmd, arguments = val
-        except ValueError:
-            raise ValueError("Pass an iterable (cmd, [args])")
-        else:
-            self._queued_command = cmd, arguments
+        if self._current_command is None or self._current_command[0] == STATUS:
+            try:
+                cmd, arguments = val
+            except ValueError:
+                raise ValueError("Pass an iterable (cmd, [args])")
+            else:
+                self._queued_command = cmd, arguments
 
     def reset_queued_command(self):
         self._queued_command = None
