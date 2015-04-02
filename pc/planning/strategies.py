@@ -59,6 +59,11 @@ class Idle(Strategy):
     """
     The idle strategy has the robot do nothing.
     Intended use is when the ball is not visible or not reachable by the robot.
+
+    Note that, in the case where vision is a bit dodgy, it's best to simply
+    have this do nothing. Otherwise if the ball 'disappears' momentarily
+    then the robot may run off somewhere for no clear reason, or whichever
+    action is here.
     """
     def __init__(self, world, robot_ctl):
         _STATES = [IDLE]
@@ -77,52 +82,71 @@ class GetBall(Strategy):
         _STATE_MAP = {TURNING_TO_BALL: self.face_ball,
                       OPENING_GRABBER: self.open_grabber,
                       MOVING_TO_BALL: self.move_to_ball,
-                      GRABBING_BALL: self.close_grabber}
+                      GRABBING_BALL: self.close_grabber,
+                      POSSESSION: self.do_nothing}
         super(GetBall, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
         self.ball = self.world.ball
 
     def face_ball(self):
-        if self.world.can_catch_ball(self.robot_mdl) \
-                and self.robot_ctl.grabber_open:
-            self.state = GRABBING_BALL
-
-        elif not self.robot_moving():
+        """
+        Turn to face the ball then transition to opening_grabber state.
+        """
+        if not self.robot_moving():
             if self.robot_mdl.is_facing_point(self.ball.x, self.ball.y):
                 self.state = OPENING_GRABBER
             else:
                 angle = self.robot_mdl.rotation_to_point(self.ball.x,
-                                                             self.ball.y)
+                                                         self.ball.y)
                 self.robot_ctl.turn(angle)
 
     def open_grabber(self):
-        if not self.robot_ctl.is_grabbing:
-            if self.robot_ctl.grabber_open:
+        """
+        Open the grabber then transition to moving_to_ball state.
+        """
+        # If the ball is too close for the grabber to be opened then shift back
+        if self.world.ball_too_close(self.robot_mdl):
+            self.robot_ctl.drive(-2, -2)  # Magic numbers - 2cm works well
+
+        # Send the open command
+        else:
+            self.robot_ctl.open_grabber()
+            # Transition when we see the grabber motor is actually running
+            if self.robot_ctl.is_grabbing:
                 self.state = MOVING_TO_BALL
-            elif self.world.ball_too_close(self.robot_mdl):  # SAFE SPACE POLICY
-                self.robot_ctl.drive(-1, -1)           # Shift back a bit
-            else:
-                self.robot_ctl.open_grabber()
 
     def move_to_ball(self):
+        """
+        Move to the ball then transition to the closing_grabber state.
+        """
+        # If we can catch then do so
         if self.world.can_catch_ball(self.robot_mdl):
-            self.robot_ctl.stop()
             self.state = GRABBING_BALL
-        if not self.robot_moving():
+
+        elif not self.robot_moving():
+            # Are we still facing the ball?
             if not self.robot_mdl.is_facing_point(self.ball.x, self.ball.y):
                 self.state = TURNING_TO_BALL
-            else:
+
+            else:  # Move towards the ball
                 dist = self.robot_mdl.displacement_to_point(self.ball.x,
                                                                 self.ball.y)
-                # hack - subtract constant if result is nonneg
+                # Bit of a hack because we have no notion of distance from the
+                # grabber area to the ball - the distance is from the
+                # center of the plate.
                 dist = dist - 10 if dist > 10 else dist * 0.1
                 self.robot_ctl.drive(dist, dist)
 
     def close_grabber(self):
+        """
+        Close the grabber and transition to the (final) possession state once
+        possession is confirmed by robot feedback.
+        """
+        # If we're not already grabbing then close the grabber until the
+        # feedback from the grabber switch reads true - then transition.
         if not self.robot_ctl.is_grabbing:
-            if self.robot_ctl.grabber_open:
-                self.robot_ctl.close_grabber()
-            elif not self.world.can_catch_ball(self.robot_mdl):
-                self.state = TURNING_TO_BALL
+            self.robot_ctl.close_grabber()
+            if self.robot_ctl.ball_grabbed:
+                self.state = POSSESSION
 
 
 class ShootGoal(Strategy):
@@ -131,50 +155,59 @@ class ShootGoal(Strategy):
     Intended use is when the ball is in our possession.
     """
     def __init__(self, world, robot_ctl):
-        _STATES = [INIT, GOTO_SHOOT_SPOT, CHOOSING_SHOT_ANGLE, KICKING, DONE]
+        _STATES = [INIT, GOTO_SHOOT_SPOT, CHOOSING_SHOT_ANGLE, KICKING]
         _STATE_MAP = {INIT: self.close_grabber,
                       GOTO_SHOOT_SPOT: self.go_to_shoot_spot,
                       CHOOSING_SHOT_ANGLE: self.turn_to_shoot,
-                      KICKING: self.kick,
-                      DONE: self.do_nothing}
+                      KICKING: self.kick}
 
         super(ShootGoal, self).__init__(world, robot_ctl, _STATES, _STATE_MAP)
         self.target = self.world.their_goal
         self.their_defender = self.world.their_defender
-        self.dest = None
+        self.dest = None  # Point from which we'll shoot
 
     def close_grabber(self):
         """
         Ensure that the grabber is closed. This is to account for the case
         where the ball magically appears in our grabber slot without us having
         actually grabbed it.
+
+        The aforementioned case occurs because the top-level will push us into
+        this strategy when the grabber button is pressed, regardless of what
+        was happening before.
         """
+        # Yes this will run even if the grabber is closed. It's fine, we have
+        # clutch gears.
         if not self.robot_ctl.is_grabbing:
-            if not self.robot_ctl.grabber_open:
-                self.state = GOTO_SHOOT_SPOT
-            else:
-                self.robot_ctl.close_grabber()
+            self.robot_ctl.close_grabber()
+        else:
+            self.state = GOTO_SHOOT_SPOT
 
     def go_to_shoot_spot(self):
         """
         Go to the closest shooting spot.
         """
         if self.dest is None:
-            self.dest = self.world.get_shot_spot()
+        # TODO if there is a clear shot from here, take it
+            if False:
+                self.dest = self.robot_mdl.x, self.robot_mdl.y
+        # Choose a spot from which there is a clear shot
+            else:
+                self.dest = self.world.get_shot_spot()
 
         if not self.robot_moving():
-            # At the destination, move on
+            # At the destination, move on TODO adjust threshold
             if self.robot_mdl.is_at_point(self.dest[0], self.dest[1]):
                 self.dest = None
                 self.state = CHOOSING_SHOT_ANGLE
 
-            # Else, not facing destination
+            # Not facing destination - turn
             elif not self.robot_mdl.is_facing_point(self.dest[0], self.dest[1]):
                 angle = self.robot_mdl.rotation_to_point(self.dest[0],
                                                          self.dest[1])
                 self.robot_ctl.turn(angle)
 
-            # Facing the point, move forward
+            # Move to destination
             else:
                 dist = self.robot_mdl.displacement_to_point(self.dest[0],
                                                             self.dest[1])
@@ -188,14 +221,15 @@ class ShootGoal(Strategy):
         # Get a clear shot target
         shot_target = self.world.get_shot_target()
 
-        # Turn to shot target if necessary
+        # Turn to shot target if necessary TODO adjust threshold
         if not self.robot_mdl.is_facing_point(shot_target[0], shot_target[1]):
             angle = self.robot_mdl.rotation_to_point(shot_target[0],
                                                      shot_target[1])
             self.robot_ctl.turn(angle)
 
-        # Kick
-        self.state = KICKING
+        # Facing the target - kick!
+        else:
+            self.state = KICKING
 
     def kick(self):
         """
@@ -208,8 +242,8 @@ class ShootGoal(Strategy):
                 if not self.robot_ctl.is_grabbing:
                     self.robot_ctl.open_grabber()
 
-            # Kick kick kick kick kick
-            self.robot_ctl.kick()
+            else:
+                self.robot_ctl.kick()
 
 
 class Defend(Strategy):
@@ -252,20 +286,21 @@ class Defend(Strategy):
 
     def track_shot_path(self):
         # find y where shot path intercepts our x
-        # The margin to which we restrict the robot. This is to avoid us being
-        # juked by a faux bounce pass.
-        y_max = self.world.pitch.height * 0.9  # TODO tune
+        # Margin 'prevents' us running into the walls
+        y_max = self.world.pitch.height * 0.9
         y_min = self.world.pitch.height * 0.1
         their_def = self.world.their_defender
 
-        # If their def is facing away (not yet ready for shot)
-        # TODO refactor into world state method
         if self.world.our_side == 'left':
-            if their_def.angle < 4 * math.pi / 6:
-                target_y = y_max  # TODO turning direction cases
-            elif their_def.angle > 4 * math.pi / 3:
-                target_y = y_min
-            else:  # Get intersection
+            # Facing top-right - no intercept. Track their y instead.
+            if 4 * math.pi / 3 < their_def.angle < math.pi / 2:
+                target_y = their_def.y
+
+            # Facing bottom-right - no intercept. Track their y instead.
+            elif their_def.angle > 3 * math.pi / 2:
+                target_y = their_def.y
+
+            else:  # Get point of intersection TODO refactor
                 # Get shot line
                 slope = math.tan(their_def.angle)
                 offset = their_def.y - slope*their_def.x
@@ -280,10 +315,14 @@ class Defend(Strategy):
                     target_y = intersection
 
         else:
-            if math.pi > their_def.angle > 2 * math.pi / 6:
-                target_y = y_max
-            elif math.pi < their_def.angle < 5 * math.pi / 3:
-                target_y = y_min
+            # Their def facing top-left - track y
+            if math.pi > their_def.angle > math.pi / 2:
+                target_y = their_def.y
+
+            # Their def facing bottom-left - track y
+            elif math.pi < their_def.angle < 3 * math.pi / 2:
+                target_y = their_def.y
+
             else:  # Get intersection
                 # Get shot line
                 slope = math.tan(their_def.angle)
@@ -298,17 +337,11 @@ class Defend(Strategy):
                 else:
                     target_y = intersection
 
-        # Check if square -- account for robot veering off
-        if not self.robot_mdl.is_square:
-            if self.robot_moving():
-                self.robot_ctl.stop()
-            else:
-                self.state = TURNING_TO_WALL
-
         # move to y
-        elif not self.robot_moving():
+        if not self.robot_moving():
             if not self.robot_mdl.is_square():  # Straighten up
                 self.state = TURNING_TO_WALL
+
             elif not target_y - 8 < self.robot_mdl.y < target_y + 8:
                 displacement = self.world.px_to_cm(target_y - self.robot_mdl.y)
                 if self.top_fixated:
@@ -390,6 +423,7 @@ class AwaitPass(Strategy):
     when the ball crosses into a different zone - this will cause some funky
     bugs and as such it requires a lot of testing (at the planner level that is)
     """
+    # TODO revamp for new team 8 passing strategy
     def __init__(self, world, robot_ctl):
         _STATES = [MOVING_TO_DEST, OPENING_GRABBER, TURNING_TO_WALL]
         _STATE_MAP = {MOVING_TO_DEST: self.move_to_pass_point,
@@ -433,9 +467,8 @@ class AwaitPass(Strategy):
                 self.robot_ctl.turn(angle)
 
     def open_grabber(self):
-        if not self.robot_ctl.grabber_open and not self.robot_ctl.is_grabbing:
+        if not self.robot_ctl.is_grabbing:
             self.robot_ctl.open_grabber()
-        # TODO if def has backed out of pass, rethink?
 
     def reset(self):
         super(AwaitPass, self).reset()

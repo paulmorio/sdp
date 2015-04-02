@@ -167,33 +167,12 @@ class World(object):
                 else our_center_y * 3/2
         return our_center_x, our_center_y
 
-    def find_pass_spot_ms3(self, robot):
-        """
-        Go to a point from which we can pass to our defender around the static
-        ms3 obstacle.
-        """
-        our_center_x, our_center_y = \
-            self.pitch.zones[robot.zone].center()
-        their_center_x, their_center_y = \
-            self.pitch.zones[self.their_attacker.zone].center()
-
-        if self.their_attacker.y > their_center_y:
-            los_y = (2.0/10) * self.pitch.height
-        else:
-            los_y = (8.0/10) * self.pitch.height
-
-        if self.our_side == 'right':
-            los_x = int(our_center_x+25)  # TODO MAGIC NUMBERS WOOO
-        else:
-            los_x = int(our_center_x-25)
-
-        return los_x, los_y
-
     def can_catch_ball(self, robot):
         """
         True if the given robot can catch the ball. Note that this requires
         that the given robot has a grabber area defined.
         """
+        # TODO why the hell did I put this here? Move to robot model.
         return robot.catcher_area.isInside(self.ball.x, self.ball.y)
 
     def cm_to_px(self, cm):
