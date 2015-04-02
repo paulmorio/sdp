@@ -2,9 +2,9 @@ import unittest
 from math import pi, sin, cos, tan, atan, hypot, sqrt
 from pc.models.world import World, WorldUpdater
 from pc.models.models import *
-from pc.models.vision import *
+from pc.vision import *
 from numpy.testing import assert_almost_equal
-from postprocessing import Postprocessing
+from pc.models.postprocessing import Postprocessing
 from Polygon.cPolygon import Polygon
 
 class TestWorld(unittest.TestCase):

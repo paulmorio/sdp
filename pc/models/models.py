@@ -259,8 +259,7 @@ class Robot(PitchObject):
         if displacement == 0:
             theta = 0
         else:
-            theta = atan2(delta_y, delta_x) - \
-                atan2(sin(self.angle), cos(self.angle))
+            theta = atan2(delta_y, delta_x) - atan2(sin(self.angle), cos(self.angle))
             if theta > pi:
                 theta -= 2*pi
             elif theta < -pi:
@@ -352,7 +351,7 @@ class Robot(PitchObject):
             return -rad_thresh < self.rotation_to_point(x, y) - pi \
                 < rad_thresh
 
-    def is_at_point(self, x, y, cm_threshold=2):
+    def is_at_point(self, x, y, cm_threshold=8):
         """
         True if the point is less that cm_threshold centimetres from the robot
         center

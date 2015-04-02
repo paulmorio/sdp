@@ -240,3 +240,12 @@ class Vision(object):
                 velocity = args['velocity']
 
         return {'x': x, 'y': y, 'angle': angle, 'velocity': velocity}
+
+def split_into_rgb_channels(image):
+    """
+    Split the target image into its red, green and blue channels.
+    """
+    red = image[:, :, 0]
+    green = image[:, :, 1]
+    blue = image[:, :, 2]
+    return red, green, blue
