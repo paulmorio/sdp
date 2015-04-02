@@ -13,7 +13,7 @@ class Planner(object):
         :param profile: Planning profile.
         :type profile: str
         """
-        assert (profile in ['attacker', 'ms3', 'penalty'])
+        assert (profile in ['attacker', 'penalty'])
         self.world = world
         self._profile = profile
         self.robot_mdl = world.our_attacker
@@ -57,13 +57,6 @@ class Planner(object):
                 INTERCEPT: Intercept(self.world, self.robot_ctl),
                 AWAITING_PASS: AwaitPass(self.world, self.robot_ctl)
             }
-        elif self.profile == 'ms3':
-            self._strategy_map = {
-                BALL_NOT_VISIBLE: Idle(self.world, self.robot_ctl),
-                GETTING_BALL: GetBall(self.world, self.robot_ctl),
-                POSSESSION: PassBall(self.world, self.robot_ctl),
-                BALL_NOT_IN_OUR_ZONE: FaceBall(self.world, self.robot_ctl)
-            }
         elif self.profile == 'penalty':
             self._strategy_map = {
                 BALL_NOT_VISIBLE: Idle(self.world, self.robot_ctl),
@@ -76,8 +69,6 @@ class Planner(object):
         """
         if self.profile == 'attacker':
             self.attacker_transition()
-        elif self.profile == 'ms3':
-            self.ms3_transition()
         elif self.profile == 'penalty':
             self.penalty_transition()
 
@@ -145,31 +136,6 @@ class Planner(object):
         # Ball is not visible or is between zones (calibrate properly?)
         else:
             self.state = BALL_NOT_VISIBLE
-
-        self.update_strategy()
-
-    def ms3_transition(self):
-        """
-        Update the planner state and strategy given the current state of the
-        world model.
-
-        For the attacker (ms3) profile.
-        """
-        # Successfully grabbed ball
-        if self.robot_ctl.ball_grabbed:
-            self.state = POSSESSION
-
-        # If ball is in our margin
-        elif self.world.ball_in_area([self.robot_mdl]):
-            self.state = GETTING_BALL
-
-        # If the ball is not visible
-        elif not self.world.ball_in_play():
-            self.state = BALL_NOT_VISIBLE
-
-        # Ball in play but not in our margin
-        else:
-            self.state = BALL_NOT_IN_OUR_ZONE
 
         self.update_strategy()
 

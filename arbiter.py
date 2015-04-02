@@ -54,7 +54,7 @@ class Arbiter(object):
         assert pitch in [0, 1]
         assert colour in ['yellow', 'blue']
         assert our_side in ['left', 'right']
-        assert profile in ['ms3', 'attacker', 'penalty', 'None']
+        assert profile in ['attacker', 'penalty', 'None']
 
         self.pitch = pitch
         self.colour = colour
